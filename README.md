@@ -84,7 +84,14 @@ What gets diffed, in order of precedence: `--range`, `--staged`, `--base`, then 
 
 ### For agents
 
-Add something like this to your `CLAUDE.md` or `AGENTS.md`:
+The [nitpick-skills](https://github.com/LVTD-LLC/nitpick-skills) repo packages a skill and plugin for Claude Code, Codex, Cursor, OpenClaw, OpenCode, and any Agent Skills client. It teaches the agent to install nitpick, run it before a PR, and loop on findings:
+
+```bash
+claude plugin marketplace add LVTD-LLC/nitpick-skills && claude plugin install nitpick@nitpick-skills
+codex plugin marketplace add LVTD-LLC/nitpick-skills && codex plugin add nitpick@nitpick-skills
+```
+
+Without a plugin system, add something like this to your `CLAUDE.md` or `AGENTS.md`:
 
 ```
 Before opening a PR, run `nitpick` from the repo root. Fix every finding at

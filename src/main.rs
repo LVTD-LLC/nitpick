@@ -113,9 +113,17 @@ struct ReviewArgs {
     #[arg(long)]
     timeout: Option<u64>,
 
-    /// Max completion tokens (default 8000).
+    /// Max completion tokens (default 16000; doubled automatically if the model runs out).
     #[arg(long)]
     max_tokens: Option<u32>,
+
+    /// Reasoning effort for models that support it: none, low, medium, high.
+    #[arg(long, env = "NITPICK_REASONING")]
+    reasoning: Option<String>,
+
+    /// Never request structured output (response_format); some backends reject it.
+    #[arg(long)]
+    no_structured: bool,
 
     /// Sampling temperature (default 0.1).
     #[arg(long)]
@@ -209,10 +217,17 @@ fn settings(args: &ReviewArgs, repo: &git::Repo, need_provider: bool) -> Result<
     instructions.extend(args.focus.iter().cloned());
 
     let request = llm::RequestOpts {
-        max_tokens: args.max_tokens.or(file.max_tokens).unwrap_or(8000),
+        max_tokens: args.max_tokens.or(file.max_tokens).unwrap_or(16_000),
         temperature: args.temperature.or(file.temperature).unwrap_or(0.1),
         timeout: Duration::from_secs(args.timeout.or(file.timeout_secs).unwrap_or(300)),
+        reasoning: args.reasoning.clone().or(file.reasoning.clone()).map(|r| r.trim().to_ascii_lowercase()),
+        no_structured: args.no_structured || file.structured == Some(false),
     };
+    if let Some(r) = &request.reasoning
+        && !matches!(r.as_str(), "none" | "low" | "medium" | "high")
+    {
+        bail!("invalid reasoning effort `{r}` (expected none, low, medium, high)");
+    }
 
     let ctx = context::Options {
         budget_tokens: args.budget.or(file.budget_tokens).unwrap_or(80_000),
@@ -269,7 +284,10 @@ fn run_review(args: ReviewArgs) -> Result<i32> {
     let pack = context::build(&repo, &mode, &s.ctx)?;
     if pack.is_empty() {
         if args.json {
-            println!("{{\"verdict\":\"approve\",\"findings\":[],\"note\":\"no changes to review\",\"mode\":{:?}}}", mode.label());
+            println!(
+                "{{\"verdict\":\"approve\",\"findings\":[],\"note\":\"no changes to review\",\"mode\":{:?}}}",
+                mode.label()
+            );
         } else {
             println!("No changes to review ({}).", mode.label());
         }
@@ -278,6 +296,7 @@ fn run_review(args: ReviewArgs) -> Result<i32> {
 
     let user = prompt::user_message(&pack, &s.instructions);
     let schema = review::schema();
+    let system = prompt::system(&schema);
     if !args.quiet {
         let st = &pack.stats;
         eprintln!(
@@ -304,12 +323,13 @@ fn run_review(args: ReviewArgs) -> Result<i32> {
             let provider = &s.provider;
             let user = &user;
             let schema = &schema;
+            let system = system.as_str();
             let request = &s.request;
             let quiet = args.quiet;
             let verbose = args.verbose;
             async move {
                 let started = Instant::now();
-                let res = llm::complete(client, provider, model, prompt::SYSTEM, user, schema, request).await;
+                let res = llm::complete(client, provider, model, system, user, schema, request).await;
                 match res {
                     Ok(c) => {
                         if verbose {
@@ -325,7 +345,11 @@ fn run_review(args: ReviewArgs) -> Result<i32> {
                         match review::parse_lenient(&c.content) {
                             Ok(r) => {
                                 if !quiet && !verbose {
-                                    eprintln!("nitpick: {model} done in {:.1}s, {} finding(s)", c.elapsed_ms as f64 / 1000.0, r.findings.len());
+                                    eprintln!(
+                                        "nitpick: {model} done in {:.1}s, {} finding(s)",
+                                        c.elapsed_ms as f64 / 1000.0,
+                                        r.findings.len()
+                                    );
                                 }
                                 ModelResult {
                                     model: model.clone(),
@@ -369,7 +393,8 @@ fn run_review(args: ReviewArgs) -> Result<i32> {
     })?;
 
     if results.iter().all(|r| r.review.is_none()) {
-        let errs: Vec<String> = results.iter().map(|r| format!("{}: {}", r.model, r.error.as_deref().unwrap_or("?"))).collect();
+        let errs: Vec<String> =
+            results.iter().map(|r| format!("{}: {}", r.model, r.error.as_deref().unwrap_or("?"))).collect();
         bail!("every model failed:\n  {}", errs.join("\n  "));
     }
 

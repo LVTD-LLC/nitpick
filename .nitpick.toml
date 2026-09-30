@@ -1,0 +1,8 @@
+# nitpick reviewing nitpick.
+model = ["stealth/space-bunny-alpha", "nvidia/nemotron-3-ultra-550b-a55b:free"]
+fail_on = "high"
+instructions = """
+This is a Rust CLI used by AI coding agents. Correctness of the diff parser and the
+context engine matters most: wrong line numbers or ranges make every review worse.
+Be strict about panics on slicing, off-by-one errors, and unbounded work on large repos.
+"""

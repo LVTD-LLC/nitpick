@@ -26,18 +26,89 @@ pub struct SearchResult {
 }
 
 const JUNK_SUFFIXES: &[&str] = &[
-    ".lock", ".min.js", ".min.css", ".map", ".svg", ".snap", ".pb.go", ".pb.ts", ".d.ts.map", ".wasm", ".ico",
-    ".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf", ".zip", ".gz", ".tar", ".woff", ".woff2", ".ttf", ".otf",
-    ".mp4", ".mp3", ".bin", ".exe", ".dll", ".so", ".dylib", ".class", ".jar", ".pyc", ".sqlite", ".db",
+    ".lock",
+    ".min.js",
+    ".min.css",
+    ".map",
+    ".svg",
+    ".snap",
+    ".pb.go",
+    ".pb.ts",
+    ".d.ts.map",
+    ".wasm",
+    ".ico",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".pdf",
+    ".zip",
+    ".gz",
+    ".tar",
+    ".woff",
+    ".woff2",
+    ".ttf",
+    ".otf",
+    ".mp4",
+    ".mp3",
+    ".bin",
+    ".exe",
+    ".dll",
+    ".so",
+    ".dylib",
+    ".class",
+    ".jar",
+    ".pyc",
+    ".sqlite",
+    ".db",
 ];
 const JUNK_NAMES: &[&str] = &[
-    "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "Cargo.lock", "poetry.lock", "uv.lock", "go.sum",
-    "composer.lock", "Gemfile.lock", "bun.lockb", "flake.lock",
+    "package-lock.json",
+    "yarn.lock",
+    "pnpm-lock.yaml",
+    "Cargo.lock",
+    "poetry.lock",
+    "uv.lock",
+    "go.sum",
+    "composer.lock",
+    "Gemfile.lock",
+    "bun.lockb",
+    "flake.lock",
 ];
 const JUNK_DIRS: &[&str] = &[
-    "node_modules", "target", "dist", "build", ".next", ".nuxt", "vendor", "__pycache__", ".venv", "venv",
-    "coverage", ".turbo", ".cache", "out",
+    "node_modules",
+    "target",
+    "dist",
+    "build",
+    ".next",
+    ".nuxt",
+    "vendor",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "coverage",
+    ".turbo",
+    ".cache",
+    "out",
 ];
+
+const CODE_EXTENSIONS: &[&str] = &[
+    "ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cjs", "py", "pyi", "rs", "go", "java", "kt", "kts", "scala", "rb",
+    "php", "cs", "fs", "swift", "m", "mm", "c", "h", "cc", "cpp", "cxx", "hpp", "hh", "ex", "exs", "erl", "hs", "ml",
+    "clj", "cljs", "lua", "dart", "zig", "nim", "vue", "svelte", "astro", "sql", "proto", "graphql", "gql", "sh",
+    "bash", "zsh", "ps1", "tf", "hcl", "cmake", "gradle", "r", "jl", "pl", "pm", "elm", "res", "resi", "sol",
+];
+
+/// Source code, as opposed to docs, data and config. Call sites and
+/// definitions are only looked for in these.
+pub fn is_code_file(rel: &str) -> bool {
+    let name = rel.rsplit('/').next().unwrap_or(rel);
+    match name.rsplit('.').next() {
+        Some(ext) if ext != name => CODE_EXTENSIONS.contains(&ext.to_ascii_lowercase().as_str()),
+        _ => matches!(name, "Makefile" | "Dockerfile" | "Justfile" | "Rakefile"),
+    }
+}
 
 pub fn is_junk(rel: &str) -> bool {
     let name = rel.rsplit('/').next().unwrap_or(rel);
@@ -50,8 +121,14 @@ pub fn is_junk(rel: &str) -> bool {
 /// Walk the repo once and search each file for each pattern. Patterns are
 /// regexes; hit.pattern is the index into `patterns`. `max_hits_per_pattern`
 /// bounds runaway matches on common identifiers.
-pub fn search(root: &Path, patterns: &[String], exclude: &HashSet<String>, max_hits_per_pattern: usize) -> Result<SearchResult> {
-    let matchers: Vec<RegexMatcher> = patterns.iter().map(|p| RegexMatcher::new_line_matcher(p)).collect::<Result<_, _>>()?;
+pub fn search(
+    root: &Path,
+    patterns: &[String],
+    exclude: &HashSet<String>,
+    max_hits_per_pattern: usize,
+) -> Result<SearchResult> {
+    let matchers: Vec<RegexMatcher> =
+        patterns.iter().map(|p| RegexMatcher::new_line_matcher(p)).collect::<Result<_, _>>()?;
     let matchers = Arc::new(matchers);
     let exclude = Arc::new(exclude.clone());
     let files: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
@@ -74,10 +151,8 @@ pub fn search(root: &Path, patterns: &[String], exclude: &HashSet<String>, max_h
         let hits = Arc::clone(&hits);
         let counts = Arc::clone(&counts);
         let root = root_buf.clone();
-        let mut searcher = SearcherBuilder::new()
-            .binary_detection(BinaryDetection::quit(b'\x00'))
-            .line_number(true)
-            .build();
+        let mut searcher =
+            SearcherBuilder::new().binary_detection(BinaryDetection::quit(b'\x00')).line_number(true).build();
         Box::new(move |entry| {
             let Ok(entry) = entry else { return WalkState::Continue };
             if !entry.file_type().map(|t| t.is_file()).unwrap_or(false) {
@@ -104,7 +179,12 @@ pub fn search(root: &Path, patterns: &[String], exclude: &HashSet<String>, max_h
                     m,
                     path,
                     UTF8(|lnum, line| {
-                        local.push(Hit { pattern: i, path: rel.clone(), line: lnum as u32, text: line.trim_end().to_string() });
+                        local.push(Hit {
+                            pattern: i,
+                            path: rel.clone(),
+                            line: lnum as u32,
+                            text: line.trim_end().to_string(),
+                        });
                         Ok(local.len() < 64)
                     }),
                 );
@@ -183,6 +263,15 @@ mod tests {
         assert!(is_junk("a/node_modules/b.js"));
         assert!(is_junk("x.min.js"));
         assert!(!is_junk("src/main.rs"));
+    }
+
+    #[test]
+    fn code_files() {
+        assert!(is_code_file("src/app.py"));
+        assert!(is_code_file("Makefile"));
+        assert!(!is_code_file("docs/api.rst"));
+        assert!(!is_code_file("README.md"));
+        assert!(!is_code_file("package.json"));
     }
 
     #[test]

@@ -52,6 +52,8 @@ pub struct ChangedFile {
     pub changed_ranges: Vec<(u32, u32)>,
     pub changed_symbols: Vec<String>,
     #[serde(skip)]
+    pub search_symbols: Vec<String>,
+    #[serde(skip)]
     pub referenced: Vec<String>,
     #[serde(skip)]
     pub imports: Vec<String>,
@@ -123,6 +125,20 @@ pub fn number_lines(lines: &[&str], start: u32) -> String {
     out
 }
 
+fn is_container(kind: &str) -> bool {
+    matches!(
+        kind,
+        "class_declaration"
+            | "abstract_class_declaration"
+            | "class_definition"
+            | "impl_item"
+            | "trait_item"
+            | "mod_item"
+            | "internal_module"
+            | "interface_declaration"
+    )
+}
+
 fn merge_ranges(mut ranges: Vec<(u32, u32)>) -> Vec<(u32, u32)> {
     ranges.sort();
     let mut out: Vec<(u32, u32)> = Vec::new();
@@ -186,10 +202,9 @@ fn resolve_import(lang: Lang, from_file: &str, spec: &str, files: &HashSet<Strin
                 join_rel(dir, spec)
             } else if let Some(rest) = spec.strip_prefix("@/") {
                 format!("src/{rest}")
-            } else if let Some(rest) = spec.strip_prefix("~/") {
-                format!("src/{rest}")
             } else {
-                return None;
+                let rest = spec.strip_prefix("~/")?;
+                format!("src/{rest}")
             };
             let base = base.trim_end_matches(".js").trim_end_matches(".ts").to_string();
             let candidates = [
@@ -241,7 +256,8 @@ fn resolve_import(lang: Lang, from_file: &str, spec: &str, files: &HashSet<Strin
         }
         Lang::Rust => {
             if let Some(m) = spec.strip_prefix("mod:") {
-                let is_mod_root = from_file.ends_with("/mod.rs") || from_file.ends_with("/lib.rs") || from_file.ends_with("/main.rs");
+                let is_mod_root =
+                    from_file.ends_with("/mod.rs") || from_file.ends_with("/lib.rs") || from_file.ends_with("/main.rs");
                 let base = if is_mod_root { dir.to_string() } else { from_file.trim_end_matches(".rs").to_string() };
                 for c in [join_rel(&base, &format!("{m}.rs")), join_rel(&base, &format!("{m}/mod.rs"))] {
                     if exists(&c) {
@@ -281,17 +297,22 @@ fn resolve_import(lang: Lang, from_file: &str, spec: &str, files: &HashSet<Strin
     }
 }
 
+/// Lines and definitions of a file, or `None` if it is binary or unreadable.
+type FileInfo = Option<(Vec<String>, Vec<Definition>)>;
+
 struct DefCache<'a> {
     repo: &'a Repo,
     mode: &'a DiffMode,
-    cache: HashMap<String, Option<(Vec<String>, Vec<Definition>)>>,
+    cache: HashMap<String, FileInfo>,
 }
 
 impl<'a> DefCache<'a> {
     fn get(&mut self, rel: &str) -> Option<&(Vec<String>, Vec<Definition>)> {
         if !self.cache.contains_key(rel) {
             let entry = self.repo.read_file(self.mode, rel).ok().flatten().map(|content| {
-                let defs = Lang::from_path(std::path::Path::new(rel)).map(|l| lang::definitions(l, &content)).unwrap_or_default();
+                let defs = Lang::from_path(std::path::Path::new(rel))
+                    .map(|l| lang::definitions(l, &content))
+                    .unwrap_or_default();
                 let lines: Vec<String> = content.lines().map(str::to_string).collect();
                 (lines, defs)
             });
@@ -319,17 +340,16 @@ pub fn build(repo: &Repo, mode: &DiffMode, opts: &Options) -> Result<ContextPack
     let t0 = Instant::now();
     let raw_diff = repo.diff(mode, &opts.paths, opts.include_untracked)?;
     let parsed = diff::parse(&raw_diff);
-    let parsed: Vec<FileDiff> = parsed
-        .into_iter()
-        .filter(|f| !glob_matches(&opts.ignore, f.path()) && !search::is_junk(f.path()))
-        .collect();
+    let parsed: Vec<FileDiff> =
+        parsed.into_iter().filter(|f| !glob_matches(&opts.ignore, f.path()) && !search::is_junk(f.path())).collect();
     // For brand-new text files the full numbered listing below carries the
     // content, so the diff keeps only the header instead of repeating it.
     let diff_text: String = parsed
         .iter()
         .map(|f| {
             if f.status == Status::Added && !f.binary && f.hunks.len() == 1 {
-                let header: String = f.raw.lines().take_while(|l| !l.starts_with("@@")).map(|l| format!("{l}\n")).collect();
+                let header: String =
+                    f.raw.lines().take_while(|l| !l.starts_with("@@")).map(|l| format!("{l}\n")).collect();
                 format!("{header}(new file, {} lines: full content is in <changed_files>)\n", f.added_count())
             } else {
                 f.raw.clone()
@@ -368,35 +388,53 @@ pub fn build(repo: &Repo, mode: &DiffMode, opts: &Options) -> Result<ContextPack
             listing_note: None,
             changed_ranges: fd.new_ranges(),
             changed_symbols: Vec::new(),
+            search_symbols: Vec::new(),
             referenced: Vec::new(),
             imports: Vec::new(),
         };
-        if fd.status != Status::Deleted && !fd.binary {
-            if let Some(content) = repo.read_file(mode, &path)? {
-                let lines: Vec<&str> = content.lines().collect();
-                let defs = lang.map(|l| lang::definitions(l, &content)).unwrap_or_default();
-                for d in &defs {
-                    all_defs_in_changed.insert(d.name.clone());
-                }
-                let changed: Vec<String> = defs
-                    .iter()
-                    .filter(|d| d.overlaps(&cf.changed_ranges))
-                    .map(|d| d.name.clone())
-                    .collect::<HashSet<_>>()
-                    .into_iter()
-                    .collect();
-                cf.changed_symbols = changed;
-                cf.changed_symbols.sort();
-                let added_text: String = fd.added_lines().map(|(_, t)| t).collect::<Vec<_>>().join("\n");
-                cf.referenced = lang::interesting_identifiers(&added_text);
-                cf.imports = lang.map(|l| lang::imports(l, &content)).unwrap_or_default();
-                if lines.len() <= opts.max_file_lines {
-                    cf.listing = Some(number_lines(&lines, 1));
-                    cf.listing_note = Some(format!("full file, {} lines", lines.len()));
-                } else {
-                    cf.listing = Some(windowed_listing(&lines, &cf.changed_ranges, opts.window));
-                    cf.listing_note = Some(format!("{} lines total; showing ±{} lines around changes", lines.len(), opts.window));
-                }
+        if fd.status != Status::Deleted
+            && !fd.binary
+            && let Some(content) = repo.read_file(mode, &path)?
+        {
+            let lines: Vec<&str> = content.lines().collect();
+            let defs = lang.map(|l| lang::definitions(l, &content)).unwrap_or_default();
+            for d in &defs {
+                all_defs_in_changed.insert(d.name.clone());
+            }
+            let precise = fd.changed_ranges();
+            let overlapping: Vec<&Definition> = defs.iter().filter(|d| d.overlaps(&precise)).collect();
+            // Drop containers (impl blocks, classes, modules) when a
+            // definition nested inside them is the real change.
+            let innermost: Vec<&Definition> = overlapping
+                .iter()
+                .filter(|d| {
+                    !overlapping
+                        .iter()
+                        .any(|o| !std::ptr::eq(*o, **d) && o.start_line >= d.start_line && o.end_line <= d.end_line)
+                })
+                .copied()
+                .collect();
+            cf.changed_symbols = innermost.iter().map(|d| d.name.clone()).collect::<HashSet<_>>().into_iter().collect();
+            cf.changed_symbols.sort();
+            // Searching the repo for every use of a big class or module just
+            // because a line inside it moved is noise, not context.
+            cf.search_symbols = innermost
+                .iter()
+                .filter(|d| !(is_container(&d.kind) && d.end_line - d.start_line > 60))
+                .map(|d| d.name.clone())
+                .collect::<HashSet<_>>()
+                .into_iter()
+                .collect();
+            let added_text: String = fd.added_lines().map(|(_, t)| t).collect::<Vec<_>>().join("\n");
+            cf.referenced = lang::interesting_identifiers(&added_text);
+            cf.imports = lang.map(|l| lang::imports(l, &content)).unwrap_or_default();
+            if lines.len() <= opts.max_file_lines {
+                cf.listing = Some(number_lines(&lines, 1));
+                cf.listing_note = Some(format!("full file, {} lines", lines.len()));
+            } else {
+                cf.listing = Some(windowed_listing(&lines, &cf.changed_ranges, opts.window));
+                cf.listing_note =
+                    Some(format!("{} lines total; showing ±{} lines around changes", lines.len(), opts.window));
             }
         }
         pack.files.push(cf);
@@ -411,10 +449,10 @@ pub fn build(repo: &Repo, mode: &DiffMode, opts: &Options) -> Result<ContextPack
     // ---- what to look for ---------------------------------------------------
     let changed_set: HashSet<String> = pack.files.iter().map(|f| f.path.clone()).collect();
     let changed_symbols: Vec<String> = {
-        let mut v: Vec<String> = pack.files.iter().flat_map(|f| f.changed_symbols.iter().cloned()).collect();
+        let mut v: Vec<String> = pack.files.iter().flat_map(|f| f.search_symbols.iter().cloned()).collect();
         v.sort();
         v.dedup();
-        v.retain(|s| s.len() >= 3 && !s.contains(' '));
+        v.retain(|s| lang::is_searchable(s) && !s.contains(' '));
         v.truncate(40);
         v
     };
@@ -425,8 +463,10 @@ pub fn build(repo: &Repo, mode: &DiffMode, opts: &Options) -> Result<ContextPack
                 *freq.entry(r.as_str()).or_default() += 1;
             }
         }
-        let mut v: Vec<(&str, usize)> =
-            freq.into_iter().filter(|(s, _)| !all_defs_in_changed.contains(*s) && !changed_symbols.iter().any(|c| c == s)).collect();
+        let mut v: Vec<(&str, usize)> = freq
+            .into_iter()
+            .filter(|(s, _)| !all_defs_in_changed.contains(*s) && !changed_symbols.iter().any(|c| c == s))
+            .collect();
         v.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(b.0)));
         v.into_iter().map(|(s, _)| s.to_string()).take(60).collect()
     };
@@ -435,27 +475,36 @@ pub fn build(repo: &Repo, mode: &DiffMode, opts: &Options) -> Result<ContextPack
         .iter()
         .filter(|f| f.status != Status::Deleted)
         .map(|f| (f.path.clone(), path_stem(&f.path).to_string()))
-        .filter(|(_, s)| s.len() >= 3 && !matches!(s.as_str(), "index" | "mod" | "main" | "lib" | "init" | "__init__" | "utils" | "types"))
+        .filter(|(_, s)| {
+            s.len() >= 3
+                && !matches!(s.as_str(), "index" | "mod" | "main" | "lib" | "init" | "__init__" | "utils" | "types")
+        })
         .collect();
 
     let mut patterns: Vec<String> = Vec::new();
     let sym_pat_idx = if changed_symbols.is_empty() {
         None
     } else {
-        patterns.push(format!(r"\b(?:{})\b", changed_symbols.iter().map(|s| regex::escape(s)).collect::<Vec<_>>().join("|")));
+        patterns.push(format!(
+            r"\b(?:{})\b",
+            changed_symbols.iter().map(|s| regex::escape(s)).collect::<Vec<_>>().join("|")
+        ));
         Some(patterns.len() - 1)
     };
     let ref_pat_idx = if referenced.is_empty() {
         None
     } else {
-        patterns.push(format!(r"\b(?:{})\b", referenced.iter().map(|s| regex::escape(s)).collect::<Vec<_>>().join("|")));
+        patterns
+            .push(format!(r"\b(?:{})\b", referenced.iter().map(|s| regex::escape(s)).collect::<Vec<_>>().join("|")));
         Some(patterns.len() - 1)
     };
     let imp_pat_idx = if stems.is_empty() {
         None
     } else {
         let alts = stems.iter().map(|(_, s)| regex::escape(s)).collect::<Vec<_>>().join("|");
-        patterns.push(format!(r"^\s*(?:import|from|export|use|mod|require|include)\b[^\n]*\b(?:{alts})\b|require\([^)]*\b(?:{alts})\b"));
+        patterns.push(format!(
+            r"^\s*(?:import|from|export|use|mod|require|include)\b[^\n]*\b(?:{alts})\b|require\([^)]*\b(?:{alts})\b"
+        ));
         Some(patterns.len() - 1)
     };
 
@@ -465,7 +514,10 @@ pub fn build(repo: &Repo, mode: &DiffMode, opts: &Options) -> Result<ContextPack
     let mut cache = DefCache { repo, mode, cache: HashMap::new() };
     let mut snippets: Vec<Snippet> = Vec::new();
 
-    let sym_regex = |list: &[String]| regex::Regex::new(&format!(r"\b(?:{})\b", list.iter().map(|s| regex::escape(s)).collect::<Vec<_>>().join("|"))).ok();
+    let sym_regex = |list: &[String]| {
+        regex::Regex::new(&format!(r"\b(?:{})\b", list.iter().map(|s| regex::escape(s)).collect::<Vec<_>>().join("|")))
+            .ok()
+    };
     let changed_re = sym_regex(&changed_symbols);
     let referenced_re = sym_regex(&referenced);
 
@@ -477,6 +529,9 @@ pub fn build(repo: &Repo, mode: &DiffMode, opts: &Options) -> Result<ContextPack
             per_file_hits.entry(h.path.as_str()).or_default().push(h);
         }
         for (path, hits) in per_file_hits {
+            if !search::is_code_file(path) {
+                continue;
+            }
             let Some((lines, defs)) = cache.get(path) else { continue };
             let lines_ref: Vec<&str> = lines.iter().map(String::as_str).collect();
             for h in hits {
@@ -485,7 +540,8 @@ pub fn build(repo: &Repo, mode: &DiffMode, opts: &Options) -> Result<ContextPack
                     if found_defs.contains(name) {
                         continue;
                     }
-                    let def = defs.iter().find(|d| d.name == name && d.start_line <= h.line && h.line <= d.start_line + 2);
+                    let def =
+                        defs.iter().find(|d| d.name == name && d.start_line <= h.line && h.line <= d.start_line + 2);
                     let is_def = def.is_some() || (defs.is_empty() && lang::line_defines(&h.text, name));
                     if !is_def {
                         continue;
@@ -522,23 +578,38 @@ pub fn build(repo: &Repo, mode: &DiffMode, opts: &Options) -> Result<ContextPack
         let mut files: Vec<&&str> = by_file.keys().collect();
         files.sort();
         for path in files {
+            if !search::is_code_file(path) {
+                continue;
+            }
             let hits = &by_file[*path];
             let Some((lines, _)) = cache.get(path) else { continue };
             let lines_ref: Vec<&str> = lines.iter().map(String::as_str).collect();
             let mut ranges: Vec<(u32, u32)> = Vec::new();
-            let mut names: Vec<String> = Vec::new();
-            for h in hits.iter().take(12) {
+            let mut hit_names: Vec<(u32, String)> = Vec::new();
+            let mut per_symbol_here: HashMap<String, usize> = HashMap::new();
+            let mut blocked_here: HashSet<String> = HashSet::new();
+            let mut seen_here: HashSet<String> = HashSet::new();
+            for h in hits.iter() {
                 let Some(m) = re.find(&h.text) else { continue };
                 let name = m.as_str().to_string();
-                let c = per_symbol_files.entry(name.clone()).or_default();
-                if *c >= 8 {
+                if seen_here.insert(name.clone()) {
+                    let c = per_symbol_files.entry(name.clone()).or_default();
+                    if *c >= 8 {
+                        blocked_here.insert(name.clone());
+                    } else {
+                        *c += 1;
+                    }
+                }
+                if blocked_here.contains(&name) {
                     continue;
                 }
-                *c += 1;
-                ranges.push((h.line.saturating_sub(4).max(1), (h.line + 4).min(lines_ref.len() as u32)));
-                if !names.contains(&name) {
-                    names.push(name);
+                let here = per_symbol_here.entry(name.clone()).or_default();
+                if *here >= 3 {
+                    continue;
                 }
+                *here += 1;
+                ranges.push((h.line.saturating_sub(4).max(1), (h.line + 4).min(lines_ref.len() as u32)));
+                hit_names.push((h.line, name));
             }
             if ranges.is_empty() {
                 continue;
@@ -547,6 +618,10 @@ pub fn build(repo: &Repo, mode: &DiffMode, opts: &Options) -> Result<ContextPack
                 if (e as usize) > lines_ref.len() || s == 0 {
                     continue;
                 }
+                let mut names: Vec<&str> =
+                    hit_names.iter().filter(|(l, _)| *l >= s && *l <= e).map(|(_, n)| n.as_str()).collect();
+                names.sort();
+                names.dedup();
                 snippets.push(Snippet {
                     path: path.to_string(),
                     start: s,
@@ -562,8 +637,11 @@ pub fn build(repo: &Repo, mode: &DiffMode, opts: &Options) -> Result<ContextPack
 
     // ---- imported modules ----------------------------------------------------------
     let mut seen_imports: HashSet<String> = HashSet::new();
-    let per_file_imports: Vec<(String, Option<Lang>, Vec<String>)> =
-        pack.files.iter().map(|f| (f.path.clone(), Lang::from_path(std::path::Path::new(&f.path)), f.imports.clone())).collect();
+    let per_file_imports: Vec<(String, Option<Lang>, Vec<String>)> = pack
+        .files
+        .iter()
+        .map(|f| (f.path.clone(), Lang::from_path(std::path::Path::new(&f.path)), f.imports.clone()))
+        .collect();
     for (from, lang, imports) in per_file_imports {
         let Some(lang) = lang else { continue };
         for spec in imports {
@@ -654,6 +732,12 @@ pub fn build(repo: &Repo, mode: &DiffMode, opts: &Options) -> Result<ContextPack
     }
 
     // ---- dedupe overlapping snippets in the same file -----------------------------------
+    // Whole-file outlines (imports, big tests) stay separate so they never
+    // swallow the precise call-site and definition excerpts.
+    let (outlines, precise): (Vec<Snippet>, Vec<Snippet>) = snippets
+        .into_iter()
+        .partition(|s| s.kind == SnippetKind::Import || (s.kind == SnippetKind::Test && s.start == 1));
+    let mut snippets = precise;
     snippets.sort_by(|a, b| a.path.cmp(&b.path).then(a.start.cmp(&b.start)));
     let mut deduped: Vec<Snippet> = Vec::new();
     for s in snippets {
@@ -684,6 +768,14 @@ pub fn build(repo: &Repo, mode: &DiffMode, opts: &Options) -> Result<ContextPack
         }
         deduped.push(s);
     }
+    // An outline of a file we already show precise excerpts from is lower value.
+    let precise_paths: HashSet<String> = deduped.iter().map(|s| s.path.clone()).collect();
+    for mut o in outlines {
+        if o.kind == SnippetKind::Import && precise_paths.contains(&o.path) {
+            o.score -= 0.5;
+        }
+        deduped.push(o);
+    }
     pack.snippets = deduped;
     finalize(&mut pack, opts, t0);
     Ok(pack)
@@ -711,7 +803,8 @@ fn finalize(pack: &mut ContextPack, opts: &Options, t0: Instant) {
                     for l in &lines {
                         let no: Option<u32> = l.split('|').next().and_then(|n| n.trim().parse().ok());
                         let Some(no) = no else { continue };
-                        let near = f.changed_ranges.iter().any(|&(s, e)| no + window as u32 >= s && no <= e + window as u32);
+                        let near =
+                            f.changed_ranges.iter().any(|&(s, e)| no + window as u32 >= s && no <= e + window as u32);
                         if near {
                             if let Some(lk) = last_kept
                                 && no > lk + 1
@@ -742,7 +835,8 @@ fn finalize(pack: &mut ContextPack, opts: &Options, t0: Instant) {
 
     let mut remaining = budget.saturating_sub(diff_tokens + files_tokens);
     let mut snippets = std::mem::take(&mut pack.snippets);
-    snippets.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal).then(a.path.cmp(&b.path)));
+    snippets
+        .sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal).then(a.path.cmp(&b.path)));
     let mut kept: Vec<Snippet> = Vec::new();
     let mut dropped = 0usize;
     let mut snippet_tokens = 0usize;
@@ -785,27 +879,45 @@ mod tests {
 
     #[test]
     fn resolve_ts_relative() {
-        let files: HashSet<String> = ["src/a/b.ts", "src/lib/index.ts", "src/x.tsx"].into_iter().map(String::from).collect();
+        let files: HashSet<String> =
+            ["src/a/b.ts", "src/lib/index.ts", "src/x.tsx"].into_iter().map(String::from).collect();
         assert_eq!(resolve_import(Lang::TypeScript, "src/a/c.ts", "./b", &files).as_deref(), Some("src/a/b.ts"));
-        assert_eq!(resolve_import(Lang::TypeScript, "src/a/c.ts", "../lib", &files).as_deref(), Some("src/lib/index.ts"));
+        assert_eq!(
+            resolve_import(Lang::TypeScript, "src/a/c.ts", "../lib", &files).as_deref(),
+            Some("src/lib/index.ts")
+        );
         assert_eq!(resolve_import(Lang::TypeScript, "src/a/c.ts", "@/x", &files).as_deref(), Some("src/x.tsx"));
         assert_eq!(resolve_import(Lang::TypeScript, "src/a/c.ts", "react", &files), None);
     }
 
     #[test]
     fn resolve_rust_modules() {
-        let files: HashSet<String> = ["src/main.rs", "src/git.rs", "src/ctx/mod.rs", "src/ctx/pack.rs"].into_iter().map(String::from).collect();
+        let files: HashSet<String> =
+            ["src/main.rs", "src/git.rs", "src/ctx/mod.rs", "src/ctx/pack.rs"].into_iter().map(String::from).collect();
         assert_eq!(resolve_import(Lang::Rust, "src/main.rs", "mod:git", &files).as_deref(), Some("src/git.rs"));
         assert_eq!(resolve_import(Lang::Rust, "src/main.rs", "mod:ctx", &files).as_deref(), Some("src/ctx/mod.rs"));
-        assert_eq!(resolve_import(Lang::Rust, "src/git.rs", "crate::ctx::pack::Thing", &files).as_deref(), Some("src/ctx/pack.rs"));
-        assert_eq!(resolve_import(Lang::Rust, "src/ctx/mod.rs", "mod:pack", &files).as_deref(), Some("src/ctx/pack.rs"));
+        assert_eq!(
+            resolve_import(Lang::Rust, "src/git.rs", "crate::ctx::pack::Thing", &files).as_deref(),
+            Some("src/ctx/pack.rs")
+        );
+        assert_eq!(
+            resolve_import(Lang::Rust, "src/ctx/mod.rs", "mod:pack", &files).as_deref(),
+            Some("src/ctx/pack.rs")
+        );
     }
 
     #[test]
     fn resolve_python() {
-        let files: HashSet<String> = ["app/models.py", "app/api/views.py", "app/__init__.py"].into_iter().map(String::from).collect();
-        assert_eq!(resolve_import(Lang::Python, "app/api/views.py", "app.models", &files).as_deref(), Some("app/models.py"));
-        assert_eq!(resolve_import(Lang::Python, "app/api/views.py", "..models", &files).as_deref(), Some("app/models.py"));
+        let files: HashSet<String> =
+            ["app/models.py", "app/api/views.py", "app/__init__.py"].into_iter().map(String::from).collect();
+        assert_eq!(
+            resolve_import(Lang::Python, "app/api/views.py", "app.models", &files).as_deref(),
+            Some("app/models.py")
+        );
+        assert_eq!(
+            resolve_import(Lang::Python, "app/api/views.py", "..models", &files).as_deref(),
+            Some("app/models.py")
+        );
         assert_eq!(resolve_import(Lang::Python, "app/api/views.py", "os", &files), None);
     }
 }

@@ -56,18 +56,47 @@ impl FileDiff {
 
     /// Inclusive 1-based line ranges in the new file that each hunk covers.
     pub fn new_ranges(&self) -> Vec<(u32, u32)> {
-        self.hunks
-            .iter()
-            .filter(|h| h.new_len > 0)
-            .map(|h| (h.new_start, h.new_start + h.new_len - 1))
-            .collect()
+        self.hunks.iter().filter(|h| h.new_len > 0).map(|h| (h.new_start, h.new_start + h.new_len - 1)).collect()
+    }
+
+    /// Inclusive 1-based ranges of lines that were actually added or
+    /// modified (no hunk context). A pure deletion maps to the line that
+    /// now sits where the removed lines were.
+    pub fn changed_ranges(&self) -> Vec<(u32, u32)> {
+        let mut out: Vec<(u32, u32)> = Vec::new();
+        for h in &self.hunks {
+            let mut prev_new = h.new_start.saturating_sub(1);
+            // Last line of the new file this hunk can address; a deletion at the
+            // very end of the file maps here instead of one past the end.
+            let last_new = (h.new_start + h.new_len).saturating_sub(1).max(1);
+            for l in &h.lines {
+                match l.kind {
+                    LineKind::Added => {
+                        let n = l.new_no.unwrap_or(prev_new + 1);
+                        push_range(&mut out, n, n);
+                        prev_new = n;
+                    }
+                    LineKind::Removed => {
+                        let n = (prev_new + 1).clamp(1, last_new);
+                        push_range(&mut out, n, n);
+                    }
+                    LineKind::Context => {
+                        if let Some(n) = l.new_no {
+                            prev_new = n;
+                        }
+                    }
+                }
+            }
+        }
+        out
     }
 
     /// Line numbers (new file) that were added or modified.
     pub fn added_lines(&self) -> impl Iterator<Item = (u32, &str)> {
-        self.hunks.iter().flat_map(|h| h.lines.iter()).filter_map(|l| {
-            if l.kind == LineKind::Added { Some((l.new_no?, l.text.as_str())) } else { None }
-        })
+        self.hunks
+            .iter()
+            .flat_map(|h| h.lines.iter())
+            .filter_map(|l| if l.kind == LineKind::Added { Some((l.new_no?, l.text.as_str())) } else { None })
     }
 
     pub fn added_count(&self) -> usize {
@@ -76,6 +105,16 @@ impl FileDiff {
 
     pub fn removed_count(&self) -> usize {
         self.hunks.iter().flat_map(|h| h.lines.iter()).filter(|l| l.kind == LineKind::Removed).count()
+    }
+}
+
+fn push_range(out: &mut Vec<(u32, u32)>, s: u32, e: u32) {
+    if let Some(last) = out.last_mut()
+        && s <= last.1 + 1
+    {
+        last.1 = last.1.max(e);
+    } else {
+        out.push((s, e));
     }
 }
 
@@ -142,7 +181,9 @@ pub fn parse(text: &str) -> Vec<FileDiff> {
         let Some(f) = cur.as_mut() else { continue };
         f.raw.push_str(line);
 
-        if in_hunk && (l.starts_with(' ') || l.starts_with('+') || l.starts_with('-') || l.starts_with('\\') || l.is_empty()) {
+        if in_hunk
+            && (l.starts_with(' ') || l.starts_with('+') || l.starts_with('-') || l.starts_with('\\') || l.is_empty())
+        {
             if l.starts_with("--- ") && !l.starts_with("--- a/") && f.hunks.is_empty() {
                 // not a hunk line; fallthrough handled below
             }
@@ -222,11 +263,23 @@ mod tests {
         assert_eq!(files[0].path(), "src/a.rs");
         assert_eq!(files[0].status, Status::Modified);
         assert_eq!(files[0].new_ranges(), vec![(1, 4)]);
+        assert_eq!(files[0].changed_ranges(), vec![(2, 3)]);
         let added: Vec<_> = files[0].added_lines().collect();
         assert_eq!(added, vec![(2, "fn b() { 1 }"), (3, "fn c() {}")]);
         assert_eq!(files[1].status, Status::Added);
         assert_eq!(files[1].new_ranges(), vec![(1, 2)]);
         assert!(files[1].raw.starts_with("diff --git a/new.txt"));
+    }
+
+    #[test]
+    fn changed_ranges_clamp_trailing_deletion() {
+        let d = "diff --git a/f b/f\n--- a/f\n+++ b/f\n@@ -1,3 +1,2 @@\n a\n b\n-c\n";
+        let files = parse(d);
+        assert_eq!(files[0].changed_ranges(), vec![(2, 2)]);
+        // deleting everything: new file is empty, range is clamped to line 1
+        let d = "diff --git a/f b/f\n--- a/f\n+++ b/f\n@@ -1,2 +0,0 @@\n-a\n-b\n";
+        let files = parse(d);
+        assert_eq!(files[0].changed_ranges(), vec![(1, 1)]);
     }
 
     #[test]

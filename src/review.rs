@@ -94,7 +94,9 @@ fn de_opt_u32<'de, D: Deserializer<'de>>(d: D) -> Result<Option<u32>, D::Error> 
     let v = serde_json::Value::deserialize(d)?;
     Ok(match v {
         serde_json::Value::Number(n) => n.as_u64().map(|x| x as u32),
-        serde_json::Value::String(s) => s.trim().split(|c: char| !c.is_ascii_digit()).next().and_then(|x| x.parse().ok()),
+        serde_json::Value::String(s) => {
+            s.trim().split(|c: char| !c.is_ascii_digit()).next().and_then(|x| x.parse().ok())
+        }
         _ => None,
     })
 }
@@ -111,23 +113,49 @@ fn de_opt_string<'de, D: Deserializer<'de>>(d: D) -> Result<Option<String>, D::E
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Finding {
+    #[serde(default = "default_severity", alias = "level", alias = "priority")]
     pub severity: Severity,
-    #[serde(default = "default_category")]
+    #[serde(default = "default_category", alias = "type", alias = "kind")]
     pub category: String,
-    #[serde(default)]
+    #[serde(default, alias = "path", alias = "filename", alias = "file_path")]
     pub file: String,
-    #[serde(default, deserialize_with = "de_opt_u32")]
+    #[serde(
+        default,
+        deserialize_with = "de_opt_u32",
+        alias = "line_number",
+        alias = "start_line",
+        alias = "lineNumber"
+    )]
     pub line: Option<u32>,
-    #[serde(default, deserialize_with = "de_opt_u32")]
+    #[serde(default, deserialize_with = "de_opt_u32", alias = "endLine", alias = "line_end")]
     pub end_line: Option<u32>,
-    #[serde(default)]
+    #[serde(default, alias = "summary", alias = "issue", alias = "headline")]
     pub title: String,
-    #[serde(default)]
+    #[serde(
+        default,
+        alias = "description",
+        alias = "message",
+        alias = "detail",
+        alias = "details",
+        alias = "explanation",
+        alias = "rationale"
+    )]
     pub body: String,
-    #[serde(default, deserialize_with = "de_opt_string")]
+    #[serde(
+        default,
+        deserialize_with = "de_opt_string",
+        alias = "fix",
+        alias = "recommendation",
+        alias = "suggested_fix",
+        alias = "remediation"
+    )]
     pub suggestion: Option<String>,
     #[serde(default)]
     pub models: Vec<String>,
+}
+
+fn default_severity() -> Severity {
+    Severity::Medium
 }
 
 fn default_category() -> String {
@@ -136,11 +164,11 @@ fn default_category() -> String {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Review {
-    #[serde(default)]
+    #[serde(default, alias = "overview", alias = "assessment")]
     pub summary: String,
-    #[serde(default = "default_verdict")]
+    #[serde(default = "default_verdict", alias = "decision", alias = "recommendation", alias = "status")]
     pub verdict: Verdict,
-    #[serde(default)]
+    #[serde(default, alias = "issues", alias = "comments", alias = "problems", alias = "review_comments")]
     pub findings: Vec<Finding>,
 }
 
@@ -149,8 +177,18 @@ fn default_verdict() -> Verdict {
 }
 
 pub const CATEGORIES: &[&str] = &[
-    "bug", "security", "performance", "correctness", "error_handling", "concurrency", "data_loss", "api", "test", "docs",
-    "style", "other",
+    "bug",
+    "security",
+    "performance",
+    "correctness",
+    "error_handling",
+    "concurrency",
+    "data_loss",
+    "api",
+    "test",
+    "docs",
+    "style",
+    "other",
 ];
 
 pub fn schema() -> serde_json::Value {
@@ -394,7 +432,11 @@ pub fn render_markdown(input: &RenderInput) -> String {
                 (Some(l), _) => format!("{}:{}", f.file, l),
                 _ => f.file.clone(),
             };
-            let agree = if input.results.len() > 1 { format!(" ({}/{} models)", f.models.len(), input.results.len()) } else { String::new() };
+            let agree = if input.results.len() > 1 {
+                format!(" ({}/{} models)", f.models.len(), input.results.len())
+            } else {
+                String::new()
+            };
             out.push_str(&format!("- **{loc}** {} `[{}]`{}\n", f.title.trim(), f.category, agree));
             for line in f.body.trim().lines() {
                 out.push_str(&format!("  {}\n", line.trim_end()));
@@ -502,7 +544,13 @@ mod tests {
             cost_usd: None,
         };
         let results = vec![
-            mk("m1", vec![f(Severity::High, 10, "Null pointer dereference when list empty"), f(Severity::Nit, 50, "Rename var")]),
+            mk(
+                "m1",
+                vec![
+                    f(Severity::High, 10, "Null pointer dereference when list empty"),
+                    f(Severity::Nit, 50, "Rename var"),
+                ],
+            ),
             mk("m2", vec![f(Severity::Medium, 12, "Possible null dereference on empty list")]),
         ];
         let merged = merge(&results);

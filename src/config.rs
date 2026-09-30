@@ -34,6 +34,8 @@ pub struct FileConfig {
     pub max_file_lines: Option<usize>,
     pub max_tokens: Option<u32>,
     pub temperature: Option<f32>,
+    pub reasoning: Option<String>,
+    pub structured: Option<bool>,
     pub timeout_secs: Option<u64>,
     pub include_tests: Option<bool>,
     pub ignore: Vec<String>,
@@ -81,6 +83,12 @@ max_file_lines = 400
 
 # Files to leave out of the review entirely (gitignore-style globs).
 ignore = ["**/*.lock", "**/*.snap", "**/generated/**"]
+
+# Reasoning effort for models that support it (OpenRouter): none | low | medium | high.
+# reasoning = "medium"
+
+# Set to false to never request structured output (response_format).
+# structured = true
 
 # Extra instructions for the reviewer. Project conventions, what to be strict about, what to ignore.
 instructions = """

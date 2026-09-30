@@ -50,18 +50,9 @@ impl Repo {
     }
 
     pub fn git(&self, args: &[&str]) -> Result<String> {
-        let out = Command::new("git")
-            .arg("-C")
-            .arg(&self.root)
-            .args(args)
-            .output()
-            .context("failed to run git")?;
+        let out = Command::new("git").arg("-C").arg(&self.root).args(args).output().context("failed to run git")?;
         if !out.status.success() {
-            bail!(
-                "git {} failed: {}",
-                args.join(" "),
-                String::from_utf8_lossy(&out.stderr).trim()
-            );
+            bail!("git {} failed: {}", args.join(" "), String::from_utf8_lossy(&out.stderr).trim());
         }
         Ok(String::from_utf8_lossy(&out.stdout).into_owned())
     }
@@ -165,7 +156,10 @@ impl Repo {
         match self.merge_base("HEAD", base) {
             Some(mb) => {
                 let short = &mb[..mb.len().min(10)];
-                DiffMode::WorkingTreeVs { rev: mb.clone(), label: format!("working tree vs merge-base with {base} ({short})") }
+                DiffMode::WorkingTreeVs {
+                    rev: mb.clone(),
+                    label: format!("working tree vs merge-base with {base} ({short})"),
+                }
             }
             None => DiffMode::WorkingTreeVs { rev: base.to_string(), label: format!("working tree vs {base}") },
         }

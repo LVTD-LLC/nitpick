@@ -25,7 +25,19 @@ Rules:
 - Cite locations using the repo-relative file path exactly as given and the line number from the numbered post-change listing. For issues in unchanged context, still cite the changed file and line that causes the problem.
 - Severity: blocker = must not ship (data loss, security hole, guaranteed crash on a normal path); high = real bug on a realistic path; medium = bug on an edge case or a clear robustness gap; low = worth fixing but not urgent; nit = optional.
 - A change with no real problems gets an empty findings list and verdict "approve". That is a good outcome; do not invent findings.
-- Respond with a single JSON object matching the provided schema and nothing else. No markdown fences, no prose outside the JSON."#;
+- Respond with a single JSON object and nothing else. No markdown fences, no prose outside the JSON.
+
+Output format (JSON schema):
+"#;
+
+/// System prompt with the response schema appended.
+pub fn system(schema: &serde_json::Value) -> String {
+    let mut s = SYSTEM.to_string();
+    s.push_str(&serde_json::to_string(schema).unwrap_or_default());
+    s.push_str("\n\nExample of the shape (values are illustrative):\n");
+    s.push_str(r#"{"summary":"Adds retry logic to the HTTP client. One real bug in the backoff computation.","verdict":"request_changes","findings":[{"severity":"high","category":"bug","file":"src/client.rs","line":42,"end_line":44,"title":"Backoff overflows after 32 retries","body":"`1 << attempt` is computed in u32; attempt reaches 32 on the last retry and the shift panics in debug builds and wraps to 0 in release, removing the delay entirely.","suggestion":"Use `1u64.checked_shl(attempt).unwrap_or(u64::MAX).min(MAX_BACKOFF)`."}]}"#);
+    s
+}
 
 pub fn user_message(pack: &ContextPack, instructions: &[String]) -> String {
     let mut s = String::with_capacity(pack.diff_text.len() * 3);
@@ -59,7 +71,11 @@ pub fn user_message(pack: &ContextPack, instructions: &[String]) -> String {
     for f in &pack.files {
         let status = serde_json::to_value(f.status).ok().and_then(|v| v.as_str().map(String::from)).unwrap_or_default();
         let lang = f.lang.unwrap_or("text");
-        let syms = if f.changed_symbols.is_empty() { String::new() } else { format!(" changed_symbols=\"{}\"", f.changed_symbols.join(",")) };
+        let syms = if f.changed_symbols.is_empty() {
+            String::new()
+        } else {
+            format!(" changed_symbols=\"{}\"", f.changed_symbols.join(","))
+        };
         match &f.listing {
             Some(listing) => {
                 s.push_str(&format!(
@@ -90,7 +106,10 @@ pub fn user_message(pack: &ContextPack, instructions: &[String]) -> String {
                 SnippetKind::Import => "imported_module",
                 SnippetKind::Test => "test",
             };
-            s.push_str(&format!("<snippet path=\"{}\" lines=\"{}-{}\" kind=\"{kind}\" reason=\"{}\">\n", sn.path, sn.start, sn.end, sn.reason));
+            s.push_str(&format!(
+                "<snippet path=\"{}\" lines=\"{}-{}\" kind=\"{kind}\" reason=\"{}\">\n",
+                sn.path, sn.start, sn.end, sn.reason
+            ));
             s.push_str(&sn.text);
             s.push_str("</snippet>\n");
         }

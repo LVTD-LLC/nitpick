@@ -1,0 +1,46 @@
+[package]
+name = "nitpick"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+description = "AI code review for AI agents: send your diff plus the relevant repo context to any model on OpenRouter (or a local one) and get structured findings back."
+license = "MIT"
+repository = "https://github.com/lvtd-llc/nitpick"
+homepage = "https://nitpick.sh"
+keywords = ["code-review", "llm", "openrouter", "cli", "agents"]
+categories = ["command-line-utilities", "development-tools"]
+
+[[bin]]
+name = "nitpick"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4.6", features = ["derive", "env", "wrap_help"] }
+futures = "0.3"
+ignore = "0.4"
+globset = "0.4"
+grep-regex = "0.1"
+grep-searcher = "0.1"
+regex = "1"
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls", "http2"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs", "process", "time"] }
+toml = "1"
+tree-sitter = "0.27"
+tree-sitter-go = "0.25"
+tree-sitter-javascript = "0.25"
+tree-sitter-python = "0.25"
+tree-sitter-rust = "0.24"
+tree-sitter-typescript = "0.23"
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true

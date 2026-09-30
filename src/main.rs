@@ -168,14 +168,16 @@ fn run_init(force: bool) -> Result<i32> {
 
 struct Settings {
     models: Vec<String>,
-    provider: llm::Provider,
+    provider_kind: ProviderKind,
+    provider_base_url: Option<String>,
+    provider_key_env: Option<String>,
     fail_on: Severity,
     instructions: Vec<String>,
     request: llm::RequestOpts,
     ctx: context::Options,
 }
 
-fn settings(args: &ReviewArgs, repo: &git::Repo, need_provider: bool) -> Result<(Settings, git::DiffMode)> {
+fn settings(args: &ReviewArgs, repo: &git::Repo) -> Result<(Settings, git::DiffMode)> {
     let file = config::load(&repo.root)?;
 
     let models: Vec<String> = if !args.model.is_empty() {
@@ -196,11 +198,6 @@ fn settings(args: &ReviewArgs, repo: &git::Repo, need_provider: bool) -> Result<
         (None, None) => ProviderKind::Openrouter,
     };
     let base_url = args.base_url.clone().or(file.base_url.clone());
-    let provider = if need_provider {
-        llm::Provider::resolve(kind, base_url, args.api_key.clone(), file.api_key_env.as_deref())?
-    } else {
-        llm::Provider { kind, base_url: base_url.unwrap_or_default(), api_key: None }
-    };
 
     let fail_on = match (args.fail_on, file.fail_on.as_deref()) {
         (Some(s), _) => s,
@@ -243,12 +240,24 @@ fn settings(args: &ReviewArgs, repo: &git::Repo, need_provider: bool) -> Result<
     let base = args.base.as_deref().or(file.base.as_deref());
     let mode = repo.resolve_mode(base, args.staged, args.range.as_deref())?;
 
-    Ok((Settings { models, provider, fail_on, instructions, request, ctx }, mode))
+    Ok((
+        Settings {
+            models,
+            provider_kind: kind,
+            provider_base_url: base_url,
+            provider_key_env: file.api_key_env.clone(),
+            fail_on,
+            instructions,
+            request,
+            ctx,
+        },
+        mode,
+    ))
 }
 
 fn run_context(args: ReviewArgs) -> Result<i32> {
     let repo = git::Repo::discover(Path::new("."))?;
-    let (s, mode) = settings(&args, &repo, false)?;
+    let (s, mode) = settings(&args, &repo)?;
     let pack = context::build(&repo, &mode, &s.ctx)?;
     if pack.is_empty() {
         eprintln!("nitpick: no changes to review ({})", mode.label());
@@ -280,7 +289,7 @@ fn run_context(args: ReviewArgs) -> Result<i32> {
 fn run_review(args: ReviewArgs) -> Result<i32> {
     let total = Instant::now();
     let repo = git::Repo::discover(Path::new("."))?;
-    let (s, mode) = settings(&args, &repo, true)?;
+    let (s, mode) = settings(&args, &repo)?;
     let pack = context::build(&repo, &mode, &s.ctx)?;
     if pack.is_empty() {
         if args.json {
@@ -294,6 +303,13 @@ fn run_review(args: ReviewArgs) -> Result<i32> {
         return Ok(0);
     }
 
+    // Only now do we need credentials: a clean tree should exit 0 without them.
+    let provider = llm::Provider::resolve(
+        s.provider_kind,
+        s.provider_base_url.clone(),
+        args.api_key.clone(),
+        s.provider_key_env.as_deref(),
+    )?;
     let user = prompt::user_message(&pack, &s.instructions);
     let schema = review::schema();
     let system = prompt::system(&schema);
@@ -308,7 +324,7 @@ fn run_review(args: ReviewArgs) -> Result<i32> {
             st.snippets_dropped,
             st.build_ms,
             s.models.join(", "),
-            s.provider.kind.name()
+            provider.kind.name()
         );
     }
 
@@ -320,7 +336,7 @@ fn run_review(args: ReviewArgs) -> Result<i32> {
             .context("building HTTP client")?;
         let futs = s.models.iter().map(|model| {
             let client = &client;
-            let provider = &s.provider;
+            let provider = &provider;
             let user = &user;
             let schema = &schema;
             let system = system.as_str();

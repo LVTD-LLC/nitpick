@@ -31,13 +31,17 @@ nitpick: stealth/space-bunny-alpha done in 41.2s, 2 finding(s)
 
 ## Install
 
-Prebuilt binaries will be published on the [releases page](https://github.com/lvtd-llc/nitpick/releases). Until then:
-
 ```bash
-cargo install --git https://github.com/lvtd-llc/nitpick
+brew install LVTD-LLC/tap/nitpick
 ```
 
-Requires Rust 1.98 or newer.
+Or from source, with Rust 1.98 or newer:
+
+```bash
+cargo install --git https://github.com/LVTD-LLC/nitpick
+```
+
+Both build from source; the binary is a single static executable.
 
 ## Setup
 
@@ -153,10 +157,14 @@ Pass `-m` more than once (or a list in the config). Models run in parallel. Find
 ## Development
 
 ```bash
+cargo fmt --all -- --check
+cargo clippy --all-targets -- -D warnings
 cargo test
 cargo build --release
 ./target/release/nitpick context     # dogfood on your own changes
 ```
+
+There is no CI; run the checks above locally before committing. `AGENTS.md` has the full guide for coding agents working on this repo.
 
 The crate is organized as: `git` (shelling out to git), `diff` (unified diff parser), `lang` (tree-sitter and import extraction), `search` (ripgrep crates), `context` (the pack builder and budget), `prompt`, `llm` (OpenAI-compatible client with fallbacks), `review` (schema, lenient parsing, merging, rendering), `config`, `main`.
 

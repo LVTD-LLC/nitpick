@@ -1,3 +1,5 @@
+<img src="assets/nitpick-icon-robot.png" alt="nitpick logo: tweezers picking up an outlined robot head" width="128" height="128">
+
 # nitpick
 
 AI code review for AI agents.

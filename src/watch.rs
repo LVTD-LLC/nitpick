@@ -461,7 +461,7 @@ pub fn pending_changes(repo: &Repo, state: &State, ignore: &[String]) -> Result<
     let head = repo.rev_parse("HEAD");
     if let (Some(recorded), Some(cur)) = (state.head(), head.as_deref())
         && recorded != cur
-        && !repo.is_ancestor(&recorded, cur)
+        && repo.is_ancestor(&recorded, cur) == Some(false)
     {
         state.log(&format!(
             "HEAD moved from {} to {}: baseline reset",

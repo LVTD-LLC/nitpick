@@ -75,8 +75,9 @@ pub const FILE_NAMES: &[&str] = &[".nitpick.toml", "nitpick.toml"];
 
 /// `~/.config/nitpick/config.toml` (or `$XDG_CONFIG_HOME/nitpick/config.toml`).
 pub fn user_config_path() -> Option<PathBuf> {
+    // The XDG spec says a relative value must be ignored.
     if let Ok(x) = std::env::var("XDG_CONFIG_HOME")
-        && !x.is_empty()
+        && Path::new(&x).is_absolute()
     {
         return Some(PathBuf::from(x).join("nitpick").join("config.toml"));
     }
@@ -129,8 +130,11 @@ fn merge(base: &mut FileConfig, over: FileConfig) {
         include_tests,
         instructions
     );
-    if !over.ignore.is_empty() {
-        base.ignore = over.ignore;
+    // Ignore globs accumulate: the user's list plus the repo's.
+    for g in over.ignore {
+        if !base.ignore.contains(&g) {
+            base.ignore.push(g);
+        }
     }
     let w = &mut base.watch;
     let o = over.watch;

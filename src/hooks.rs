@@ -115,7 +115,13 @@ struct Output {
 fn read_stdin() -> Value {
     let mut buf = String::new();
     let _ = std::io::stdin().read_to_string(&mut buf);
-    serde_json::from_str(&buf).unwrap_or(Value::Object(Default::default()))
+    if buf.trim().is_empty() {
+        return Value::Object(Default::default());
+    }
+    serde_json::from_str(&buf).unwrap_or_else(|e| {
+        eprintln!("nitpick hook: stdin is not JSON ({e}); continuing without it");
+        Value::Object(Default::default())
+    })
 }
 
 fn str_field<'a>(v: &'a Value, keys: &[&str]) -> Option<&'a str> {
@@ -334,9 +340,14 @@ pub const OPENCLAW_SHIM: &[(&str, &str)] = &[
     ("package.json", include_str!("shims/openclaw/package.json")),
 ];
 
+/// Writes (or refreshes) a shim. An existing file is replaced so an upgrade
+/// of nitpick upgrades the shim; the caller is told when that happened.
 fn write_shim(path: &Path, content: &str) -> Result<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
+    }
+    if path.exists() && std::fs::read_to_string(path).ok().as_deref() != Some(content) {
+        eprintln!("nitpick: replacing existing {}", path.display());
     }
     std::fs::write(path, content).with_context(|| format!("writing {}", path.display()))
 }
@@ -451,7 +462,11 @@ pub fn uninstall(harness: Harness, global: bool, repo_root: &Path) -> Result<Opt
             return Ok(Some(path));
         }
         Harness::Openclaw => {
-            std::fs::remove_dir_all(&path)?;
+            // Only what install wrote; anything else in the directory stays.
+            for (name, _) in OPENCLAW_SHIM {
+                let _ = std::fs::remove_file(path.join(name));
+            }
+            let _ = std::fs::remove_dir(&path);
             return Ok(Some(path));
         }
         _ => {}
@@ -529,8 +544,10 @@ mod tests {
         assert!(std::fs::read_to_string(&p).unwrap().contains("nitpick"));
         let p = install(Harness::Openclaw, false, dir.path()).unwrap();
         assert!(p.join("index.ts").is_file() && p.join("package.json").is_file());
+        std::fs::write(p.join("notes.txt"), "mine").unwrap();
         assert!(uninstall(Harness::Openclaw, false, dir.path()).unwrap().is_some());
-        assert!(!p.exists());
+        assert!(!p.join("index.ts").exists());
+        assert!(p.join("notes.txt").is_file(), "user files survive uninstall");
     }
 
     #[test]

@@ -4,7 +4,7 @@ Instructions for any coding agent working in this repository. `CLAUDE.md` points
 
 ## What this is
 
-`nitpick` is a Rust CLI that AI coding agents run before opening a PR. It sends the git diff, the full changed files, and related code from the rest of the repo to a model on OpenRouter (or a local Ollama / llama.cpp server) and prints structured findings. Exit code 1 means findings at or above `--fail-on`. The code is written for agents to maintain and for agents to run; optimize for correctness and runtime speed, not for prose-like readability.
+`nitpick` is a Rust CLI that AI coding agents run before opening a PR. It sends the git diff, the full changed files, and related code from the rest of the repo to a model on OpenRouter (or a local Ollama / llama.cpp server) and prints structured findings. Exit code 1 means findings at or above `--fail-on`. `nitpick watch` does the same in the background while an agent works, driven by the harness's hooks (`nitpick hook <harness> <event>`), and hands findings back to the agent through those hooks. The code is written for agents to maintain and for agents to run; optimize for correctness and runtime speed, not for prose-like readability.
 
 Read `README.md` for user-facing behavior and configuration.
 
@@ -50,10 +50,21 @@ src/context.rs   the context engine: changed files, definitions, call sites, imp
 src/prompt.rs    system prompt (schema embedded) and the sectioned user message
 src/llm.rs       OpenAI-compatible client; schema fallback, retries, max_tokens doubling
 src/review.rs    Review/Finding types, lenient JSON parsing with aliases, merging, rendering
-src/config.rs    .nitpick.toml loading and the `init` template
+src/run.rs       Settings resolution (flags > config > defaults) and the parallel model loop, shared by review and watch
+src/watch.rs     watch mode: state under <git-dir>/nitpick (baselines, trigger, worker lock, inbox), change detection,
+                 incremental review, the worker loop, the stop decision, status/log/run/reset
+src/hooks.rs     `nitpick hook`: per-harness stdin parsing and output JSON; `watch install/uninstall`
+src/shims/       TypeScript shims for pi, OpenCode and OpenClaw, embedded with include_str! and written by `watch install`
+src/config.rs    .nitpick.toml (+ ~/.config/nitpick/config.toml) loading, the [watch] table, the `init` template
 ```
 
 Unit tests live next to the code in `#[cfg(test)]` modules. Add one for every parser or resolver change; `src/context.rs` tests show how to test import resolution with a fake file set.
+
+### Watch mode, in one paragraph
+
+Hooks are thin and must never slow or break the agent: `hooks::run` catches every error, prints it to stderr and exits 0. The `tool` event touches `<git-dir>/nitpick/trigger` and spawns a detached `nitpick watch worker` (null stdio, own process group) unless `worker.lock` has a fresh heartbeat. The worker waits for `debounce_secs` of quiet, computes `pending_changes` (every dirty file plus every file with a shadow whose content differs from its shadow, or from HEAD when it has no shadow), writes before/after copies to a temp tree, diffs them with `git diff --no-index --src-prefix= --dst-prefix=`, and feeds that diff to `context::build_from_diff` with `DiffMode::Snapshot` so line numbers come from the exact bytes reviewed. Findings at or above `deliver` go to `inbox/`; the next hook drains them into the harness's "additional context" field. The `stop` event waits for the worker, reviews leftovers inline, and blocks (Claude/Codex `decision: block`, Cursor `followup_message`, generic `block: true`) when anything is at or above `fail_on`, at most `max_stop_blocks` times in a row. Every harness-specific detail (field names, which events can carry context) is in `hooks.rs`; keep it there.
+
+To test a hook by hand, pipe a payload in: `printf '{"cwd":"%s","tool_name":"Edit"}' "$PWD" | nitpick hook claude tool`. `nitpick watch status` and the `log` file under the state dir show what happened.
 
 ## Constraints that matter
 
@@ -64,6 +75,8 @@ Unit tests live next to the code in `#[cfg(test)]` modules. Add one for every pa
 - Free OpenRouter models are flaky (429, empty 200 bodies, multi-minute hangs). Test with `--timeout` set and expect to rerun. Treat a provider failure as a retry, not a code bug, unless the debug dump says otherwise.
 - Do not add dependencies for convenience. The binary is a single static executable; startup time is a feature.
 - Do not commit `NITPICK_DEBUG_DIR` output, `.nitpick.local.toml`, or anything under `target/`.
+- `api_key` is honored only from the user-level config file, never from a repo's `.nitpick.toml` (`config::load` clears it). A cloned repo must not be able to point nitpick at a secret.
+- The watch worker runs with whatever environment the agent's hook had. Hooks in GUI-launched agents may lack the shell profile; that is what the user-level config file is for.
 
 ## Git
 

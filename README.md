@@ -6,7 +6,7 @@ AI code review for AI agents.
 
 `nitpick` sends your git diff, the full changed files, and the parts of the repo that matter for judging the change to a model on [OpenRouter](https://openrouter.ai) (or a local Ollama / llama.cpp server), and prints structured findings. It exits `1` when there are findings at or above a severity you choose, so a coding agent can run it before opening a PR and loop until the review is clean.
 
-No GitHub Action, no waiting for CI. The agent that wrote the code gets a second opinion from a different model in one command.
+No GitHub Action, no waiting for CI. The agent that wrote the code gets a second opinion from a different model in one command. Or in no command at all: `nitpick watch` plugs into the agent's hooks and reviews each batch of edits in the background while the agent keeps working ([details](#watch-review-while-the-agent-works)).
 
 ```
 $ nitpick
@@ -86,7 +86,7 @@ What gets diffed, in order of precedence: `--range`, `--staged`, `--base`, then 
 
 ### For agents
 
-The [nitpick-skills](https://github.com/LVTD-LLC/nitpick-skills) repo packages a skill and plugin for Claude Code, Codex, Cursor, OpenClaw, OpenCode, and any Agent Skills client. It teaches the agent to install nitpick, run it before a PR, and loop on findings:
+The [nitpick-skills](https://github.com/LVTD-LLC/nitpick-skills) repo packages a skill and plugin for Claude Code, Codex, Cursor, OpenClaw, OpenCode, and any Agent Skills client. The plugin ships the watch hooks (below) and a skill that teaches the agent to install nitpick, run it before a PR, and loop on findings:
 
 ```bash
 claude plugin marketplace add LVTD-LLC/nitpick-skills && claude plugin install nitpick@nitpick-skills
@@ -102,6 +102,70 @@ medium or below are judgment calls; address or explain them in the PR.
 ```
 
 `nitpick` prints progress on stderr and the review on stdout. Findings cite `path:line` in the post-change file. With `--json` you get the same data as an object with `verdict`, `findings[]`, per-model summaries, token counts and cost.
+
+## Watch: review while the agent works
+
+`nitpick watch` turns the review into something the agent never has to think about. The agent's harness already fires a hook after every tool call and when the agent wants to finish; nitpick hooks into those, and the agent only hears from it when something was found.
+
+```bash
+nitpick watch install claude        # Claude Code: .claude/settings.json in this repo
+nitpick watch install codex         # Codex: .codex/hooks.json (then trust it with /hooks in Codex)
+nitpick watch install cursor        # Cursor: .cursor/hooks.json
+nitpick watch install pi            # pi: .pi/extensions/nitpick.ts
+nitpick watch install opencode      # OpenCode: .opencode/plugins/nitpick.ts
+nitpick watch install openclaw      # OpenClaw: .openclaw/extensions/nitpick/
+nitpick watch install claude --global   # for every repo instead of this one
+```
+
+The Claude Code and Codex plugins from nitpick-skills carry the same hooks, so installing the plugin is enough there.
+
+How it works:
+
+1. **Session start**: the current working tree becomes the baseline, so your own uncommitted work is never blamed on the agent.
+2. **After each tool call**: the hook records that something happened and, if no worker is running, starts one in the background. It returns in a few milliseconds; the agent is not slowed down.
+3. **The worker** waits for the edits to go quiet (`debounce_secs`, default 20), then diffs every changed file against the copy it reviewed last time. That small diff goes through the same context engine and model call as a normal review, with extra instructions that this is work in progress: no complaints about TODOs, missing tests, or code that is not written yet. Findings at or above `deliver` (default medium) are queued.
+4. **The next hook** hands the queued findings to the agent as a `[nitpick]` note: file, line, what is wrong, a suggested fix, and a reminder that it is a second opinion worth verifying. In Claude Code and Codex this arrives right after the agent's next tool call; in Cursor after the next tool call too; in pi it is appended to the tool result; in OpenCode and OpenClaw it is added to the next prompt.
+5. **When the agent wants to finish**, the stop hook waits for any review in flight, reviews whatever is still unreviewed, and if anything is at or above `fail_on` (default high) sends the agent back with the findings. It does this at most `max_stop_blocks` times in a row (default 2) so a stubborn disagreement cannot loop forever; after that it lets the agent stop and tells you.
+
+Provider errors are logged and swallowed. A review that could not run is not a failed review; after three failures in a row the pending changes are written off so a dead free model cannot queue the same diff forever. Everything lives under `.git/nitpick/` in the checkout (per worktree), which git ignores. Nothing is sent anywhere except the model provider you configured.
+
+```bash
+nitpick watch status     # on or off, worker state, what is waiting to be reviewed, recent activity
+nitpick watch log        # findings of past background reviews, newest first
+nitpick watch run        # review everything unreviewed right now, in the foreground
+nitpick watch reset      # forget baselines and queued findings
+nitpick watch show codex # print the hook definitions without installing them
+NITPICK_WATCH=0 claude   # turn it off for one session
+```
+
+Configure it in `.nitpick.toml`:
+
+```toml
+[watch]
+# enabled = true
+model = "nvidia/nemotron-3-ultra-550b-a55b:free"   # a cheaper or free model for the many small reviews
+deliver = "medium"      # lowest severity handed to the agent mid-task
+# fail_on = "high"      # lowest severity that sends the agent back when it tries to stop (defaults to the top-level fail_on)
+debounce_secs = 20
+max_wait_secs = 120     # review anyway once edits have been arriving for this long
+timeout_secs = 180
+# budget_tokens = 40000
+# stop_wait_secs = 120  # how long the stop hook waits for a review in flight
+# max_stop_blocks = 2
+# instructions = "Extra instructions for the background reviewer only."
+```
+
+Free OpenRouter models are rate limited per minute and per day; the debounce is what keeps a busy session inside those limits. If the agent is launched from a GUI where your shell environment is not available, put the key in `~/.config/nitpick/config.toml` as `api_key = "sk-or-..."` (that file is read for every repo; `api_key` is ignored in a repo's `.nitpick.toml` on purpose).
+
+### Other harnesses
+
+`nitpick hook generic <event> --cwd <repo> [--tool <name>]` is the integration point for anything else. Events are `session-start`, `tool`, `prompt` and `stop`. It prints one JSON object:
+
+```json
+{"event":"stop","context":null,"block":true,"reason":"[nitpick] A background review ...","note":null}
+```
+
+`context` is text to put in front of the model, `block` with `reason` means the agent should do one more pass with `reason` as its input, and `note` is for the human. The pi, OpenCode and OpenClaw shims (`nitpick watch show pi` prints one) are thirty-line examples of wiring this into an extension API.
 
 ## What gets sent
 
@@ -139,9 +203,15 @@ instructions = """
 This is a Django app. Be strict about N+1 queries and missing select_related.
 Ignore anything about docstrings.
 """
+
+[watch]                         # background review; see above
+deliver = "medium"
+debounce_secs = 20
 ```
 
-Environment variables: `NITPICK_MODEL`, `NITPICK_PROVIDER`, `NITPICK_BASE_URL`, `NITPICK_API_KEY`, `NITPICK_REASONING`, `NITPICK_OPENROUTER_API_KEY`, `OPENROUTER_API_KEY`, `NITPICK_OPENAI_API_KEY`, `OPENAI_API_KEY`.
+A user-level `~/.config/nitpick/config.toml` with the same keys is read first and the repo file layered over it.
+
+Environment variables: `NITPICK_MODEL`, `NITPICK_PROVIDER`, `NITPICK_BASE_URL`, `NITPICK_API_KEY`, `NITPICK_REASONING`, `NITPICK_OPENROUTER_API_KEY`, `OPENROUTER_API_KEY`, `NITPICK_OPENAI_API_KEY`, `OPENAI_API_KEY`, `NITPICK_WATCH=0`.
 
 ### Local models
 
@@ -175,7 +245,7 @@ cargo build --release
 
 There is no CI; run the checks above locally before committing. `AGENTS.md` has the full guide for coding agents working on this repo.
 
-The crate is organized as: `git` (shelling out to git), `diff` (unified diff parser), `lang` (tree-sitter and import extraction), `search` (ripgrep crates), `context` (the pack builder and budget), `prompt`, `llm` (OpenAI-compatible client with fallbacks), `review` (schema, lenient parsing, merging, rendering), `config`, `main`.
+The crate is organized as: `git` (shelling out to git), `diff` (unified diff parser), `lang` (tree-sitter and import extraction), `search` (ripgrep crates), `context` (the pack builder and budget), `prompt`, `llm` (OpenAI-compatible client with fallbacks), `review` (schema, lenient parsing, merging, rendering), `run` (settings and the model loop shared by review and watch), `watch` (baselines, worker, inbox, stop logic), `hooks` (per-harness adapters and `watch install`), `config`, `main`.
 
 ## License
 

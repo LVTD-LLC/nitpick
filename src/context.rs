@@ -178,7 +178,7 @@ pub fn windowed_listing(lines: &[&str], ranges: &[(u32, u32)], window: usize) ->
     out
 }
 
-fn glob_matches(globs: &[String], rel: &str) -> bool {
+pub fn glob_matches(globs: &[String], rel: &str) -> bool {
     if globs.is_empty() {
         return false;
     }
@@ -337,9 +337,15 @@ fn outline(lines: &[String], defs: &[Definition], rel: &str) -> String {
 }
 
 pub fn build(repo: &Repo, mode: &DiffMode, opts: &Options) -> Result<ContextPack> {
-    let t0 = Instant::now();
     let raw_diff = repo.diff(mode, &opts.paths, opts.include_untracked)?;
-    let parsed = diff::parse(&raw_diff);
+    build_from_diff(repo, mode, &raw_diff, opts)
+}
+
+/// Same as [`build`] but for a unified diff the caller already has. Files
+/// named in it are read through `mode` (see [`Repo::read_file`]).
+pub fn build_from_diff(repo: &Repo, mode: &DiffMode, raw_diff: &str, opts: &Options) -> Result<ContextPack> {
+    let t0 = Instant::now();
+    let parsed = diff::parse(raw_diff);
     let parsed: Vec<FileDiff> =
         parsed.into_iter().filter(|f| !glob_matches(&opts.ignore, f.path()) && !search::is_junk(f.path())).collect();
     // For brand-new text files the full numbered listing below carries the

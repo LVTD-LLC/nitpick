@@ -1,0 +1,7 @@
+{
+  "name": "openclaw-plugin-nitpick",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "openclaw": { "extensions": ["./index.ts"] }
+}

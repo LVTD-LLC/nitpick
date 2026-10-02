@@ -2,18 +2,23 @@ mod config;
 mod context;
 mod diff;
 mod git;
+mod hooks;
 mod lang;
 mod llm;
 mod prompt;
 mod review;
+mod run;
 mod search;
+mod watch;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Result, bail};
 use clap::{Args, Parser, Subcommand};
+use hooks::{Event, Harness, HookArgs};
 use llm::ProviderKind;
-use review::{ModelResult, Severity};
-use std::path::Path;
-use std::time::{Duration, Instant};
+use review::Severity;
+use run::Progress;
+use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 /// AI code review for AI agents.
 ///
@@ -21,6 +26,9 @@ use std::time::{Duration, Instant};
 /// the rest of the repo to a model on OpenRouter (or a local Ollama /
 /// llama.cpp server) and prints structured findings. Exit code 1 when there
 /// are findings at or above --fail-on, so an agent can loop until clean.
+///
+/// `nitpick watch` reviews in the background while an agent works, driven
+/// by the agent's own hooks; see `nitpick watch --help`.
 #[derive(Parser, Debug)]
 #[command(name = "nitpick", version, about, args_conflicts_with_subcommands = true)]
 struct Cli {
@@ -42,6 +50,86 @@ enum Command {
         #[arg(long)]
         force: bool,
     },
+    /// Background review while an agent works: install the hooks, see what
+    /// the reviewer found, or run one incremental review by hand.
+    ///
+    /// Each edit the agent makes is recorded by a hook. After a quiet period a
+    /// worker diffs every changed file against the copy it reviewed last time,
+    /// runs that small diff through the normal review, and queues the findings.
+    /// The next hook hands them to the agent as a "[nitpick]" note. When the
+    /// agent tries to finish, anything at or above [watch].fail_on sends it
+    /// back to work. Configure it in the [watch] section of .nitpick.toml.
+    Watch {
+        #[command(subcommand)]
+        command: WatchCommand,
+    },
+    /// Entry point for agent hooks: reads the harness's JSON on stdin and
+    /// prints what that harness expects. Installed by `nitpick watch install`.
+    ///
+    /// The generic harness prints {"context", "block", "reason", "note"} and
+    /// takes --cwd and --tool for callers that cannot write stdin.
+    Hook {
+        #[arg(value_enum)]
+        harness: Harness,
+        #[arg(value_enum)]
+        event: Event,
+        /// Repository (or any directory inside it). Defaults to the payload's `cwd`.
+        #[arg(long)]
+        cwd: Option<PathBuf>,
+        /// Name of the tool that just ran, for the `tool` event.
+        #[arg(long)]
+        tool: Option<String>,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum WatchCommand {
+    /// Add nitpick's hooks to a harness. Project-level by default.
+    Install {
+        #[arg(value_enum)]
+        harness: Harness,
+        /// Install for every project (the harness's user-level settings).
+        #[arg(long, short)]
+        global: bool,
+    },
+    /// Remove the hooks `install` added.
+    Uninstall {
+        #[arg(value_enum)]
+        harness: Harness,
+        #[arg(long, short)]
+        global: bool,
+    },
+    /// Show whether watch is on, what is waiting to be reviewed, and recent activity.
+    Status,
+    /// Print the findings of past background reviews, newest first.
+    Log {
+        /// How many reviews to show (default 10).
+        #[arg(short, long, default_value_t = 10)]
+        count: usize,
+        /// Print JSON.
+        #[arg(long)]
+        json: bool,
+    },
+    /// Review everything changed since the last background review, now, in
+    /// the foreground. Exit 1 on findings at or above [watch].fail_on.
+    Run {
+        #[arg(long)]
+        json: bool,
+        #[arg(short, long)]
+        quiet: bool,
+        #[arg(short, long)]
+        verbose: bool,
+    },
+    /// Forget every baseline and queued finding for this checkout.
+    Reset,
+    /// Print the hook definitions `install` would write, as JSON.
+    Show {
+        #[arg(value_enum)]
+        harness: Harness,
+    },
+    /// The background worker. Started by the hooks; not meant to be run by hand.
+    #[command(hide = true)]
+    Worker,
 }
 
 #[derive(Args, Debug, Clone, Default)]
@@ -138,12 +226,48 @@ struct ReviewArgs {
     verbose: bool,
 }
 
+impl ReviewArgs {
+    fn overrides(&self) -> run::Overrides {
+        run::Overrides {
+            models: self.model.clone(),
+            provider: self.provider,
+            base_url: self.base_url.clone(),
+            api_key: self.api_key.clone(),
+            fail_on: self.fail_on,
+            focus: self.focus.clone(),
+            max_tokens: self.max_tokens,
+            temperature: self.temperature,
+            timeout_secs: self.timeout,
+            reasoning: self.reasoning.clone(),
+            no_structured: self.no_structured,
+            budget: self.budget,
+            max_file_lines: self.max_file_lines,
+            no_context: self.no_context,
+            no_tests: self.no_tests,
+            no_untracked: self.no_untracked,
+            paths: self.paths.clone(),
+        }
+    }
+
+    fn progress(&self) -> Progress {
+        if self.quiet {
+            Progress::Quiet
+        } else if self.verbose {
+            Progress::Verbose
+        } else {
+            Progress::Normal
+        }
+    }
+}
+
 fn main() {
     let cli = Cli::parse();
     let code = match cli.command {
         Some(Command::Init { force }) => run_init(force),
         Some(Command::Context(args)) => run_context(args),
         Some(Command::Review(args)) => run_review(args),
+        Some(Command::Watch { command }) => run_watch(command),
+        Some(Command::Hook { harness, event, cwd, tool }) => Ok(hooks::run(harness, event, &HookArgs { cwd, tool })),
         None => run_review(cli.review),
     };
     match code {
@@ -166,93 +290,12 @@ fn run_init(force: bool) -> Result<i32> {
     Ok(0)
 }
 
-struct Settings {
-    models: Vec<String>,
-    provider_kind: ProviderKind,
-    provider_base_url: Option<String>,
-    provider_key_env: Option<String>,
-    fail_on: Severity,
-    instructions: Vec<String>,
-    request: llm::RequestOpts,
-    ctx: context::Options,
-}
-
-fn settings(args: &ReviewArgs, repo: &git::Repo) -> Result<(Settings, git::DiffMode)> {
+fn settings(args: &ReviewArgs, repo: &git::Repo) -> Result<(run::Settings, git::DiffMode)> {
     let file = config::load(&repo.root)?;
-
-    let models: Vec<String> = if !args.model.is_empty() {
-        args.model.clone()
-    } else if let Some(m) = file.model.clone() {
-        m.into_vec()
-    } else {
-        vec![config::DEFAULT_MODEL.to_string()]
-    };
-    let models: Vec<String> = models.into_iter().map(|m| m.trim().to_string()).filter(|m| !m.is_empty()).collect();
-    if models.is_empty() {
-        bail!("no model configured");
-    }
-
-    let kind = match (args.provider, file.provider.as_deref()) {
-        (Some(k), _) => k,
-        (None, Some(p)) => p.parse()?,
-        (None, None) => ProviderKind::Openrouter,
-    };
-    let base_url = args.base_url.clone().or(file.base_url.clone());
-
-    let fail_on = match (args.fail_on, file.fail_on.as_deref()) {
-        (Some(s), _) => s,
-        (None, Some(s)) => s.parse().map_err(|_| anyhow::anyhow!("invalid fail_on `{s}` in config"))?,
-        (None, None) => Severity::High,
-    };
-
-    let mut instructions: Vec<String> = Vec::new();
-    if let Some(i) = &file.instructions
-        && !i.trim().is_empty()
-    {
-        instructions.push(i.trim().to_string());
-    }
-    instructions.extend(args.focus.iter().cloned());
-
-    let request = llm::RequestOpts {
-        max_tokens: args.max_tokens.or(file.max_tokens).unwrap_or(16_000),
-        temperature: args.temperature.or(file.temperature).unwrap_or(0.1),
-        timeout: Duration::from_secs(args.timeout.or(file.timeout_secs).unwrap_or(300)),
-        reasoning: args.reasoning.clone().or(file.reasoning.clone()).map(|r| r.trim().to_ascii_lowercase()),
-        no_structured: args.no_structured || file.structured == Some(false),
-    };
-    if let Some(r) = &request.reasoning
-        && !matches!(r.as_str(), "none" | "low" | "medium" | "high")
-    {
-        bail!("invalid reasoning effort `{r}` (expected none, low, medium, high)");
-    }
-
-    let ctx = context::Options {
-        budget_tokens: args.budget.or(file.budget_tokens).unwrap_or(80_000),
-        max_file_lines: args.max_file_lines.or(file.max_file_lines).unwrap_or(400),
-        window: 40,
-        with_context: !args.no_context,
-        include_tests: !args.no_tests && file.include_tests.unwrap_or(true),
-        include_untracked: !args.no_untracked,
-        paths: args.paths.clone(),
-        ignore: file.ignore.clone(),
-    };
-
+    let s = run::resolve(&file, &args.overrides())?;
     let base = args.base.as_deref().or(file.base.as_deref());
     let mode = repo.resolve_mode(base, args.staged, args.range.as_deref())?;
-
-    Ok((
-        Settings {
-            models,
-            provider_kind: kind,
-            provider_base_url: base_url,
-            provider_key_env: file.api_key_env.clone(),
-            fail_on,
-            instructions,
-            request,
-            ctx,
-        },
-        mode,
-    ))
+    Ok((s, mode))
 }
 
 fn run_context(args: ReviewArgs) -> Result<i32> {
@@ -304,116 +347,7 @@ fn run_review(args: ReviewArgs) -> Result<i32> {
     }
 
     // Only now do we need credentials: a clean tree should exit 0 without them.
-    let provider = llm::Provider::resolve(
-        s.provider_kind,
-        s.provider_base_url.clone(),
-        args.api_key.clone(),
-        s.provider_key_env.as_deref(),
-    )?;
-    let user = prompt::user_message(&pack, &s.instructions);
-    let schema = review::schema();
-    let system = prompt::system(&schema);
-    if !args.quiet {
-        let st = &pack.stats;
-        eprintln!(
-            "nitpick: {} · {} file(s) · ~{} tokens context ({} snippets, {} dropped, {}ms) · {} via {}",
-            mode.label(),
-            st.files_changed,
-            st.estimated_tokens,
-            st.snippets_kept,
-            st.snippets_dropped,
-            st.build_ms,
-            s.models.join(", "),
-            provider.kind.name()
-        );
-    }
-
-    let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build()?;
-    let results: Vec<ModelResult> = rt.block_on(async {
-        let client = reqwest::Client::builder()
-            .user_agent(format!("nitpick/{}", env!("CARGO_PKG_VERSION")))
-            .build()
-            .context("building HTTP client")?;
-        let futs = s.models.iter().map(|model| {
-            let client = &client;
-            let provider = &provider;
-            let user = &user;
-            let schema = &schema;
-            let system = system.as_str();
-            let request = &s.request;
-            let quiet = args.quiet;
-            let verbose = args.verbose;
-            async move {
-                let started = Instant::now();
-                let res = llm::complete(client, provider, model, system, user, schema, request).await;
-                match res {
-                    Ok(c) => {
-                        if verbose {
-                            eprintln!(
-                                "nitpick: {model} answered in {:.1}s (prompt {} / completion {} tokens{}{})",
-                                c.elapsed_ms as f64 / 1000.0,
-                                c.prompt_tokens.map(|t| t.to_string()).unwrap_or_else(|| "?".into()),
-                                c.completion_tokens.map(|t| t.to_string()).unwrap_or_else(|| "?".into()),
-                                c.cost_usd.map(|x| format!(", ${x:.4}")).unwrap_or_default(),
-                                if c.used_schema { "" } else { ", no structured output" }
-                            );
-                        }
-                        match review::parse_lenient(&c.content) {
-                            Ok(r) => {
-                                if !quiet && !verbose {
-                                    eprintln!(
-                                        "nitpick: {model} done in {:.1}s, {} finding(s)",
-                                        c.elapsed_ms as f64 / 1000.0,
-                                        r.findings.len()
-                                    );
-                                }
-                                ModelResult {
-                                    model: model.clone(),
-                                    review: Some(r),
-                                    error: None,
-                                    elapsed_ms: c.elapsed_ms,
-                                    prompt_tokens: c.prompt_tokens,
-                                    completion_tokens: c.completion_tokens,
-                                    cost_usd: c.cost_usd,
-                                }
-                            }
-                            Err(e) => ModelResult {
-                                model: model.clone(),
-                                review: None,
-                                error: Some(format!("{e:#}")),
-                                elapsed_ms: c.elapsed_ms,
-                                prompt_tokens: c.prompt_tokens,
-                                completion_tokens: c.completion_tokens,
-                                cost_usd: c.cost_usd,
-                            },
-                        }
-                    }
-                    Err(e) => {
-                        if !quiet {
-                            eprintln!("nitpick: {model} failed: {e:#}");
-                        }
-                        ModelResult {
-                            model: model.clone(),
-                            review: None,
-                            error: Some(format!("{e:#}")),
-                            elapsed_ms: started.elapsed().as_millis(),
-                            prompt_tokens: None,
-                            completion_tokens: None,
-                            cost_usd: None,
-                        }
-                    }
-                }
-            }
-        });
-        Ok::<_, anyhow::Error>(futures::future::join_all(futs).await)
-    })?;
-
-    if results.iter().all(|r| r.review.is_none()) {
-        let errs: Vec<String> =
-            results.iter().map(|r| format!("{}: {}", r.model, r.error.as_deref().unwrap_or("?"))).collect();
-        bail!("every model failed:\n  {}", errs.join("\n  "));
-    }
-
+    let results = run::review_pack(&pack, &s, args.progress())?;
     let merged = review::merge(&results);
     let input = review::RenderInput {
         mode_label: &pack.mode_label,
@@ -432,4 +366,98 @@ fn run_review(args: ReviewArgs) -> Result<i32> {
     }
     let failing = merged.findings.iter().any(|f| f.severity >= s.fail_on);
     Ok(if failing { 1 } else { 0 })
+}
+
+fn run_watch(cmd: WatchCommand) -> Result<i32> {
+    let repo = git::Repo::discover(Path::new("."))?;
+    match cmd {
+        WatchCommand::Install { harness, global } => {
+            let path = hooks::install(harness, global, &repo.root)?;
+            println!("installed nitpick hooks for {} in {}", harness.name(), path.display());
+            match harness {
+                Harness::Codex => println!(
+                    "Codex runs new hooks only after you trust them: open a Codex session and run /hooks (or start it with --dangerously-bypass-hook-trust)."
+                ),
+                Harness::Cursor => println!("Cursor picks the file up on the next agent run."),
+                Harness::Pi => {
+                    println!("pi loads it on the next start (project files need the project to be trusted).")
+                }
+                Harness::Opencode => println!("OpenCode loads it on the next start."),
+                Harness::Openclaw => println!(
+                    "Enable it with `openclaw plugins enable nitpick` and set plugins.entries.nitpick.hooks.allowConversationAccess = true in openclaw.json."
+                ),
+                _ => {}
+            }
+            println!("Check with `nitpick watch status` after the agent's first edit.");
+            Ok(0)
+        }
+        WatchCommand::Uninstall { harness, global } => {
+            match hooks::uninstall(harness, global, &repo.root)? {
+                Some(path) => println!("removed nitpick hooks from {}", path.display()),
+                None => println!("no nitpick hooks found for {}", harness.name()),
+            }
+            Ok(0)
+        }
+        WatchCommand::Show { harness } => {
+            let v = match harness {
+                Harness::Cursor => serde_json::json!({"version": 1, "hooks": hooks::cursor_hooks()}),
+                Harness::Claude | Harness::Codex => serde_json::json!({"hooks": hooks::claude_style_hooks(harness)}),
+                Harness::Pi => {
+                    print!("{}", hooks::PI_SHIM);
+                    return Ok(0);
+                }
+                Harness::Opencode => {
+                    print!("{}", hooks::OPENCODE_SHIM);
+                    return Ok(0);
+                }
+                Harness::Openclaw => {
+                    for (name, content) in hooks::OPENCLAW_SHIM {
+                        println!("// ---- {name}\n{content}");
+                    }
+                    return Ok(0);
+                }
+                Harness::Generic => bail!("the generic harness has no fixed hook file; see `nitpick hook --help`"),
+            };
+            println!("{}", serde_json::to_string_pretty(&v)?);
+            Ok(0)
+        }
+        WatchCommand::Status => {
+            print!("{}", watch::status(&repo)?);
+            Ok(0)
+        }
+        WatchCommand::Log { count, json } => {
+            let Some(state) = watch::State::existing(&repo) else {
+                println!("No background reviews yet.");
+                return Ok(0);
+            };
+            let reports: Vec<watch::Report> = state.all_reports().into_iter().take(count).collect();
+            if json {
+                println!("{}", serde_json::to_string_pretty(&reports)?);
+            } else if reports.is_empty() {
+                println!("No background reviews yet.");
+            } else {
+                print!("{}", watch::render_reports(&reports));
+            }
+            Ok(0)
+        }
+        WatchCommand::Run { json, quiet, verbose } => {
+            let progress = if quiet {
+                Progress::Quiet
+            } else if verbose {
+                Progress::Verbose
+            } else {
+                Progress::Normal
+            };
+            watch::run_once(&repo, progress, json)
+        }
+        WatchCommand::Reset => {
+            watch::reset(&repo)?;
+            println!("watch state cleared");
+            Ok(0)
+        }
+        WatchCommand::Worker => {
+            watch::worker(&repo)?;
+            Ok(0)
+        }
+    }
 }

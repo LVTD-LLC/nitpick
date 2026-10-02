@@ -14,6 +14,10 @@ pub enum DiffMode {
     Staged,
     /// An explicit revision expression such as `main..feature` or `abc123`.
     Range { expr: String, to: String },
+    /// A diff supplied by the caller (the watch daemon's incremental review).
+    /// Changed files are read from `root` when present there, otherwise from
+    /// the working tree.
+    Snapshot { label: String, root: PathBuf },
 }
 
 impl DiffMode {
@@ -22,6 +26,7 @@ impl DiffMode {
             DiffMode::WorkingTreeVs { label, .. } => label.clone(),
             DiffMode::Staged => "staged changes".to_string(),
             DiffMode::Range { expr, .. } => format!("range {expr}"),
+            DiffMode::Snapshot { label, .. } => label.clone(),
         }
     }
 
@@ -178,6 +183,7 @@ impl Repo {
             }
             DiffMode::Staged => args.push("--cached".into()),
             DiffMode::Range { expr, .. } => args.push(expr.clone()),
+            DiffMode::Snapshot { .. } => bail!("snapshot mode supplies its own diff"),
         }
         if !paths.is_empty() {
             args.push("--".into());
@@ -216,6 +222,58 @@ impl Repo {
         Ok(out.lines().map(|l| l.trim().to_string()).filter(|l| !l.is_empty()).collect())
     }
 
+    /// Absolute path of the git directory for this checkout. For a linked
+    /// worktree this is `.git/worktrees/<name>`, so per-checkout state kept
+    /// under it never mixes with another worktree's.
+    pub fn git_dir(&self) -> Result<PathBuf> {
+        let out = self.git(&["rev-parse", "--absolute-git-dir"])?;
+        Ok(PathBuf::from(out.trim()))
+    }
+
+    /// Repo-relative paths of every tracked file with uncommitted changes
+    /// plus every untracked, non-ignored file. Renames report the new path.
+    pub fn dirty_files(&self) -> Result<Vec<String>> {
+        let out = Command::new("git")
+            .arg("-C")
+            .arg(&self.root)
+            .args(["status", "--porcelain=v1", "-z", "--untracked-files=all", "--no-renames"])
+            .output()
+            .context("failed to run git status")?;
+        if !out.status.success() {
+            bail!("git status failed: {}", String::from_utf8_lossy(&out.stderr).trim());
+        }
+        let text = String::from_utf8_lossy(&out.stdout);
+        let mut files: Vec<String> = Vec::new();
+        for entry in text.split('\0') {
+            if entry.len() < 4 {
+                continue;
+            }
+            let path = &entry[3..];
+            if !path.is_empty() {
+                files.push(path.to_string());
+            }
+        }
+        files.sort();
+        files.dedup();
+        Ok(files)
+    }
+
+    /// True when `ancestor` is reachable from `rev` (or equal to it).
+    pub fn is_ancestor(&self, ancestor: &str, rev: &str) -> bool {
+        Command::new("git")
+            .arg("-C")
+            .arg(&self.root)
+            .args(["merge-base", "--is-ancestor", ancestor, rev])
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+    }
+
+    /// Content of `rel` at HEAD, or `None` if it is not tracked there.
+    pub fn show_head(&self, rel: &str) -> Option<Vec<u8>> {
+        self.git_bytes(&["show", &format!("HEAD:{rel}")])
+    }
+
     /// Read the post-change content of a file for the given mode. Returns
     /// `None` for binary or missing files.
     pub fn read_file(&self, mode: &DiffMode, rel: &str) -> Result<Option<String>> {
@@ -232,6 +290,13 @@ impl Repo {
                 Some(b) => b,
                 None => return Ok(None),
             },
+            DiffMode::Snapshot { root, .. } => {
+                let snap = root.join(rel);
+                match std::fs::read(&snap).or_else(|_| std::fs::read(self.root.join(rel))) {
+                    Ok(b) => b,
+                    Err(_) => return Ok(None),
+                }
+            }
         };
         if bytes.iter().take(8000).any(|&b| b == 0) {
             return Ok(None);

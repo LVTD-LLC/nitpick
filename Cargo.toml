@@ -1,9 +1,9 @@
 [package]
 name = "nitpick"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 rust-version = "1.98"
-description = "AI code review for AI agents: send your diff plus the relevant repo context to any model on OpenRouter (or a local one) and get structured findings back."
+description = "AI code review for AI agents: send your diff plus the relevant repo context to any model on OpenRouter (or a local one) and get structured findings back, or let it review in the background through the agent's hooks."
 license = "MIT"
 repository = "https://github.com/lvtd-llc/nitpick"
 homepage = "https://nitpick.sh"

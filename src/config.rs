@@ -1,9 +1,10 @@
-//! `.nitpick.toml` in the repo root. Every key is optional; CLI flags and
-//! environment variables override it.
+//! `.nitpick.toml` in the repo root, layered over an optional user-level
+//! file (`~/.config/nitpick/config.toml`). Every key is optional; CLI flags
+//! and environment variables override both.
 
 use anyhow::{Context, Result};
 use serde::Deserialize;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
@@ -40,19 +41,115 @@ pub struct FileConfig {
     pub include_tests: Option<bool>,
     pub ignore: Vec<String>,
     pub instructions: Option<String>,
+    /// API key in the user-level config only, for agents launched from a GUI
+    /// where the shell environment is not available. Ignored in repo files.
+    pub api_key: Option<String>,
+    pub watch: WatchConfig,
+}
+
+/// `[watch]`: the background reviewer driven by agent hooks. Unset keys fall
+/// back to the top-level value, then to the defaults documented in STARTER.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct WatchConfig {
+    pub enabled: Option<bool>,
+    pub model: Option<ModelSpec>,
+    /// Lowest severity delivered to the agent while it works (default medium).
+    pub deliver: Option<String>,
+    /// Lowest severity that keeps the agent from stopping (default: top-level fail_on, else high).
+    pub fail_on: Option<String>,
+    /// Quiet period after the last edit before a review starts (default 20).
+    pub debounce_secs: Option<u64>,
+    /// Review anyway once edits have been arriving for this long (default 120).
+    pub max_wait_secs: Option<u64>,
+    pub timeout_secs: Option<u64>,
+    pub budget_tokens: Option<usize>,
+    /// How long the stop hook waits for an in-flight review (default 120).
+    pub stop_wait_secs: Option<u64>,
+    /// How many times in a row the stop hook may send the agent back (default 2).
+    pub max_stop_blocks: Option<u32>,
+    pub instructions: Option<String>,
 }
 
 pub const FILE_NAMES: &[&str] = &[".nitpick.toml", "nitpick.toml"];
 
+/// `~/.config/nitpick/config.toml` (or `$XDG_CONFIG_HOME/nitpick/config.toml`).
+pub fn user_config_path() -> Option<PathBuf> {
+    if let Ok(x) = std::env::var("XDG_CONFIG_HOME")
+        && !x.is_empty()
+    {
+        return Some(PathBuf::from(x).join("nitpick").join("config.toml"));
+    }
+    let home = std::env::var("HOME").ok().or_else(|| std::env::var("USERPROFILE").ok())?;
+    Some(PathBuf::from(home).join(".config").join("nitpick").join("config.toml"))
+}
+
+fn read(p: &Path) -> Result<FileConfig> {
+    let text = std::fs::read_to_string(p).with_context(|| format!("reading {}", p.display()))?;
+    toml::from_str(&text).with_context(|| format!("parsing {}", p.display()))
+}
+
+/// Repo config layered over the user config: any key set in the repo wins.
 pub fn load(root: &Path) -> Result<FileConfig> {
+    let mut base = match user_config_path() {
+        Some(p) if p.is_file() => read(&p)?,
+        _ => FileConfig::default(),
+    };
     for name in FILE_NAMES {
         let p = root.join(name);
         if p.is_file() {
-            let text = std::fs::read_to_string(&p).with_context(|| format!("reading {}", p.display()))?;
-            return toml::from_str(&text).with_context(|| format!("parsing {}", p.display()));
+            let mut repo = read(&p)?;
+            // A key in the repo must never be able to point at a secret.
+            repo.api_key = None;
+            merge(&mut base, repo);
+            return Ok(base);
         }
     }
-    Ok(FileConfig::default())
+    Ok(base)
+}
+
+fn merge(base: &mut FileConfig, over: FileConfig) {
+    macro_rules! take {
+        ($($f:ident),*) => { $( if over.$f.is_some() { base.$f = over.$f; } )* };
+    }
+    take!(
+        model,
+        provider,
+        base_url,
+        api_key_env,
+        base,
+        fail_on,
+        budget_tokens,
+        max_file_lines,
+        max_tokens,
+        temperature,
+        reasoning,
+        structured,
+        timeout_secs,
+        include_tests,
+        instructions
+    );
+    if !over.ignore.is_empty() {
+        base.ignore = over.ignore;
+    }
+    let w = &mut base.watch;
+    let o = over.watch;
+    macro_rules! take_w {
+        ($($f:ident),*) => { $( if o.$f.is_some() { w.$f = o.$f; } )* };
+    }
+    take_w!(
+        enabled,
+        model,
+        deliver,
+        fail_on,
+        debounce_secs,
+        max_wait_secs,
+        timeout_secs,
+        budget_tokens,
+        stop_wait_secs,
+        max_stop_blocks,
+        instructions
+    );
 }
 
 pub const DEFAULT_MODEL: &str = "stealth/space-bunny-alpha";
@@ -93,4 +190,21 @@ ignore = ["**/*.lock", "**/*.snap", "**/generated/**"]
 # Extra instructions for the reviewer. Project conventions, what to be strict about, what to ignore.
 instructions = """
 """
+
+# Background review while an agent works (driven by the agent's hooks; see `nitpick watch --help`).
+[watch]
+# enabled = true
+# A cheaper or free model for the many small reviews. Defaults to the model above.
+# model = "nvidia/nemotron-3-ultra-550b-a55b:free"
+# Lowest severity handed to the agent mid-task: blocker | high | medium | low | nit
+deliver = "medium"
+# Lowest severity that sends the agent back to work when it tries to stop. Defaults to fail_on above.
+# fail_on = "high"
+# Seconds of quiet after the last edit before a review starts, and the longest a review is postponed.
+debounce_secs = 20
+max_wait_secs = 120
+# Per-request timeout for watch reviews; free models can hang.
+timeout_secs = 180
+# Extra instructions for the background reviewer only.
+# instructions = ""
 "#;

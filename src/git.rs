@@ -244,29 +244,35 @@ impl Repo {
         }
         let text = String::from_utf8_lossy(&out.stdout);
         let mut files: Vec<String> = Vec::new();
+        // Each entry is "XY path" (two status letters, a space, the path).
         for entry in text.split('\0') {
-            if entry.len() < 4 {
+            let b = entry.as_bytes();
+            if b.len() < 4 || b[2] != b' ' {
                 continue;
             }
-            let path = &entry[3..];
-            if !path.is_empty() {
-                files.push(path.to_string());
-            }
+            files.push(entry[3..].to_string());
         }
         files.sort();
         files.dedup();
         Ok(files)
     }
 
-    /// True when `ancestor` is reachable from `rev` (or equal to it).
-    pub fn is_ancestor(&self, ancestor: &str, rev: &str) -> bool {
-        Command::new("git")
+    /// `Some(true)` when `ancestor` is reachable from `rev` (or equal to
+    /// it), `Some(false)` when git says it is not, `None` when git could not
+    /// answer (unknown revision, locked repo), which callers must not read
+    /// as either.
+    pub fn is_ancestor(&self, ancestor: &str, rev: &str) -> Option<bool> {
+        let out = Command::new("git")
             .arg("-C")
             .arg(&self.root)
             .args(["merge-base", "--is-ancestor", ancestor, rev])
             .output()
-            .map(|o| o.status.success())
-            .unwrap_or(false)
+            .ok()?;
+        match out.status.code() {
+            Some(0) => Some(true),
+            Some(1) => Some(false),
+            _ => None,
+        }
     }
 
     /// Content of `rel` at HEAD, or `None` if it is not tracked there.

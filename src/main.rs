@@ -57,8 +57,8 @@ enum Command {
     /// worker diffs every changed file against the copy it reviewed last time,
     /// runs that small diff through the normal review, and queues the findings.
     /// The next hook hands them to the agent as a "[nitpick]" note. When the
-    /// agent tries to finish, anything at or above [watch].fail_on sends it
-    /// back to work. Configure it in the [watch] section of .nitpick.toml.
+    /// agent finishes, reviews continue in the background. Set [watch].max_stop_blocks
+    /// above zero to wait and send it back for serious findings. Configure it in the [watch] section of .nitpick.toml.
     Watch {
         #[command(subcommand)]
         command: WatchCommand,
@@ -369,14 +369,22 @@ fn run_review(args: ReviewArgs) -> Result<i32> {
 }
 
 fn run_watch(cmd: WatchCommand) -> Result<i32> {
-    let repo = git::Repo::discover(Path::new("."))?;
+    let repo = git::Repo::discover_watch(Path::new("."))?;
     match cmd {
         WatchCommand::Install { harness, global } => {
             let path = hooks::install(harness, global, &repo.root)?;
             println!("installed nitpick hooks for {} in {}", harness.name(), path.display());
+            println!(
+                "scope: {}",
+                if global {
+                    "global (all workspaces for this user)"
+                } else {
+                    "this workspace only; add --global for all workspaces"
+                }
+            );
             match harness {
                 Harness::Codex => println!(
-                    "Codex runs new hooks only after you trust them: open a Codex session and run /hooks (or start it with --dangerously-bypass-hook-trust)."
+                    "Restart Codex, open /hooks (or the app Hooks settings), and enable AND trust all four nitpick hooks. Global hooks appear under User config. Installing the plugin alone does not prove hooks are active."
                 ),
                 Harness::Cursor => println!("Cursor picks the file up on the next agent run."),
                 Harness::Pi => {
@@ -388,7 +396,12 @@ fn run_watch(cmd: WatchCommand) -> Result<i32> {
                 ),
                 _ => {}
             }
-            println!("Check with `nitpick watch status` after the agent's first edit.");
+            println!(
+                "GUI hooks may lack shell credentials: configure api_key in the user-level nitpick config with owner-only permissions."
+            );
+            println!(
+                "Verify in a fresh session after an edit: `nitpick watch status` must show a completed review, not just enabled: yes."
+            );
             Ok(0)
         }
         WatchCommand::Uninstall { harness, global } => {

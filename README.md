@@ -109,7 +109,7 @@ medium or below are judgment calls; address or explain them in the PR.
 
 ```bash
 nitpick watch install claude        # Claude Code: .claude/settings.json in this repo
-nitpick watch install codex         # Codex: .codex/hooks.json (then trust it with /hooks in Codex)
+nitpick watch install codex --global # Codex: ~/.codex/hooks.json, all workspaces
 nitpick watch install cursor        # Cursor: .cursor/hooks.json
 nitpick watch install pi            # pi: .pi/extensions/nitpick.ts
 nitpick watch install opencode      # OpenCode: .opencode/plugins/nitpick.ts
@@ -117,7 +117,11 @@ nitpick watch install openclaw      # OpenClaw: .openclaw/extensions/nitpick/
 nitpick watch install claude --global   # for every repo instead of this one
 ```
 
-The Claude Code and Codex plugins from nitpick-skills carry the same hooks, so installing the plugin is enough there.
+The Claude Code plugin carries its hooks. For Codex, install the skill/plugin **and explicitly run `nitpick watch install codex --global`**: plugin installation alone has not reliably registered hooks in Codex. Omit `--global` only when you want one workspace.
+
+Restart Codex, then open `/hooks` in the CLI or Hooks settings in the desktop app. Under **User config**, enable **and** trust SessionStart, PostToolUse, UserPromptSubmit, and Stop. Trust and enabled are separate states. Keep only one active nitpick set: disable any plugin duplicates; remove project-local duplicates with `nitpick watch uninstall codex` from those projects after the global set works. Definitions are preserved on reinstall so existing trust is not invalidated.
+
+GUI-launched hooks may not inherit your shell API key. Configure the key in the user-level file described below, with owner-only permissions (`chmod 600 ~/.config/nitpick/config.toml`). Test in a fresh session in another workspace: make an edit and confirm the watch log records a completed model review. `enabled: yes`, a running worker, or a successful terminal review alone does not prove automatic hooks work. Reports of provider errors are not passing reviews.
 
 How it works:
 
@@ -125,7 +129,7 @@ How it works:
 2. **After each tool call**: the hook records that something happened and, if no worker is running, starts one in the background. It returns in a few milliseconds; the agent is not slowed down.
 3. **The worker** waits for the edits to go quiet (`debounce_secs`, default 20), then diffs every changed file against the copy it reviewed last time. That small diff goes through the same context engine and model call as a normal review, with extra instructions that this is work in progress: no complaints about TODOs, missing tests, or code that is not written yet. Findings at or above `deliver` (default medium) are queued.
 4. **The next hook** hands the queued findings to the agent as a `[nitpick]` note: file, line, what is wrong, a suggested fix, and a reminder that it is a second opinion worth verifying. In Claude Code and Codex this arrives right after the agent's next tool call; in Cursor after the next tool call too; in pi it is appended to the tool result; in OpenCode and OpenClaw it is added to the next prompt.
-5. **When the agent wants to finish**, the stop hook waits for any review in flight, reviews whatever is still unreviewed, and if anything is at or above `fail_on` (default high) sends the agent back with the findings. It does this at most `max_stop_blocks` times in a row (default 2) so a stubborn disagreement cannot loop forever; after that it lets the agent stop and tells you.
+5. **When the agent wants to finish**, the stop hook schedules any remaining work and returns immediately. It never waits or blocks by default. Findings arriving after the last tool call wait for the next prompt or tool call; they do not wake an idle agent. To opt into a completion gate, set `max_stop_blocks = 2`: the stop hook waits for reviews and sends the agent back for high/blocker findings, at most twice.
 
 Provider errors are logged and swallowed. A review that could not run is not a failed review; after three failures in a row the pending changes are written off so a dead free model cannot queue the same diff forever. Everything lives under `.git/nitpick/` in the checkout (per worktree), which git ignores. Nothing is sent anywhere except the model provider you configured.
 
@@ -151,11 +155,15 @@ max_wait_secs = 120     # review anyway once edits have been arriving for this l
 timeout_secs = 180
 # budget_tokens = 40000
 # stop_wait_secs = 120  # how long the stop hook waits for a review in flight
-# max_stop_blocks = 2
+max_stop_blocks = 0    # advisory; set to 2 to wait and block on serious findings
 # instructions = "Extra instructions for the background reviewer only."
 ```
 
 Free OpenRouter models are rate limited per minute and per day; the debounce is what keeps a busy session inside those limits. If the agent is launched from a GUI where your shell environment is not available, put the key in `~/.config/nitpick/config.toml` as `api_key = "sk-or-..."` (that file is read for every repo; `api_key` is ignored in a repo's `.nitpick.toml` on purpose).
+
+### Folders without Git
+
+Watch hooks also work in a plain working folder. Session start snapshots existing source files; later reviews include changed, added, and deleted code under that folder, without related-repository context. Hidden files, ignored files, generated directories, symlinks, and nested Git repositories are excluded. State lives under `~/.local/state/nitpick/workspaces/`, outside the folder; no Git repository is created. Edits outside the hook's working folder are not watched. Normal `nitpick` and `nitpick context` commands still require Git.
 
 ### Other harnesses
 

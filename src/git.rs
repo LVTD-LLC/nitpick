@@ -37,6 +37,7 @@ impl DiffMode {
 
 pub struct Repo {
     pub root: PathBuf,
+    pub standalone: bool,
 }
 
 impl Repo {
@@ -51,7 +52,49 @@ impl Repo {
             bail!("not inside a git repository: {}", start.display());
         }
         let root = String::from_utf8_lossy(&out.stdout).trim().to_string();
-        Ok(Self { root: PathBuf::from(root) })
+        Ok(Self { root: PathBuf::from(root), standalone: false })
+    }
+
+    /// Watch also supports a plain working folder; ordinary reviews still require Git.
+    pub fn discover_watch(start: &Path) -> Result<Self> {
+        if let Ok(repo) = Self::discover(start) {
+            return Ok(repo);
+        }
+        let root = std::fs::canonicalize(start).context("resolving watch folder")?;
+        // Do not reinterpret a broken checkout as a standalone folder.
+        if root.ancestors().any(|p| p.join(".git").exists()) {
+            bail!("cannot discover Git repository at {}", root.display());
+        }
+        Ok(Self { root, standalone: true })
+    }
+
+    /// In a plain folder, only source files are candidates. Respect ignore files,
+    /// prune generated directories and nested repositories, and never follow symlinks.
+    pub fn watch_files(&self) -> Result<Vec<String>> {
+        if !self.standalone {
+            return self.dirty_files();
+        }
+        let root = self.root.clone();
+        let walker = ignore::WalkBuilder::new(&self.root)
+            .require_git(false)
+            .max_filesize(Some(400_000))
+            .filter_entry(move |e| {
+                let rel = e.path().strip_prefix(&root).unwrap_or(e.path()).to_string_lossy();
+                !crate::search::is_junk(&rel)
+                    && (e.depth() == 0 || !e.path().is_dir() || !e.path().join(".git").exists())
+            })
+            .build();
+        let mut files = Vec::new();
+        for entry in walker {
+            let entry = entry?;
+            if entry.file_type().is_some_and(|t| t.is_file()) {
+                let rel = entry.path().strip_prefix(&self.root)?.to_string_lossy().replace('\\', "/");
+                if crate::search::is_code_file(&rel) {
+                    files.push(rel);
+                }
+            }
+        }
+        Ok(files)
     }
 
     pub fn git(&self, args: &[&str]) -> Result<String> {

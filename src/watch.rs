@@ -82,7 +82,7 @@ pub fn settings(file: &FileConfig) -> Result<WatchSettings> {
         debounce: Duration::from_secs(w.debounce_secs.unwrap_or(20)),
         max_wait: Duration::from_secs(w.max_wait_secs.unwrap_or(120)),
         stop_wait: Duration::from_secs(w.stop_wait_secs.unwrap_or(120)),
-        max_stop_blocks: w.max_stop_blocks.unwrap_or(2),
+        max_stop_blocks: w.max_stop_blocks.unwrap_or(0),
         review,
     })
 }
@@ -170,8 +170,18 @@ fn key(rel: &str) -> String {
 }
 
 impl State {
+    fn directory(repo: &Repo) -> Result<PathBuf> {
+        if !repo.standalone {
+            return Ok(repo.git_dir()?.join("nitpick"));
+        }
+        let home = std::env::var_os("HOME")
+            .or_else(|| std::env::var_os("USERPROFILE"))
+            .context("cannot determine home directory for watch state")?;
+        Ok(PathBuf::from(home).join(".local/state/nitpick/workspaces").join(key(&repo.root.to_string_lossy())))
+    }
+
     pub fn open(repo: &Repo) -> Result<State> {
-        let dir = repo.git_dir()?.join("nitpick");
+        let dir = Self::directory(repo)?;
         for sub in ["shadow", "inbox", "delivered", "tmp"] {
             std::fs::create_dir_all(dir.join(sub)).with_context(|| format!("creating {}", dir.join(sub).display()))?;
         }
@@ -180,7 +190,7 @@ impl State {
 
     /// The state directory if it exists, without creating it.
     pub fn existing(repo: &Repo) -> Option<State> {
-        let dir = repo.git_dir().ok()?.join("nitpick");
+        let dir = Self::directory(repo).ok()?;
         if dir.is_dir() { Some(State { dir }) } else { None }
     }
 
@@ -422,7 +432,7 @@ impl Lock {
         let (p, s) = (path.clone(), stop.clone());
         let thread = std::thread::spawn(move || {
             while !s.load(Ordering::Relaxed) {
-                std::thread::sleep(HEARTBEAT);
+                std::thread::park_timeout(HEARTBEAT);
                 if let Ok(f) = std::fs::OpenOptions::new().write(true).open(&p) {
                     let _ = f.set_modified(SystemTime::now());
                 }
@@ -436,6 +446,7 @@ impl Drop for Lock {
     fn drop(&mut self) {
         self.stop.store(true, Ordering::Relaxed);
         if let Some(t) = self.thread.take() {
+            t.thread().unpark();
             let _ = t.join();
         }
         let _ = std::fs::remove_file(&self.path);
@@ -458,7 +469,7 @@ pub fn pending_changes(repo: &Repo, state: &State, ignore: &[String]) -> Result<
     // A checkout, reset or rebase moves HEAD somewhere the baselines were not
     // taken from; the file contents changed, but not because the agent edited
     // them. Start over from the new tree instead of reviewing the switch.
-    let head = repo.rev_parse("HEAD");
+    let head = if repo.standalone { None } else { repo.rev_parse("HEAD") };
     if let (Some(recorded), Some(cur)) = (state.head(), head.as_deref())
         && recorded != cur
         && repo.is_ancestor(&recorded, cur) == Some(false)
@@ -471,15 +482,15 @@ pub fn pending_changes(repo: &Repo, state: &State, ignore: &[String]) -> Result<
         snapshot(repo, state)?;
         return Ok(Vec::new());
     }
-    let mut paths: BTreeSet<String> = repo.dirty_files()?.into_iter().collect();
-    paths.extend(state.shadow_paths());
+    let mut paths: BTreeSet<String> = repo.watch_files()?.into_iter().collect();
+    paths.extend(state.shadow_paths().into_iter().filter(|rel| !repo.standalone || !repo.root.join(rel).exists()));
     let mut out = Vec::new();
     for rel in paths {
         if search::is_junk(&rel) || context::glob_matches(ignore, &rel) {
             continue;
         }
         let abs = repo.root.join(&rel);
-        let current = match std::fs::metadata(&abs) {
+        let current = match std::fs::symlink_metadata(&abs) {
             Ok(m) if m.is_file() => {
                 if m.len() > MAX_FILE_BYTES {
                     continue;
@@ -495,6 +506,7 @@ pub fn pending_changes(repo: &Repo, state: &State, ignore: &[String]) -> Result<
         let base = match state.shadow(&rel) {
             Shadow::Content(b) => Some(b),
             Shadow::Deleted => None,
+            Shadow::Missing if repo.standalone => None,
             Shadow::Missing => repo.show_head(&rel),
         };
         if base.as_deref().is_some_and(is_binary) {
@@ -512,7 +524,7 @@ pub fn pending_changes(repo: &Repo, state: &State, ignore: &[String]) -> Result<
 /// treated as already reviewed. Called at session start so a user's own
 /// uncommitted work is not blamed on the agent.
 pub fn snapshot(repo: &Repo, state: &State) -> Result<usize> {
-    let dirty: BTreeSet<String> = repo.dirty_files()?.into_iter().collect();
+    let dirty: BTreeSet<String> = repo.watch_files()?.into_iter().collect();
     let mut paths = dirty.clone();
     paths.extend(state.shadow_paths());
     let mut n = 0;
@@ -521,6 +533,10 @@ pub fn snapshot(repo: &Repo, state: &State) -> Result<usize> {
             continue;
         }
         let abs = repo.root.join(&rel);
+        if repo.standalone && !dirty.contains(&rel) && abs.exists() {
+            state.remove_shadow(&rel);
+            continue;
+        }
         let current = std::fs::read(&abs).ok().filter(|b| !is_binary(b) && b.len() as u64 <= MAX_FILE_BYTES);
         if !dirty.contains(&rel) && current == repo.show_head(&rel) {
             // Back to its committed state (or committed and gone): no baseline needed.
@@ -608,7 +624,10 @@ pub fn review_changes(
         label: format!("changes since the last background review ({} file(s))", changes.len()),
         root: b_root,
     };
-    let pack = context::build_from_diff(repo, &mode, &diff, &ws.review.ctx)?;
+    let mut options = ws.review.ctx.clone();
+    // Outside Git send only the edited code, not unrelated files in the folder.
+    options.with_context &= !repo.standalone;
+    let pack = context::build_from_diff(repo, &mode, &diff, &options)?;
     let update_shadows = || {
         for c in changes {
             state.set_shadow(&c.rel, c.current.as_deref());
@@ -754,10 +773,19 @@ pub struct StopOutcome {
     pub note: Option<String>,
 }
 
-/// The agent wants to finish. Wait for an in-flight review, review anything
-/// still unreviewed, and decide whether the findings justify sending the
-/// agent back. Blocks at most `max_stop_blocks` times in a row.
+/// Advisory stop schedules background work and returns immediately. When a
+/// completion gate is configured, wait and review leftovers, then block at
+/// most `max_stop_blocks` times in a row.
 pub fn on_stop(repo: &Repo, state: &State, ws: &WatchSettings) -> StopOutcome {
+    if ws.max_stop_blocks == 0 {
+        // Advisory mode: keep pending findings for the next tool/prompt hook.
+        // Never wait for a provider or start a synchronous review here.
+        state.touch_trigger();
+        if let Err(e) = ensure_worker(repo, state) {
+            state.log(&format!("stop: could not schedule review: {e:#}"));
+        }
+        return StopOutcome { block: None, note: None };
+    }
     let deadline = std::time::Instant::now() + ws.stop_wait;
     while state.worker_alive() && std::time::Instant::now() < deadline {
         std::thread::sleep(Duration::from_millis(500));
@@ -934,6 +962,7 @@ pub fn status(repo: &Repo) -> Result<String> {
         if ws.enabled { "yes" } else { "no (watch.enabled = false or NITPICK_WATCH=0)" }
     ));
     s.push_str(&format!("model: {}\n", ws.review.models.join(", ")));
+    s.push_str(if ws.max_stop_blocks == 0 { "stop: advisory (never waits or blocks)\n" } else { "stop: blocking\n" });
     s.push_str(&format!(
         "deliver >= {}, stop on >= {}, debounce {}s, max wait {}s\n",
         ws.deliver.as_str(),
@@ -1014,6 +1043,75 @@ pub fn reset(repo: &Repo) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn advisory_stop_returns_with_worker_busy_and_preserves_inbox() {
+        let (_dir, repo) = git_repo();
+        let state = State::open(&repo).unwrap();
+        // A live lock must not cause stop to wait, nor may it drain findings.
+        std::fs::write(state.lock_path(), "test").unwrap();
+        state.push_report(&Report {
+            at: 1,
+            files: vec!["a.py".into()],
+            models: vec![],
+            summary: String::new(),
+            findings: vec![],
+            errors: vec![],
+            elapsed_ms: 0,
+        });
+        let ws = settings(&FileConfig::default()).unwrap();
+        assert_eq!(ws.max_stop_blocks, 0);
+        let start = std::time::Instant::now();
+        let out = on_stop(&repo, &state, &ws);
+        assert!(start.elapsed() < Duration::from_secs(1));
+        assert!(out.block.is_none() && out.note.is_none());
+        assert_eq!(state.peek_reports().len(), 1);
+        assert!(state.trigger_times().is_some());
+    }
+
+    #[test]
+    fn standalone_watch_baselines_edits_additions_and_deletions() {
+        let dir = tempfile::tempdir().unwrap();
+        let state_dir = tempfile::tempdir().unwrap();
+        let state = State { dir: state_dir.path().into() };
+        for sub in ["shadow", "tmp"] {
+            std::fs::create_dir_all(state.dir.join(sub)).unwrap();
+        }
+        std::fs::write(dir.path().join("a.py"), "x = 1\n").unwrap();
+        std::fs::write(dir.path().join("notes.txt"), "private notes").unwrap();
+        std::fs::write(dir.path().join(".gitignore"), "ignored.py\n").unwrap();
+        std::fs::write(dir.path().join("ignored.py"), "secret = 1").unwrap();
+        std::fs::create_dir(dir.path().join("node_modules")).unwrap();
+        std::fs::write(dir.path().join("node_modules/dependency.js"), "x = 1").unwrap();
+        let repo = Repo::discover_watch(dir.path()).unwrap();
+        assert!(repo.standalone);
+        assert_eq!(snapshot(&repo, &state).unwrap(), 1);
+        assert!(pending_changes(&repo, &state, &[]).unwrap().is_empty());
+        std::fs::write(dir.path().join("a.py"), "x = 2\ny = 3\n").unwrap();
+        let changes = pending_changes(&repo, &state, &[]).unwrap();
+        assert_eq!(changes.len(), 1);
+        assert_eq!(changes[0].base.as_deref(), Some(b"x = 1\n".as_slice()));
+        let (diff, root, _tmp) = snapshot_diff(&state, &changes).unwrap();
+        let opts = context::Options { with_context: false, ..Default::default() };
+        let pack =
+            context::build_from_diff(&repo, &DiffMode::Snapshot { label: "test".into(), root }, &diff, &opts).unwrap();
+        assert_eq!(pack.files.len(), 1);
+        assert!(pack.files[0].listing.as_ref().unwrap().contains("    2| y = 3"));
+        // A file newly excluded by .gitignore must not leak through its old shadow.
+        std::fs::write(dir.path().join(".gitignore"), "ignored.py\na.py\n").unwrap();
+        assert!(pending_changes(&repo, &state, &[]).unwrap().is_empty());
+        snapshot(&repo, &state).unwrap();
+        assert_eq!(state.shadow("a.py"), Shadow::Missing);
+        std::fs::write(dir.path().join(".gitignore"), "ignored.py\n").unwrap();
+        snapshot(&repo, &state).unwrap();
+        std::fs::remove_file(dir.path().join("a.py")).unwrap();
+        std::fs::write(dir.path().join("new.rs"), "fn main() {}\n").unwrap();
+        let changes = pending_changes(&repo, &state, &[]).unwrap();
+        assert_eq!(changes.len(), 2);
+        assert!(changes.iter().any(|c| c.rel == "a.py" && c.current.is_none()));
+        assert!(changes.iter().any(|c| c.rel == "new.rs" && c.base.is_none()));
+        assert!(!dir.path().join(".git").exists());
+    }
 
     #[test]
     fn key_is_filesystem_safe_and_stable() {

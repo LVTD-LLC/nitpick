@@ -66,7 +66,7 @@ pub struct WatchConfig {
     pub budget_tokens: Option<usize>,
     /// How long the stop hook waits for an in-flight review (default 120).
     pub stop_wait_secs: Option<u64>,
-    /// How many times in a row the stop hook may send the agent back (default 2).
+    /// How many times in a row the stop hook may send the agent back (default 0: advisory, no wait).
     pub max_stop_blocks: Option<u32>,
     pub instructions: Option<String>,
 }
@@ -207,6 +207,8 @@ deliver = "medium"
 # Seconds of quiet after the last edit before a review starts, and the longest a review is postponed.
 debounce_secs = 20
 max_wait_secs = 120
+# Advisory by default: never wait or block at stop. Set to 2 for a completion gate.
+max_stop_blocks = 0
 # Per-request timeout for watch reviews; free models can hang.
 timeout_secs = 180
 # Extra instructions for the background reviewer only.

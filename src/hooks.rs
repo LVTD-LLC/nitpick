@@ -128,7 +128,7 @@ fn str_field<'a>(v: &'a Value, keys: &[&str]) -> Option<&'a str> {
     keys.iter().find_map(|k| v.get(k).and_then(Value::as_str)).filter(|s| !s.is_empty())
 }
 
-pub const SESSION_NOTE: &str = "nitpick watch is active in this repository: a background reviewer (a different model) checks the edits you make and may add notes prefixed [nitpick] with findings. Treat them as a second opinion: fix real problems when you reach a stopping point, dismiss wrong ones in a sentence. Nothing is required of you until a note appears.";
+pub const SESSION_NOTE: &str = "nitpick watch is active in this workspace: a background reviewer (a different model) checks the edits you make and may add notes prefixed [nitpick] with findings. Treat them as a second opinion: fix real problems when you reach a stopping point, dismiss wrong ones in a sentence. Nothing is required of you until a note appears.";
 
 pub fn run(harness: Harness, event: Event, args: &HookArgs) -> i32 {
     match run_inner(harness, event, args) {
@@ -157,7 +157,7 @@ fn run_inner(harness: Harness, event: Event, args: &HookArgs) -> Result<i32> {
         .or_else(|| std::env::var_os("CLAUDE_PROJECT_DIR").map(PathBuf::from))
         .or_else(|| std::env::var_os("CURSOR_PROJECT_DIR").map(PathBuf::from))
         .unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
-    let Ok(repo) = Repo::discover(&cwd) else { return Ok(0) };
+    let Ok(repo) = Repo::discover_watch(&cwd) else { return Ok(0) };
     let file = crate::config::load(&repo.root)?;
     let ws = watch::settings(&file)?;
     if !ws.enabled {
@@ -374,12 +374,18 @@ fn write_json(path: &Path, v: &Value) -> Result<()> {
 /// Claude Code and Codex share this shape.
 pub fn claude_style_hooks(harness: Harness) -> Value {
     let h = harness.name();
-    let entry = |event: &str, timeout: u64| json!([{ "hooks": [{ "type": "command", "command": format!("{MARKER}{h} {event}"), "timeout": timeout }] }]);
+    let entry = |event: &str, timeout: u64, description: &str| {
+        let mut hook = json!({ "type": "command", "command": format!("{MARKER}{h} {event}"), "timeout": timeout });
+        if harness == Harness::Codex {
+            hook["statusMessage"] = json!(description);
+        }
+        json!([{ "hooks": [hook] }])
+    };
     json!({
-        "SessionStart": entry("session-start", 30),
-        "PostToolUse": entry("tool", 30),
-        "UserPromptSubmit": entry("prompt", 30),
-        "Stop": entry("stop", 600),
+        "SessionStart": entry("session-start", 30, "nitpick: establish the review baseline"),
+        "PostToolUse": entry("tool", 30, "nitpick: schedule background review and deliver findings"),
+        "UserPromptSubmit": entry("prompt", 30, "nitpick: deliver pending review findings"),
+        "Stop": entry("stop", 600, "nitpick: schedule remaining review; apply the configured stop policy"),
     })
 }
 
@@ -526,6 +532,25 @@ mod tests {
         let doc: Value = serde_json::from_str(&std::fs::read_to_string(&p).unwrap()).unwrap();
         assert_eq!(doc["hooks"]["Stop"].as_array().unwrap().len(), 1);
         assert!(doc["hooks"].get("PostToolUse").is_none());
+    }
+
+    #[test]
+    fn codex_install_labels_hooks_and_preserves_existing_approvals() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = install(Harness::Codex, false, dir.path()).unwrap();
+        let initial = std::fs::read_to_string(&path).unwrap();
+        let mut doc: Value = serde_json::from_str(&initial).unwrap();
+        assert_eq!(doc["hooks"].as_object().unwrap().len(), 4);
+        for groups in doc["hooks"].as_object().unwrap().values() {
+            assert!(groups[0]["hooks"][0]["statusMessage"].as_str().unwrap().starts_with("nitpick: "));
+        }
+        // Reinstall must not rewrite an existing hook definition, which would
+        // invalidate its saved trust. This includes older unlabeled hooks.
+        doc["hooks"]["Stop"][0]["hooks"][0].as_object_mut().unwrap().remove("statusMessage");
+        write_json(&path, &doc).unwrap();
+        let before = std::fs::read_to_string(&path).unwrap();
+        install(Harness::Codex, false, dir.path()).unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), before);
     }
 
     #[test]

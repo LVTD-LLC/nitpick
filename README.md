@@ -108,16 +108,15 @@ medium or below are judgment calls; address or explain them in the PR.
 `nitpick watch` turns the review into something the agent never has to think about. The agent's harness already fires a hook after every tool call and when the agent wants to finish; nitpick hooks into those, and the agent only hears from it when something was found.
 
 ```bash
-nitpick watch install claude        # Claude Code: .claude/settings.json in this repo
 nitpick watch install codex --global # Codex: ~/.codex/hooks.json, all workspaces
 nitpick watch install cursor        # Cursor: .cursor/hooks.json
 nitpick watch install pi            # pi: .pi/extensions/nitpick.ts
 nitpick watch install opencode      # OpenCode: .opencode/plugins/nitpick.ts
 nitpick watch install openclaw      # OpenClaw: .openclaw/extensions/nitpick/
-nitpick watch install claude --global   # for every repo instead of this one
+nitpick watch install claude        # Claude Code without the plugin: .claude/settings.json
 ```
 
-The Claude Code plugin carries its hooks. For Codex, install the skill/plugin **and explicitly run `nitpick watch install codex --global`**: plugin installation alone has not reliably registered hooks in Codex. Omit `--global` only when you want one workspace.
+In Claude Code, install the plugin instead (above): it carries the hooks, so there is nothing else to run. `nitpick watch install claude` is only for setups without the plugin; with the plugin enabled it installs nothing, and any copy an older install left in `~/.claude/settings.json` is removed at the next session start so hooks never run twice (`nitpick watch status` flags a project-level copy). For Codex, install the skill/plugin **and explicitly run `nitpick watch install codex --global`**: plugin installation alone has not reliably registered hooks in Codex. Omit `--global` only when you want one workspace.
 
 Restart Codex, then open `/hooks` in the CLI or Hooks settings in the desktop app. Under **User config**, enable **and** trust SessionStart, PostToolUse, UserPromptSubmit, and Stop. Trust and enabled are separate states. Keep only one active nitpick set: disable any plugin duplicates; remove project-local duplicates with `nitpick watch uninstall codex` from those projects after the global set works. Definitions are preserved on reinstall so existing trust is not invalidated.
 

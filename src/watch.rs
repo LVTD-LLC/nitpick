@@ -970,6 +970,13 @@ pub fn status(repo: &Repo) -> Result<String> {
         ws.debounce.as_secs(),
         ws.max_wait.as_secs()
     ));
+    for (p, global) in crate::hooks::claude_duplicates(&repo.root) {
+        s.push_str(&format!(
+            "warning: {} also registers nitpick's hooks, so Claude Code runs each one twice; the plugin already provides them. Remove that copy with `nitpick watch uninstall claude{}`.\n",
+            p.display(),
+            if global { " --global" } else { "" }
+        ));
+    }
     let Some(state) = State::existing(repo) else {
         s.push_str("state: none yet (no hook has fired in this checkout)\n");
         return Ok(s);

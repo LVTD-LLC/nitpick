@@ -371,6 +371,13 @@ fn run_review(args: ReviewArgs) -> Result<i32> {
 fn run_watch(cmd: WatchCommand) -> Result<i32> {
     let repo = git::Repo::discover_watch(Path::new("."))?;
     match cmd {
+        WatchCommand::Install { harness: Harness::Claude, global } if hooks::claude_plugin_enabled() => {
+            println!("The nitpick plugin for Claude Code is enabled and already runs these hooks; nothing to install.");
+            if let Some(p) = hooks::uninstall(Harness::Claude, global, &repo.root)? {
+                println!("removed the duplicate nitpick hooks from {}", p.display());
+            }
+            Ok(0)
+        }
         WatchCommand::Install { harness, global } => {
             let path = hooks::install(harness, global, &repo.root)?;
             println!("installed nitpick hooks for {} in {}", harness.name(), path.display());

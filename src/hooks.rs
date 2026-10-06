@@ -170,6 +170,16 @@ fn run_inner(harness: Harness, event: Event, args: &HookArgs) -> Result<i32> {
             // Claude Code and Codex also fire this on resume, compaction and
             // fork, when the same work continues: keep the baselines then and
             // only re-send the note, since the agent's context was rebuilt.
+            let mut note = SESSION_NOTE.to_string();
+            if harness == Harness::Claude
+                && let Some(p) = dedupe_claude()
+            {
+                state.log(&format!("removed duplicate hooks from {} (the plugin provides them)", p.display()));
+                note.push_str(&format!(
+                    " (nitpick removed its duplicate hooks from {}; the plugin provides them. Mention this to the user once.)",
+                    p.display()
+                ));
+            }
             let source = str_field(&input, &["source", "reason"]).unwrap_or("startup");
             if matches!(source, "compact" | "resume" | "fork" | "reload") {
                 state.log(&format!("session {source} ({}): baselines kept", harness.name()));
@@ -181,7 +191,7 @@ fn run_inner(harness: Harness, event: Event, args: &HookArgs) -> Result<i32> {
                 let _ = state.drain_reports();
                 state.set_counter("stop_blocks", 0);
             }
-            Output { context: Some(SESSION_NOTE.to_string()), block: None, note: None }
+            Output { context: Some(note), block: None, note: None }
         }
         Event::Tool => {
             let tool = args.tool.as_deref().or_else(|| str_field(&input, &["tool_name", "tool", "name"])).unwrap_or("");
@@ -297,11 +307,65 @@ fn home() -> Result<PathBuf> {
         .context("cannot determine the home directory")
 }
 
+fn claude_dir() -> Result<PathBuf> {
+    match std::env::var_os("CLAUDE_CONFIG_DIR") {
+        Some(d) => Ok(PathBuf::from(d)),
+        None => Ok(home()?.join(".claude")),
+    }
+}
+
+/// Whether the nitpick plugin is enabled in Claude Code. The plugin ships these
+/// same hooks, so settings.json hooks on top of it run every event twice.
+pub fn claude_plugin_enabled() -> bool {
+    claude_dir().is_ok_and(|d| plugin_enabled_in(&d.join("settings.json")))
+}
+
+fn plugin_enabled_in(settings: &Path) -> bool {
+    read_json(settings)
+        .ok()
+        .and_then(|d| {
+            d.get("enabledPlugins")
+                .and_then(Value::as_object)
+                .map(|m| m.iter().any(|(k, v)| k.starts_with("nitpick@") && v.as_bool() == Some(true)))
+        })
+        .unwrap_or(false)
+}
+
+fn has_hooks_in(settings: &Path) -> bool {
+    read_json(settings).ok().and_then(|d| d.get("hooks").map(has_marker)).unwrap_or(false)
+}
+
+/// Claude Code settings files that register nitpick's hooks although the
+/// plugin already does: the user-level file, then the project's.
+/// The flag is true for the user-level file.
+pub fn claude_duplicates(repo_root: &Path) -> Vec<(PathBuf, bool)> {
+    if !claude_plugin_enabled() {
+        return Vec::new();
+    }
+    [true, false]
+        .into_iter()
+        .filter_map(|global| settings_path(Harness::Claude, global, repo_root).ok().map(|p| (p, global)))
+        .filter(|(p, _)| has_hooks_in(p))
+        .collect()
+}
+
+/// Removes nitpick's hooks from the user-level Claude Code settings when the
+/// plugin provides them too (left there by `watch install claude --global`
+/// before the plugin existed). Project files are only reported, never edited:
+/// they may be committed and shared.
+fn dedupe_claude() -> Option<PathBuf> {
+    let path = settings_path(Harness::Claude, true, Path::new("")).ok()?;
+    if !claude_plugin_enabled() || !has_hooks_in(&path) {
+        return None;
+    }
+    uninstall(Harness::Claude, true, Path::new("")).ok().flatten()
+}
+
 /// Where the hook file lives for a harness, project-local or user-wide.
 pub fn settings_path(harness: Harness, global: bool, repo_root: &Path) -> Result<PathBuf> {
     Ok(match (harness, global) {
         (Harness::Claude, false) => repo_root.join(".claude").join("settings.json"),
-        (Harness::Claude, true) => home()?.join(".claude").join("settings.json"),
+        (Harness::Claude, true) => claude_dir()?.join("settings.json"),
         (Harness::Codex, false) => repo_root.join(".codex").join("hooks.json"),
         (Harness::Codex, true) => {
             std::env::var_os("CODEX_HOME").map(PathBuf::from).unwrap_or(home()?.join(".codex")).join("hooks.json")
@@ -532,6 +596,20 @@ mod tests {
         let doc: Value = serde_json::from_str(&std::fs::read_to_string(&p).unwrap()).unwrap();
         assert_eq!(doc["hooks"]["Stop"].as_array().unwrap().len(), 1);
         assert!(doc["hooks"].get("PostToolUse").is_none());
+    }
+
+    #[test]
+    fn detects_enabled_plugin() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("settings.json");
+        assert!(!plugin_enabled_in(&p), "missing file");
+        std::fs::write(&p, r#"{"enabledPlugins":{"nitpick@nitpick-skills":false,"other@x":true}}"#).unwrap();
+        assert!(!plugin_enabled_in(&p));
+        std::fs::write(&p, r#"{"enabledPlugins":{"nitpick@nitpick-skills":true}}"#).unwrap();
+        assert!(plugin_enabled_in(&p));
+        assert!(!has_hooks_in(&p));
+        std::fs::write(&p, r#"{"hooks":{"Stop":[{"hooks":[{"command":"nitpick hook claude stop"}]}]}}"#).unwrap();
+        assert!(has_hooks_in(&p));
     }
 
     #[test]

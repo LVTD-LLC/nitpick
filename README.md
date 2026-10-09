@@ -257,3 +257,42 @@ The crate is organized as: `git` (shelling out to git), `diff` (unified diff par
 ## License
 
 MIT
+
+
+## Anonymous telemetry
+
+Official Homebrew releases collect privacy-limited usage diagnostics in PostHog US Cloud.
+Disable them **before running nitpick** with `NITPICK_TELEMETRY=0` (also accepts
+`off`, `false`, or `no`) or `DO_NOT_TRACK=1`. This disables all analytics, logs,
+traces and identity-file creation. Help/version, `context`, and hook callbacks
+are always telemetry-free. Background review workers inherit these environment
+variables; set them in your agent's environment, not just an unrelated shell.
+
+Collected: random installation ID, CLI version, OS/architecture, command category,
+duration/exit code, aggregate review counts and context size, allowlisted public
+model label (`other` for custom/local/unknown names), provider category, per-attempt
+latency/status, token counts and provider-reported cost when present. AI events,
+structured OTLP logs and spans share a trace ID. No costs or tokens are invented
+when the provider omits them. Failed/retried attempts with returned usage count too.
+
+Never collected: code, diffs, prompts, model responses, findings text, repository
+names, branches, paths, API keys, usernames, arbitrary error messages or terminal
+output. CLI geolocation is disabled. Anonymous IDs do not identify a human and
+are not linked to website visitors. ID storage is
+`${XDG_STATE_HOME:-~/.local/state}/nitpick/telemetry/installation-id`.
+
+Telemetry uses a bounded 256-event in-memory queue and a best-effort flush with
+an overall 1,500 ms network budget. No disk event spool, background daemon, or retry
+loop is added; offline events can be lost. Review workers flush after each review.
+Existing stdout, stderr, exit codes and review behavior are unchanged. Sanitized
+handled failures are captured; native crash dumps/panic backtraces are not.
+
+Source builds are telemetry-free unless `NITPICK_POSTHOG_PROJECT_TOKEN` is set
+**at compile time** to the public write-only Nitpick project token. The Homebrew
+formula supplies it via the build environment. No personal PostHog API key belongs
+in a binary. The fixed ingest host is `https://us.i.posthog.com`.
+
+See [the privacy page](https://nitpick.sh/privacy/) and [TELEMETRY.md](TELEMETRY.md).
+
+For local export diagnostics only, `NITPICK_TELEMETRY_DEBUG=1` prints endpoint
+status codes or fixed failure categories to stderr, never payloads or credentials.

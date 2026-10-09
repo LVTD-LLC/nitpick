@@ -140,6 +140,7 @@ pub enum Progress {
 /// are captured in the results; only a complete failure is an `Err`.
 pub fn review_pack(pack: &ContextPack, s: &Settings, progress: Progress) -> Result<Vec<ModelResult>> {
     let provider = s.provider()?;
+    let trace = crate::telemetry::Span::root("review");
     let user = prompt::user_message(pack, &s.instructions);
     let schema = review::schema();
     let system = prompt::system(&schema);
@@ -165,6 +166,7 @@ pub fn review_pack(pack: &ContextPack, s: &Settings, progress: Progress) -> Resu
             .build()
             .context("building HTTP client")?;
         let futs = s.models.iter().map(|model| {
+            let trace = &trace;
             let client = &client;
             let provider = &provider;
             let user = &user;
@@ -173,7 +175,7 @@ pub fn review_pack(pack: &ContextPack, s: &Settings, progress: Progress) -> Resu
             let request = &s.request;
             async move {
                 let started = Instant::now();
-                match llm::complete(client, provider, model, system, user, schema, request).await {
+                match llm::complete(client, provider, model, system, user, schema, request, trace).await {
                     Ok(c) => {
                         if progress == Progress::Verbose {
                             eprintln!(
@@ -235,6 +237,22 @@ pub fn review_pack(pack: &ContextPack, s: &Settings, progress: Progress) -> Resu
         Ok::<_, anyhow::Error>(futures::future::join_all(futs).await)
     })?;
 
+    let failed = results.iter().filter(|r| r.review.is_none()).count();
+    trace.finish(
+        "$ai_trace",
+        serde_json::json!({
+            "models_count": results.len(), "failed_models": failed,
+            "findings_count": results.iter().filter_map(|r| r.review.as_ref()).map(|r| r.findings.len()).sum::<usize>(),
+            "files_changed": pack.stats.files_changed, "context_tokens_estimated": pack.stats.estimated_tokens,
+            "context_build_ms": pack.stats.build_ms,
+        }),
+        failed > 0,
+    );
+    if failed > 0 {
+        crate::telemetry::exception("model_review_failed");
+    }
+    // Worker reviews flush here rather than retaining data until the worker exits.
+    crate::telemetry::flush_worker();
     if results.iter().all(|r| r.review.is_none()) {
         let errs: Vec<String> =
             results.iter().map(|r| format!("{}: {}", r.model, r.error.as_deref().unwrap_or("?"))).collect();

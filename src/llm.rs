@@ -183,6 +183,7 @@ fn extract_content(v: &Value) -> Option<String> {
 
 /// One chat completion. Tries structured output first, then falls back to a
 /// plain request if the backend rejects the schema. Retries transient errors.
+#[allow(clippy::too_many_arguments)]
 pub async fn complete(
     client: &reqwest::Client,
     provider: &Provider,
@@ -191,6 +192,7 @@ pub async fn complete(
     user: &str,
     schema: &Value,
     opts: &RequestOpts,
+    trace: &crate::telemetry::Span,
 ) -> Result<Completion> {
     let url = format!("{}/chat/completions", provider.base_url);
     let started = Instant::now();
@@ -210,9 +212,20 @@ pub async fn complete(
         if provider.kind == ProviderKind::Openrouter {
             req = req.header("HTTP-Referer", "https://nitpick.sh").header("X-Title", "nitpick");
         }
+        request_no += 1;
+        let generation = trace.child("chat_completion");
         let resp = match req.send().await {
             Ok(r) => r,
             Err(e) => {
+                generation.finish(
+                    "$ai_generation",
+                    json!({
+                        "$ai_provider": provider.kind.name(), "$ai_model": crate::telemetry::model_label(model),
+                        "$ai_error": if e.is_timeout() { "timeout" } else { "transport_error" },
+                        "attempt": request_no, "$ai_stream": false,
+                    }),
+                    true,
+                );
                 last_err = Some(anyhow::anyhow!("request failed: {e}"));
                 if e.is_timeout() {
                     break;
@@ -223,7 +236,29 @@ pub async fn complete(
         };
         let status = resp.status();
         let text = resp.text().await.unwrap_or_default();
-        request_no += 1;
+        // Capture numeric usage from EVERY attempt, including truncated/retried generations.
+        // Never pass response strings or request bodies to telemetry.
+        let parsed = serde_json::from_str::<Value>(&text).ok();
+        let usage = parsed.as_ref().and_then(|v| v.get("usage"));
+        let failed = !status.is_success()
+            || parsed.as_ref().is_none_or(|v| v.get("error").is_some() || extract_content(v).is_none());
+        let mut metrics = json!({"$ai_provider":provider.kind.name(),"$ai_model":crate::telemetry::model_label(model),
+            "http_status":status.as_u16(),"attempt":request_no,"structured_output":use_schema,"$ai_stream":false});
+        if let Some(v) = usage.and_then(|u| u.get("prompt_tokens")).and_then(Value::as_u64) {
+            metrics["$ai_input_tokens"] = json!(v);
+        }
+        if let Some(v) = usage.and_then(|u| u.get("completion_tokens")).and_then(Value::as_u64) {
+            metrics["$ai_output_tokens"] = json!(v);
+        }
+        if let Some(v) =
+            usage.and_then(|u| u.get("cost")).and_then(Value::as_f64).filter(|v| v.is_finite() && *v >= 0.0)
+        {
+            metrics["$ai_total_cost_usd"] = json!(v);
+        }
+        if failed {
+            metrics["$ai_error"] = json!("provider_response_failed");
+        }
+        generation.finish("$ai_generation", metrics, failed);
         debug_dump(model, request_no, &b, status.as_u16(), &text);
         if status.is_success() && text.trim().is_empty() {
             last_err = Some(anyhow::anyhow!("empty response body (HTTP {status})"));

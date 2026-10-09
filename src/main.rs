@@ -9,6 +9,7 @@ mod prompt;
 mod review;
 mod run;
 mod search;
+mod telemetry;
 mod watch;
 
 use anyhow::{Result, bail};
@@ -262,6 +263,26 @@ impl ReviewArgs {
 
 fn main() {
     let cli = Cli::parse();
+    // Thin hooks and context inspection must remain network-free.
+    let command = match &cli.command {
+        Some(Command::Hook { .. } | Command::Context(_)) => None,
+        Some(Command::Init { .. }) => Some("init"),
+        Some(Command::Watch { command }) => Some(match command {
+            WatchCommand::Install { .. } => "watch_install",
+            WatchCommand::Uninstall { .. } => "watch_uninstall",
+            WatchCommand::Status => "watch_status",
+            WatchCommand::Log { .. } => "watch_log",
+            WatchCommand::Run { .. } => "watch_run",
+            WatchCommand::Reset => "watch_reset",
+            WatchCommand::Show { .. } => "watch_show",
+            WatchCommand::Worker => "watch_worker",
+        }),
+        _ => Some("review"),
+    };
+    if let Some(command) = command {
+        telemetry::init(command);
+    }
+    let started = Instant::now();
     let code = match cli.command {
         Some(Command::Init { force }) => run_init(force),
         Some(Command::Context(args)) => run_context(args),
@@ -270,6 +291,7 @@ fn main() {
         Some(Command::Hook { harness, event, cwd, tool }) => Ok(hooks::run(harness, event, &HookArgs { cwd, tool })),
         None => run_review(cli.review),
     };
+    telemetry::finish_command(started, *code.as_ref().unwrap_or(&2));
     match code {
         Ok(c) => std::process::exit(c),
         Err(e) => {

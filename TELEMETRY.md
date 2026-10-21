@@ -8,7 +8,6 @@ All collection is optional; see README for opt-out and build configuration.
 | Product usage | `cli_command_completed`: command enum, duration in ms, exit code (1 = findings, not an application failure) |
 | AI trace | `$ai_trace`: review model/failure/finding counts, changed-file count, estimated context tokens, context-build ms |
 | AI generation | `$ai_generation`: one per HTTP attempt including schema fallback/retries, provider enum, allowlisted model, latency seconds, numeric usage/cost if provided, HTTP status and fixed failure category |
-| Errors | `$exception`: only fixed `command_failed` / `model_review_failed` categories, no arbitrary error text or native stack |
 | Native logs | OTLP/HTTP JSON `/i/v1/logs`; fixed event name body, typed allowlisted properties, shared trace/span IDs where present |
 | Native traces | OTLP/HTTP JSON `/i/v1/traces`; one review parent with child HTTP-generation spans and accurate start/end nanoseconds |
 

@@ -284,8 +284,9 @@ are not linked to website visitors. ID storage is
 Telemetry uses a bounded 256-event in-memory queue and a best-effort flush with
 an overall 1,500 ms network budget. No disk event spool, background daemon, or retry
 loop is added; offline events can be lost. Review workers flush after each review.
-Existing stdout, stderr, exit codes and review behavior are unchanged. Sanitized
-handled failures are captured; native crash dumps/panic backtraces are not.
+Existing stdout, stderr, exit codes and review behavior are unchanged. Failures are
+reported only as exit codes and failed-model counts; no exception events, crash
+dumps or panic backtraces are captured.
 
 Source builds are telemetry-free unless `NITPICK_POSTHOG_PROJECT_TOKEN` is set
 **at compile time** to the public write-only Nitpick project token. The Homebrew

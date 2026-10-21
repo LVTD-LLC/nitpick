@@ -125,7 +125,7 @@ fn record(name: &'static str, mut properties: Value, span: Option<Value>) {
         .and_then(|t| t.parse::<u128>().ok())
         .unwrap_or_else(nanos);
     q.events.push(json!({"event":name,"uuid":Uuid::new_v4().to_string(),"timestamp":iso_timestamp(timestamp),"properties":properties}));
-    let error = properties["$ai_is_error"] == true || name == "$exception";
+    let error = properties["$ai_is_error"] == true;
     let mut log = json!({"timeUnixNano":nanos().to_string(),"severityNumber":if error {17} else {9},
         "severityText":if error {"ERROR"} else {"INFO"},"body":{"stringValue":name},"attributes":attributes(&properties)});
     if let Some(attrs) = log["attributes"].as_array_mut() {
@@ -206,20 +206,8 @@ impl Span {
     }
 }
 
-pub fn exception(category: &'static str) {
-    record(
-        "$exception",
-        json!({"$exception_list":[{"type":"NitpickError","value":category,
-        "mechanism":{"type":"generic","handled":true,"synthetic":true}}],
-        "$exception_fingerprint":format!("nitpick:{category}"),"$exception_level":"error"}),
-        None,
-    );
-}
 pub fn finish_command(started: Instant, exit: i32) {
     record("cli_command_completed", json!({"exit_code":exit,"duration_ms":started.elapsed().as_millis() as u64}), None);
-    if exit == 2 {
-        exception("command_failed");
-    }
     flush();
 }
 

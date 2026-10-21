@@ -248,9 +248,6 @@ pub fn review_pack(pack: &ContextPack, s: &Settings, progress: Progress) -> Resu
         }),
         failed > 0,
     );
-    if failed > 0 {
-        crate::telemetry::exception("model_review_failed");
-    }
     // Worker reviews flush here rather than retaining data until the worker exits.
     crate::telemetry::flush_worker();
     if results.iter().all(|r| r.review.is_none()) {

@@ -1,0 +1,133 @@
+{
+  "case": {
+    "id": "grafana-76186",
+    "source": "grafana.json",
+    "url": "https://github.com/grafana/grafana/pull/76186",
+    "split": "holdout",
+    "base": "58ba11ecbd60863e2bfc6e32f0399ed4feb3927a",
+    "head": "303cdc2caf256aa5df660611120c2e3f7392365d"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "The new ContextualLoggerMiddleware adds a contextual logger to the request context with plugin and request details. However, the LoggerMiddleware's logRequest method uses m.logger.FromContext(ctx) to get a contextual logger, but the context passed to logRequest does not have the contextual logger added by ContextualLoggerMiddleware. This means the logger used in LoggerMiddleware will not have the enriched context, defeating the purpose of adding the ContextualLoggerMiddleware before LoggerMiddleware in the middleware chain.",
+        "category": "correctness",
+        "end_line": 60,
+        "file": "pkg/services/pluginsintegration/clientmiddleware/logger_middleware.go",
+        "line": 36,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Modify LoggerMiddleware.logRequest to accept pluginCtx and endpoint parameters, and add the contextual logger to the context inside logRequest, similar to how ContextualLoggerMiddleware.instrumentContext does it. Alternatively, ensure that the context passed to logRequest already has the contextual logger added by ContextualLoggerMiddleware.",
+        "title": "LoggerMiddleware does not use contextual logger added by ContextualLoggerMiddleware"
+      },
+      {
+        "body": "The new ContextualLoggerMiddleware adds a contextual logger with plugin and request details to the context for each plugin client method. However, the LoggerMiddleware also adds logging for plugin requests but does not receive the plugin context or endpoint parameters, so it cannot add these details itself. This mismatch means that the LoggerMiddleware's logs may lack important context unless the ContextualLoggerMiddleware is always placed before it and the context is properly propagated.",
+        "category": "api",
+        "end_line": 59,
+        "file": "pkg/services/pluginsintegration/clientmiddleware/logger_middleware.go",
+        "line": 36,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Document clearly that ContextualLoggerMiddleware must be placed before LoggerMiddleware in the middleware chain to ensure logs have contextual information. Alternatively, refactor LoggerMiddleware to accept plugin context and endpoint parameters to add context itself.",
+        "title": "LoggerMiddleware depends on ContextualLoggerMiddleware for context enrichment"
+      },
+      {
+        "body": "In the MetricsMiddleware.instrumentPluginRequest method, the context passed to the fn callback is not enriched with any contextual logger or plugin/request details. This differs from the previous InstrumentationMiddleware which enriched the context with contextual attributes. This may reduce the usefulness of logs or tracing inside the plugin request handling.",
+        "category": "correctness",
+        "end_line": 142,
+        "file": "pkg/services/pluginsintegration/clientmiddleware/metrics_middleware.go",
+        "line": 104,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Consider enriching the context with contextual logger or plugin/request details before calling fn(ctx), similar to the removed instrumentContext call in the previous InstrumentationMiddleware implementation.",
+        "title": "MetricsMiddleware.instrumentPluginRequest does not enrich context with plugin/request details"
+      },
+      {
+        "body": "The TestLogger implementation of FromContext returns a new TestLogger instance ignoring the passed context. This is inconsistent with the Logger interface contract where FromContext should return a contextual logger based on the context. This may cause tests using TestLogger to not properly simulate context-based logging behavior.",
+        "category": "test",
+        "end_line": 47,
+        "file": "pkg/plugins/log/fake.go",
+        "line": 46,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Implement FromContext in TestLogger to return a logger that reflects the context, or document that it returns a fresh logger ignoring context for testing purposes.",
+        "title": "TestLogger.FromContext ignores context parameter"
+      },
+      {
+        "body": "In MetricsMiddleware, the pluginRequestSize metric uses label 'source' with value 'grafana-backend', but the other metrics do not use this label. This inconsistency in labels may cause confusion or issues when querying metrics.",
+        "category": "style",
+        "end_line": 51,
+        "file": "pkg/services/pluginsintegration/clientmiddleware/metrics_middleware.go",
+        "line": 44,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Consider adding 'source' label consistently across all plugin metrics or document the difference clearly.",
+        "title": "Inconsistent use of 'source' label in plugin metrics"
+      }
+    ],
+    "head": "303cdc2",
+    "mode": "range 58ba11ecbd60863e2bfc6e32f0399ed4feb3927a..303cdc2caf256aa5df660611120c2e3f7392365d",
+    "models": [
+      {
+        "completion_tokens": 859,
+        "cost_usd": 0.0160912,
+        "elapsed_ms": 8795,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 36792,
+        "summary": "The change introduces a new ContextualLoggerMiddleware to enrich context with plugin details and refactors InstrumentationMiddleware to MetricsMiddleware. However, LoggerMiddleware does not properly use the enriched context, leading to potential loss of contextual logging. Minor issues include TestLogger.FromContext ignoring context and inconsistent metric labels. Overall, the changes are sound but require adjustments to ensure contextual logging works as intended.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 391,
+      "diff_tokens": 5708,
+      "estimated_tokens": 32153,
+      "files_changed": 8,
+      "files_scanned": 10886,
+      "files_tokens": 11969,
+      "snippet_tokens": 14476,
+      "snippets_dropped": 0,
+      "snippets_kept": 77
+    },
+    "total_ms": 9197,
+    "verdict": "request_changes"
+  }
+}

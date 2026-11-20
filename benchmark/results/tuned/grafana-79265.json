@@ -1,0 +1,109 @@
+{
+  "case": {
+    "id": "grafana-79265",
+    "source": "grafana.json",
+    "url": "https://github.com/grafana/grafana/pull/79265",
+    "split": "holdout",
+    "base": "7ddcd0c9611882858701f4f876fb8e449fe73980",
+    "head": "bbd8c507cdf56f6b884373809e0b24abd4a2353d"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json",
+      "--focus",
+      "Review each changed hunk before drafting findings. For each altered decision, trace a concrete input through the old and new behavior. Check boundary values, failure paths, and the contracts imposed by surrounding callers and tests. Verify suspected failures against the actual types, guards, and versions shown. Drop claims that the code contradicts, observations of correct behavior, and guesses that lack a failing scenario. Group repeated instances of one root cause into a single actionable finding, citing one changed line and mentioning other affected sites in its body."
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 2,
+    "findings": [
+      {
+        "body": "The new device limit feature restricts the number of anonymous devices stored. When the limit is reached, the code attempts to update an existing device instead of creating a new one. However, the update query in `updateDevice` requires the device to have been updated within the last 30 days (anonymousDeviceExpiration) to succeed. This means if a device is older than 30 days, the update will fail and return ErrDeviceLimitReached, even if the device exists. This could cause legitimate devices to be rejected erroneously. The logic should consider updating devices regardless of the last update time or handle this edge case explicitly.",
+        "category": "bug",
+        "end_line": 97,
+        "file": "pkg/services/anonymous/anonimpl/anonstore/database.go",
+        "line": 73,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Modify the updateDevice query to remove or adjust the updated_at BETWEEN condition to allow updating devices older than 30 days, or add logic to handle devices outside this window appropriately.",
+        "title": "updateDevice query fails to update devices older than 30 days causing ErrDeviceLimitReached"
+      },
+      {
+        "body": "In `pkg/services/anonymous/anonimpl/client.go`, the `Authenticate` method now returns an error if the device limit is reached (ErrDeviceLimitReached). This changes the behavior from silently logging the error to returning it, which may cause authentication failures for anonymous users when the device limit is hit. This is a breaking change in the authentication flow and may cause unexpected failures unless callers handle this error explicitly.",
+        "category": "api",
+        "end_line": 46,
+        "file": "pkg/services/anonymous/anonimpl/client.go",
+        "line": 44,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Ensure callers of Authenticate handle ErrDeviceLimitReached appropriately or reconsider returning this error to avoid breaking anonymous authentication silently.",
+        "title": "Authenticate returns ErrDeviceLimitReached breaking anonymous authentication flow"
+      },
+      {
+        "body": "The `AnonymousDeviceLimit` configuration is added and read from the ini file, but the default value is 0, which disables the limit. However, the code does not validate if the configured limit is negative, which could cause unexpected behavior in device counting and limit enforcement.",
+        "category": "error_handling",
+        "end_line": 1654,
+        "file": "pkg/setting/setting.go",
+        "line": 1654,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add validation to ensure AnonymousDeviceLimit is non-negative when reading from configuration.",
+        "title": "AnonymousDeviceLimit config lacks validation for negative values"
+      }
+    ],
+    "head": "bbd8c50",
+    "mode": "range 7ddcd0c9611882858701f4f876fb8e449fe73980..bbd8c507cdf56f6b884373809e0b24abd4a2353d",
+    "models": [
+      {
+        "completion_tokens": 579,
+        "cost_usd": 0.0126732,
+        "elapsed_ms": 6280,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 29367,
+        "summary": "This change adds support for limiting the number of anonymous devices stored. The main issues are that the update logic for devices when the limit is reached only updates devices updated within the last 30 days, potentially rejecting valid devices, and that the anonymous authentication now returns an error when the device limit is reached, which may break existing flows. Additionally, configuration validation for the device limit is missing.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 481,
+      "diff_tokens": 4447,
+      "estimated_tokens": 23983,
+      "files_changed": 11,
+      "files_scanned": 11260,
+      "files_tokens": 12292,
+      "snippet_tokens": 7244,
+      "snippets_dropped": 15,
+      "snippets_kept": 27
+    },
+    "total_ms": 6775,
+    "verdict": "request_changes"
+  }
+}

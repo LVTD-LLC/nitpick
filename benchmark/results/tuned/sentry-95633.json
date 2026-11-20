@@ -1,0 +1,122 @@
+{
+  "case": {
+    "id": "sentry-95633",
+    "source": "sentry.json",
+    "url": "https://github.com/getsentry/sentry/pull/95633",
+    "split": "dev",
+    "base": "fd358e8a388939959369f08f616e29552cdaf96e",
+    "head": "9966ec5a13e331659c3ea00981f9b11b0faf821f"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json",
+      "--focus",
+      "Review each changed hunk before drafting findings. For each altered decision, trace a concrete input through the old and new behavior. Check boundary values, failure paths, and the contracts imposed by surrounding callers and tests. Verify suspected failures against the actual types, guards, and versions shown. Drop claims that the code contradicts, observations of correct behavior, and guesses that lack a failing scenario. Group repeated instances of one root cause into a single actionable finding, citing one changed line and mentioning other affected sites in its body."
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "The new 'thread-queue-parallel' mode introduces a FixedQueuePool and SimpleQueueProcessingStrategy to process messages concurrently with ordering guarantees per subscription. The commit_offsets function adds +1 to offsets before committing, which is correct as Kafka expects the next offset to read. The shutdown method properly shuts down the queue_pool and sets it to None. The tests added cover concurrency, ordering, offset commit correctness, error handling, offset gaps, and graceful shutdown, including an integration test with Kafka verifying actual offset commits. The implementation and tests appear consistent and correct with no obvious bugs or regressions.",
+        "category": "correctness",
+        "end_line": 251,
+        "file": "src/sentry/remote_subscriptions/consumers/result_consumer.py",
+        "line": 117,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": null,
+        "title": "thread-queue-parallel mode correctly implemented with comprehensive tests"
+      },
+      {
+        "body": "In ResultsStrategyFactory.__init__, the result_processor is instantiated before the mode checks, ensuring it is available for the FixedQueuePool. This avoids potential None errors. The shutdown method properly shuts down the queue_pool if present. The new mode is added to the click.Choice options in src/sentry/consumers/__init__.py, ensuring CLI support. The help text for max_workers is updated to be generic for all parallel modes. These changes are consistent and correct.",
+        "category": "correctness",
+        "end_line": 130,
+        "file": "src/sentry/remote_subscriptions/consumers/result_consumer.py",
+        "line": 105,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Proper initialization and shutdown of queue_pool and CLI option update"
+      },
+      {
+        "body": "The commit_offsets function in create_thread_queue_parallel_worker adds +1 to each offset before committing, which is correct Kafka semantics (commit the next offset to read). This matches the expected behavior and avoids off-by-one errors in offset commits.",
+        "category": "correctness",
+        "end_line": 247,
+        "file": "src/sentry/remote_subscriptions/consumers/result_consumer.py",
+        "line": 239,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Correct offset commit semantics with +1 adjustment"
+      },
+      {
+        "body": "The extensive tests added in tests/sentry/uptime/consumers/test_results_consumer.py for thread-queue-parallel mode cover concurrency, ordering, offset commit correctness, error handling, offset gaps, and graceful shutdown. The integration test with Kafka verifies actual offset commits to Kafka consumer groups. This test coverage is thorough and appropriate for the new mode, reducing risk of regressions.",
+        "category": "test",
+        "end_line": 2150,
+        "file": "tests/sentry/uptime/consumers/test_results_consumer.py",
+        "line": 1686,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Comprehensive tests for thread-queue-parallel mode including integration with Kafka"
+      }
+    ],
+    "head": "9966ec5a",
+    "mode": "range fd358e8a388939959369f08f616e29552cdaf96e..9966ec5a13e331659c3ea00981f9b11b0faf821f",
+    "models": [
+      {
+        "completion_tokens": 643,
+        "cost_usd": 0.011214,
+        "elapsed_ms": 6387,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 25463,
+        "summary": "Adds a new 'thread-queue-parallel' processing mode to ResultsStrategyFactory using FixedQueuePool and SimpleQueueProcessingStrategy. The implementation correctly manages offset commits, shutdown, and integrates with CLI options. Extensive tests cover concurrency, ordering, offset commit correctness, error handling, and integration with Kafka. No bugs or regressions found.",
+        "verdict": "approve"
+      }
+    ],
+    "stats": {
+      "build_ms": 852,
+      "diff_tokens": 8481,
+      "estimated_tokens": 23948,
+      "files_changed": 7,
+      "files_scanned": 16973,
+      "files_tokens": 0,
+      "snippet_tokens": 15467,
+      "snippets_dropped": 8,
+      "snippets_kept": 73
+    },
+    "total_ms": 7255,
+    "verdict": "request_changes"
+  }
+}

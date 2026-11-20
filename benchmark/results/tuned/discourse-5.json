@@ -1,0 +1,109 @@
+{
+  "case": {
+    "id": "discourse-5",
+    "source": "discourse.json",
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/5",
+    "split": "dev",
+    "base": "98fa098e6fade3097a11fe7f99a98a4e6ffb4728",
+    "head": "5b229316ee4c661836ed1161139692a3e8527444"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json",
+      "--focus",
+      "Review each changed hunk before drafting findings. For each altered decision, trace a concrete input through the old and new behavior. Check boundary values, failure paths, and the contracts imposed by surrounding callers and tests. Verify suspected failures against the actual types, guards, and versions shown. Drop claims that the code contradicts, observations of correct behavior, and guesses that lack a failing scenario. Group repeated instances of one root cause into a single actionable finding, citing one changed line and mentioning other affected sites in its body."
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [
+      {
+        "body": "The change replaces float-based layout with flexbox for several components, including the header contents and small-action elements. This is generally a positive modernization. However, in app/assets/stylesheets/common/base/header.scss at line 43, the .login-button and .sign-up-button classes retain float: left, which may conflict with the new flexbox layout in the parent .contents container (line 17). This could cause layout inconsistencies or unexpected wrapping in some browsers or screen sizes. The change does not address this potential conflict or test for it.",
+        "category": "correctness",
+        "end_line": 47,
+        "file": "app/assets/stylesheets/common/base/header.scss",
+        "line": 43,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Consider removing float: left from .login-button and .sign-up-button and instead use flexbox properties to align these buttons consistently within the flex container at .contents. For example, add flex properties or margins to position them as needed.",
+        "title": "Potential layout conflict due to float inside flex container in header.scss"
+      },
+      {
+        "body": "In app/assets/stylesheets/common/base/topic.scss, the .extra-info-wrapper class had float: left on .badge-wrapper.bullet and margin-top: 5px on the bullet class removed. This may affect vertical alignment or spacing of badges in topics. The change adds order(2) and line-height: 1.5 to .extra-info-wrapper, which may alter visual order and spacing. Without visual regression testing, this could cause subtle layout shifts or misalignment in topic badges.",
+        "category": "correctness",
+        "end_line": 37,
+        "file": "app/assets/stylesheets/common/base/topic.scss",
+        "line": 29,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Verify visually that badges in topics still align correctly and maintain intended spacing after removing float and margin-top. Adjust margins or flexbox properties if needed to preserve layout.",
+        "title": "Removed float and margin-top on badge-wrapper.bullet may affect badge alignment in topic.scss"
+      },
+      {
+        "body": "The new flexbox mixins added in app/assets/stylesheets/common/foundation/mixins.scss provide vendor-prefixed flexbox properties for display, align-items, and order. These mixins are used in other changed files. However, the align-items mixin uses the parameter $alignment directly for -webkit-box-align and other properties, which expect specific keywords like 'center', 'flex-start', 'baseline', etc. If an invalid value is passed, it could cause CSS errors or unexpected layout. The mixins do not validate input values.",
+        "category": "correctness",
+        "end_line": 131,
+        "file": "app/assets/stylesheets/common/foundation/mixins.scss",
+        "line": 98,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Add documentation or validation to ensure only valid alignment keywords are passed to the align-items mixin to avoid CSS errors.",
+        "title": "align-items mixin lacks validation of input alignment value in mixins.scss"
+      }
+    ],
+    "head": "5b22931",
+    "mode": "range 98fa098e6fade3097a11fe7f99a98a4e6ffb4728..5b229316ee4c661836ed1161139692a3e8527444",
+    "models": [
+      {
+        "completion_tokens": 671,
+        "cost_usd": 0.007196,
+        "elapsed_ms": 7006,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 15306,
+        "summary": "The change modernizes layout by replacing floats with flexbox in several components and adds flexbox mixins for reuse. There are potential layout conflicts due to mixing float and flexbox in header buttons, and some removed floats and margins may affect badge alignment in topics. The new flexbox mixins lack input validation but are otherwise correct. Visual regression testing is recommended to ensure no unintended layout shifts.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 199,
+      "diff_tokens": 1105,
+      "estimated_tokens": 10806,
+      "files_changed": 5,
+      "files_scanned": 3874,
+      "files_tokens": 9701,
+      "snippet_tokens": 0,
+      "snippets_dropped": 1,
+      "snippets_kept": 0
+    },
+    "total_ms": 7217,
+    "verdict": "comment"
+  }
+}

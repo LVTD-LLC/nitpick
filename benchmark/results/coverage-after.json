@@ -1,0 +1,122 @@
+[
+  {
+    "case": "cal_dot_com-8087",
+    "split": "dev",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "cal_dot_com-10967",
+    "split": "dev",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "cal_dot_com-11059",
+    "split": "holdout",
+    "nonempty_added_text_files": 3,
+    "missing": []
+  },
+  {
+    "case": "cal_dot_com-8330",
+    "split": "holdout",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "discourse-6",
+    "split": "dev",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "discourse-5",
+    "split": "dev",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "discourse-3",
+    "split": "holdout",
+    "nonempty_added_text_files": 6,
+    "missing": []
+  },
+  {
+    "case": "discourse-4",
+    "split": "holdout",
+    "nonempty_added_text_files": 16,
+    "missing": []
+  },
+  {
+    "case": "grafana-90939",
+    "split": "dev",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "grafana-107534",
+    "split": "dev",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "grafana-79265",
+    "split": "holdout",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "grafana-76186",
+    "split": "holdout",
+    "nonempty_added_text_files": 1,
+    "missing": []
+  },
+  {
+    "case": "keycloak-37634",
+    "split": "dev",
+    "nonempty_added_text_files": 8,
+    "missing": []
+  },
+  {
+    "case": "keycloak-36882",
+    "split": "dev",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "keycloak-1",
+    "split": "holdout",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "keycloak-37429",
+    "split": "holdout",
+    "nonempty_added_text_files": 5,
+    "missing": []
+  },
+  {
+    "case": "sentry-95633",
+    "split": "dev",
+    "nonempty_added_text_files": 2,
+    "missing": []
+  },
+  {
+    "case": "sentry-80528",
+    "split": "dev",
+    "nonempty_added_text_files": 2,
+    "missing": []
+  },
+  {
+    "case": "sentry-67876",
+    "split": "holdout",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "sentry-3",
+    "split": "holdout",
+    "nonempty_added_text_files": 2,
+    "missing": []
+  }
+]

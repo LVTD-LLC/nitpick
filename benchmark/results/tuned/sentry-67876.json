@@ -1,0 +1,135 @@
+{
+  "case": {
+    "id": "sentry-67876",
+    "source": "sentry.json",
+    "url": "https://github.com/getsentry/sentry/pull/67876",
+    "split": "holdout",
+    "base": "f3b740199ef0b8057c2c68a377fd3b4d42346deb",
+    "head": "bb75657fc8f13923c1d7983f422290908a1e7310"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json",
+      "--focus",
+      "Review each changed hunk before drafting findings. For each altered decision, trace a concrete input through the old and new behavior. Check boundary values, failure paths, and the contracts imposed by surrounding callers and tests. Verify suspected failures against the actual types, guards, and versions shown. Drop claims that the code contradicts, observations of correct behavior, and guesses that lack a failing scenario. Group repeated instances of one root cause into a single actionable finding, citing one changed line and mentioning other affected sites in its body."
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 3,
+    "findings": [
+      {
+        "body": "The new OAuthLoginView implements the OAuth authorization code flow with state parameter validation and exchanges the code for an access token. It then fetches the authenticated user's login and binds it to the pipeline state. This is a new step in the GitHub integration pipeline that adds an OAuth login step before installation. The code correctly validates the state parameter to prevent CSRF attacks and handles errors by rendering the error page. The tests cover the OAuth flow including state validation and token exchange.",
+        "category": "security",
+        "end_line": 439,
+        "file": "src/sentry/integrations/github/integration.py",
+        "line": 389,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": null,
+        "title": "Add OAuthLoginView with state validation and user authentication for GitHub integration pipeline"
+      },
+      {
+        "body": "The GitHubInstallation view now attempts to fetch installation_id from either the request GET parameters or the pipeline state, allowing the installation_id to be passed through the OAuthLoginView step and preserved across redirects. This fixes a bug where installation_id could be lost if not present in the GET parameters, breaking the installation flow. The binding of installation_id to pipeline state ensures continuity of state across pipeline steps.",
+        "category": "bug",
+        "end_line": 450,
+        "file": "src/sentry/integrations/github/integration.py",
+        "line": 448,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Use installation_id = request.GET.get('installation_id', pipeline.fetch_state('installation_id')) and bind it to pipeline state.",
+        "title": "Preserve installation_id across pipeline steps in GitHubInstallation view"
+      },
+      {
+        "body": "The new OAuthLoginView introduces an OAuth login step in the GitHub integration pipeline, binding the authenticated GitHub username to the pipeline state. The subsequent GitHubInstallation view then verifies that the authenticated GitHub user matches the 'sender' login in the integration metadata before proceeding. This prevents unauthorized users from completing the installation flow for an installation they did not initiate. This is a security improvement that mitigates a potential attack where an attacker could attempt to hijack an installation by providing a valid installation_id but authenticating as a different GitHub user. The test test_github_user_mismatch confirms this behavior by simulating a mismatch and expecting an error response.",
+        "category": "security",
+        "end_line": 506,
+        "file": "src/sentry/integrations/github/integration.py",
+        "line": 501,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": null,
+        "title": "Verify GitHub authenticated user matches installation sender to prevent hijacking"
+      },
+      {
+        "body": "The PipelineAdvancerView.handle method was modified to redirect GitHub installation requests that come without an existing pipeline to the integration install org picker, using the installation_id from the request. This fixes a previous issue where GitHub app installations redirected to the pipeline advancer without a pipeline, causing an invalid request error. The new behavior correctly redirects to the integration installation URL, improving user experience and correctness.",
+        "category": "correctness",
+        "end_line": 48,
+        "file": "src/sentry/web/frontend/pipeline_advancer.py",
+        "line": 40,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": null,
+        "title": "Redirect GitHub app installs without pipeline to integration install org picker"
+      },
+      {
+        "body": "The error handling in GitHubInstallation was refactored to use a centralized error() function that renders the failure template with consistent context, including the document origin based on customer domains feature flag. This reduces code duplication and ensures consistent error responses. The tests confirm that error pages render correctly with appropriate messages and postMessage payloads.",
+        "category": "other",
+        "end_line": 473,
+        "file": "src/sentry/integrations/github/integration.py",
+        "line": 468,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Use the error() helper function for rendering error responses in GitHubInstallation.",
+        "title": "Centralize error rendering in GitHubInstallation view"
+      }
+    ],
+    "head": "bb75657",
+    "mode": "range f3b740199ef0b8057c2c68a377fd3b4d42346deb..bb75657fc8f13923c1d7983f422290908a1e7310",
+    "models": [
+      {
+        "completion_tokens": 854,
+        "cost_usd": 0.0106468,
+        "elapsed_ms": 7946,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 23201,
+        "summary": "This change adds an OAuth login step to the GitHub integration pipeline to authenticate the GitHub user initiating the installation. It verifies that the authenticated user matches the installation sender to prevent hijacking. The pipeline advancer was updated to handle GitHub app installs without an existing pipeline by redirecting appropriately. The GitHubInstallation view was improved to preserve installation_id across pipeline steps and centralize error rendering. Tests were added to cover these new behaviors and security checks.",
+        "verdict": "approve"
+      }
+    ],
+    "stats": {
+      "build_ms": 632,
+      "diff_tokens": 6031,
+      "estimated_tokens": 23995,
+      "files_changed": 3,
+      "files_scanned": 13270,
+      "files_tokens": 14885,
+      "snippet_tokens": 3079,
+      "snippets_dropped": 61,
+      "snippets_kept": 25
+    },
+    "total_ms": 8591,
+    "verdict": "request_changes"
+  }
+}

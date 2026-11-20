@@ -1,0 +1,81 @@
+{
+  "case": {
+    "id": "grafana-90939",
+    "source": "grafana.json",
+    "url": "https://github.com/grafana/grafana/pull/90939",
+    "split": "dev",
+    "base": "cca9dee702ac4338ddc38aa56257273b8143e32e",
+    "head": "b1613e320acff00623e6efc59f00ee68c7684a97"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [
+      {
+        "body": "The function GetWebAssets uses a read lock to check if the cache is set and then releases it before acquiring a write lock to update the cache. However, there is a potential race condition if multiple goroutines call GetWebAssets concurrently when the cache is nil. Multiple goroutines could pass the initial read lock check and then serialize on the write lock, causing redundant work and possibly inconsistent cache state if the underlying readWebAssetsFromFile or readWebAssetsFromCDN functions have side effects or errors. This pattern is a classic double-checked locking scenario but is not fully safe without re-checking the cache after acquiring the write lock.",
+        "category": "concurrency",
+        "end_line": 71,
+        "file": "pkg/api/webassets/webassets.go",
+        "line": 40,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "After acquiring the write lock, re-check if entryPointAssetsCache is still nil before proceeding to load and set it. For example:\n\nentryPointAssetsCacheMu.Lock()\nif entryPointAssetsCache != nil {\n    ret = entryPointAssetsCache\n    entryPointAssetsCacheMu.Unlock()\n    return ret, nil\n}\n// proceed to load and set cache\n// ...\nentryPointAssetsCacheMu.Unlock()\nreturn ret, err\n",
+        "title": "Potential race condition due to missing double-check after acquiring write lock"
+      }
+    ],
+    "head": "b1613e32",
+    "mode": "range cca9dee702ac4338ddc38aa56257273b8143e32e..b1613e320acff00623e6efc59f00ee68c7684a97",
+    "models": [
+      {
+        "completion_tokens": 342,
+        "cost_usd": 0.004006,
+        "elapsed_ms": 3958,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 8647,
+        "summary": "The change adds synchronization to protect a global cache with a RWMutex, improving concurrency safety. However, the current double-checked locking pattern is incomplete and may cause redundant cache loading under concurrent access. Adding a re-check after acquiring the write lock will fix this concurrency issue.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 193,
+      "diff_tokens": 360,
+      "estimated_tokens": 4852,
+      "files_changed": 1,
+      "files_scanned": 12530,
+      "files_tokens": 1475,
+      "snippet_tokens": 3017,
+      "snippets_dropped": 0,
+      "snippets_kept": 5
+    },
+    "total_ms": 4161,
+    "verdict": "comment"
+  }
+}

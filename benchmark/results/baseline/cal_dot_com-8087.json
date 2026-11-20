@@ -1,0 +1,133 @@
+{
+  "case": {
+    "id": "cal_dot_com-8087",
+    "source": "cal_dot_com.json",
+    "url": "https://github.com/calcom/cal.com/pull/8087",
+    "split": "dev",
+    "base": "ba9688a04a8398c9a8332ee7061bfae2f2efd524",
+    "head": "820d7fa87e0c824c5dee8082a33efadb1a2566f7"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 5,
+    "findings": [
+      {
+        "body": "In packages/app-store/vital/lib/reschedule.ts and packages/app-store/wipemycalother/lib/reschedule.ts, the code uses forEach with an async callback to perform asynchronous operations (lines 125-134). This pattern does not wait for the async operations to complete, leading to potential unhandled promise rejections and race conditions. The correct approach is to use a for...of loop with await or collect promises and await Promise.all to ensure all async operations complete before proceeding.",
+        "category": "bug",
+        "end_line": 134,
+        "file": "packages/app-store/vital/lib/reschedule.ts",
+        "line": 125,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Replace bookingRefsFiltered.forEach(async (bookingRef) => { ... }) with a for...of loop:\nfor (const bookingRef of bookingRefsFiltered) {\n  if (bookingRef.uid) {\n    if (bookingRef.type.endsWith(\"_calendar\")) {\n      const calendar = await getCalendar(credentialsMap.get(bookingRef.type));\n      await calendar?.deleteEvent(bookingRef.uid, builder.calendarEvent);\n    } else if (bookingRef.type.endsWith(\"_video\")) {\n      await deleteMeeting(credentialsMap.get(bookingRef.type), bookingRef.uid);\n    }\n  }\n}",
+        "title": "Async forEach callback does not await promises"
+      },
+      {
+        "body": "Similar async forEach misuse is present in packages/app-store/wipemycalother/lib/reschedule.ts at lines 125-134, causing the same issue as above.",
+        "category": "bug",
+        "end_line": 134,
+        "file": "packages/app-store/wipemycalother/lib/reschedule.ts",
+        "line": 125,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Use a for...of loop with await instead of forEach with async callback, as described above.",
+        "title": "Async forEach callback does not await promises"
+      },
+      {
+        "body": "In packages/features/bookings/lib/handleCancelBooking.ts at lines 460-470 and 459-470, forEach is used with async callbacks without awaiting them. This can cause unhandled promise rejections and race conditions when deleting or updating calendar events asynchronously.",
+        "category": "bug",
+        "end_line": 470,
+        "file": "packages/features/bookings/lib/handleCancelBooking.ts",
+        "line": 459,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Replace forEach with a for...of loop and await each async operation to ensure all deletions/updates complete before proceeding.",
+        "title": "Async forEach callback does not await promises"
+      },
+      {
+        "body": "In packages/features/bookings/lib/handleCancelBooking.ts at lines 505-510, forEach is used with async callbacks without awaiting them for deleting video meetings. This can cause unhandled promise rejections and race conditions.",
+        "category": "bug",
+        "end_line": 510,
+        "file": "packages/features/bookings/lib/handleCancelBooking.ts",
+        "line": 505,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Replace forEach with a for...of loop and await each async operation to ensure all deletions complete before proceeding.",
+        "title": "Async forEach callback does not await promises"
+      },
+      {
+        "body": "In packages/trpc/server/routers/viewer/bookings.tsx at lines 553-567, bookingRefsFiltered.forEach is used with an async callback. This does not wait for the async operations to complete, potentially causing unhandled promise rejections and race conditions.",
+        "category": "bug",
+        "end_line": 567,
+        "file": "packages/trpc/server/routers/viewer/bookings.tsx",
+        "line": 553,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Replace bookingRefsFiltered.forEach(async (bookingRef) => { ... }) with a for...of loop and await each async operation to ensure completion before proceeding.",
+        "title": "Async forEach callback does not await promises"
+      }
+    ],
+    "head": "820d7fa",
+    "mode": "range ba9688a04a8398c9a8332ee7061bfae2f2efd524..820d7fa87e0c824c5dee8082a33efadb1a2566f7",
+    "models": [
+      {
+        "completion_tokens": 828,
+        "cost_usd": 0.0189268,
+        "elapsed_ms": 10844,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 44005,
+        "summary": "The change introduces multiple instances where async functions are called inside Array.forEach without awaiting their completion. This leads to potential unhandled promise rejections and race conditions. These should be replaced with for...of loops or Promise.all to properly await asynchronous operations. Other changes correctly handle async/await usage when importing modules dynamically.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 431,
+      "diff_tokens": 6280,
+      "estimated_tokens": 40207,
+      "files_changed": 12,
+      "files_scanned": 2082,
+      "files_tokens": 21213,
+      "snippet_tokens": 12714,
+      "snippets_dropped": 0,
+      "snippets_kept": 116
+    },
+    "total_ms": 11286,
+    "verdict": "request_changes"
+  }
+}

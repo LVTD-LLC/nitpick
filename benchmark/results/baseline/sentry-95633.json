@@ -1,0 +1,133 @@
+{
+  "case": {
+    "id": "sentry-95633",
+    "source": "sentry.json",
+    "url": "https://github.com/getsentry/sentry/pull/95633",
+    "split": "dev",
+    "base": "fd358e8a388939959369f08f616e29552cdaf96e",
+    "head": "9966ec5a13e331659c3ea00981f9b11b0faf821f"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 3,
+    "findings": [
+      {
+        "body": "In src/sentry/remote_subscriptions/consumers/queue_consumer.py, the OrderedQueueWorker.run method loops while not self.shutdown, but the shutdown flag is set in FixedQueuePool.shutdown without any mechanism to unblock the worker threads if they are blocked on work_queue.get(). This can cause the shutdown to hang indefinitely if the queues are empty and workers are blocked waiting for items.",
+        "category": "bug",
+        "end_line": 129,
+        "file": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
+        "line": 129,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Use a sentinel value (e.g., None) to unblock the queue.get() call or use queue.get(timeout=...) with exception handling to allow the thread to exit promptly on shutdown.",
+        "title": "Worker threads may hang on shutdown due to blocking queue.get()"
+      },
+      {
+        "body": "In src/sentry/remote_subscriptions/consumers/queue_consumer.py, the OrderedQueueWorker.run method catches queue.ShutDown exceptions, but the standard Python queue.Queue does not raise such an exception. This may cause the worker threads to never exit properly on shutdown, potentially leading to hanging threads during shutdown.",
+        "category": "bug",
+        "end_line": 132,
+        "file": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
+        "line": 132,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Replace catching queue.ShutDown with catching queue.Empty or use a sentinel value to signal shutdown to worker threads.",
+        "title": "Incorrect exception handling for queue shutdown in OrderedQueueWorker.run"
+      },
+      {
+        "body": "In src/sentry/remote_subscriptions/consumers/queue_consumer.py, FixedQueuePool.shutdown calls q.shutdown(immediate=False) on standard queue.Queue instances, but queue.Queue does not have a shutdown method. This will raise an AttributeError during shutdown, preventing proper cleanup of worker threads and queues.",
+        "category": "bug",
+        "end_line": 238,
+        "file": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
+        "line": 238,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Remove calls to q.shutdown() or replace queue.Queue with a custom queue implementation that supports shutdown.",
+        "title": "Calling nonexistent shutdown method on queue.Queue in FixedQueuePool.shutdown"
+      },
+      {
+        "body": "In src/sentry/remote_subscriptions/consumers/queue_consumer.py, the OffsetTracker._get_partition_lock method uses a non-thread-safe pattern to create and store locks in self.partition_locks. Multiple threads could concurrently create different locks for the same partition, leading to inconsistent locking and potential race conditions.",
+        "category": "concurrency",
+        "end_line": 54,
+        "file": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
+        "line": 49,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Use a threading.Lock to protect access to self.partition_locks or use a thread-safe data structure to ensure only one lock per partition is created.",
+        "title": "Non-thread-safe creation of partition locks in OffsetTracker"
+      },
+      {
+        "body": "In src/sentry/remote_subscriptions/consumers/queue_consumer.py, the OrderedQueueWorker.run method catches queue.ShutDown exceptions, but queue.Queue.get() raises queue.Empty on timeout, not queue.ShutDown. This may cause the thread to ignore shutdown signals if implemented with timeouts.",
+        "category": "bug",
+        "end_line": 142,
+        "file": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
+        "line": 142,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Replace queue.ShutDown exception handling with queue.Empty and implement a timeout on queue.get() to allow checking the shutdown flag periodically.",
+        "title": "Incorrect exception handling for queue.Queue.get() in OrderedQueueWorker.run"
+      }
+    ],
+    "head": "9966ec5a",
+    "mode": "range fd358e8a388939959369f08f616e29552cdaf96e..9966ec5a13e331659c3ea00981f9b11b0faf821f",
+    "models": [
+      {
+        "completion_tokens": 850,
+        "cost_usd": 0.021208,
+        "elapsed_ms": 10518,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 49620,
+        "summary": "The change adds a new thread-queue-parallel processing mode with a FixedQueuePool and related classes. However, there are concurrency and shutdown issues in the queue consumer implementation, including incorrect exception handling for queue shutdown, missing shutdown methods on standard queues, and potential deadlocks on shutdown due to blocking queue.get() calls. The OffsetTracker's lock creation is also not thread-safe. These issues can cause worker threads to hang or crash during shutdown and lead to race conditions.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 685,
+      "diff_tokens": 8481,
+      "estimated_tokens": 52083,
+      "files_changed": 7,
+      "files_scanned": 16973,
+      "files_tokens": 24187,
+      "snippet_tokens": 19415,
+      "snippets_dropped": 0,
+      "snippets_kept": 77
+    },
+    "total_ms": 11218,
+    "verdict": "request_changes"
+  }
+}

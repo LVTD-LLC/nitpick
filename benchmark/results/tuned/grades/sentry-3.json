@@ -1,0 +1,78 @@
+{
+  "case": "sentry-3",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "85c0cc9067cc3302111e674a081e01d3ba2c1cc774135101a839e3df25c1f0ce",
+  "review_sha256": "b7cdf21e071dd0ecab97e1ad6c203d8bdd5576945c4a9144d2c16a8a3b4d59e0",
+  "references": [
+    {
+      "comment": "In _set_sample_rate_from_error_sampling(), the check `if client_sample_rate:` treats 0.0 as falsy, so a sample_rate of 0.0 is silently skipped and never set on normalized_data.",
+      "severity": "Low",
+      "category": "bug"
+    },
+    {
+      "comment": "Using Python’s built-in hash() to build cache keys is non-deterministic across processes (hash randomization), so keys won’t match across workers and invalidate_upsampling_cache may fail to delete them. Use a deterministic serialization of project_ids for the cache key.",
+      "severity": "Low",
+      "category": "data"
+    },
+    {
+      "comment": "The upsampling eligibility check passes the outer dataset instead of the actual dataset used by scoped_dataset. In paths where the query ultimately runs against discover (e.g., dashboard split) while the original dataset is metrics, upsampling may be skipped even when all projects are allowlisted.",
+      "severity": "Medium",
+      "category": "bug"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "Both the setter and invalidate function use `hash(tuple(sorted(project_ids)))`, so the keys match. The real issue (reference 1) is that Python's hash() is non-deterministic across processes, not a sort-order mismatch."
+    },
+    {
+      "finding": 1,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The simplistic string-match for 'event.type:error' is a legitimate limitation, but whether it causes real missed upsampling is subjective and depends on usage patterns. No concrete counterexample is demonstrated."
+    },
+    {
+      "finding": 2,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "Missing test coverage for cache invalidation is a valid observation, but it's advisory/subjective rather than a concrete bug introduced by the diff."
+    },
+    {
+      "finding": 3,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The repeated transformation logic is a style concern. The code is functionally correct; the risk of future inconsistency is speculative."
+    },
+    {
+      "finding": 4,
+      "label": "match",
+      "reference": 0,
+      "reason": "Both identify that `if client_sample_rate:` in `_set_sample_rate_from_error_sampling` treats 0.0 as falsy, silently skipping a valid zero sample rate. The reference specifically calls out this falsy-zero bug; the finding covers it (among broader validation concerns)."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 14836,
+    "completion_tokens": 322,
+    "total_tokens": 15158,
+    "cost": 0.049338,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.049338,
+      "upstream_inference_prompt_cost": 0.044508,
+      "upstream_inference_completions_cost": 0.00483
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

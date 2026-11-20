@@ -1,0 +1,174 @@
+{
+  "case": {
+    "id": "grafana-76186",
+    "source": "grafana.json",
+    "url": "https://github.com/grafana/grafana/pull/76186",
+    "split": "holdout",
+    "base": "58ba11ecbd60863e2bfc6e32f0399ed4feb3927a",
+    "head": "303cdc2caf256aa5df660611120c2e3f7392365d"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json",
+      "--focus",
+      "Review each changed hunk before drafting findings. For each altered decision, trace a concrete input through the old and new behavior. Check boundary values, failure paths, and the contracts imposed by surrounding callers and tests. Verify suspected failures against the actual types, guards, and versions shown. Drop claims that the code contradicts, observations of correct behavior, and guesses that lack a failing scenario. Group repeated instances of one root cause into a single actionable finding, citing one changed line and mentioning other affected sites in its body."
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "The LoggerMiddleware.logRequest method was simplified by removing pluginCtx and endpoint parameters and only taking ctx and fn. The logging parameters no longer include pluginId, endpoint, user name, or traceID. This reduces the amount of contextual information logged for plugin requests, which may reduce observability and debugging capabilities. The removed fields were previously appended to logParams but are now omitted. This is a regression in logging detail and may impact troubleshooting.",
+        "category": "correctness",
+        "end_line": 60,
+        "file": "pkg/services/pluginsintegration/clientmiddleware/logger_middleware.go",
+        "line": 36,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Restore logging of pluginId, endpoint, user name, and traceID in LoggerMiddleware.logRequest to maintain observability.",
+        "title": "LoggerMiddleware.logRequest no longer logs pluginId, endpoint, user, and traceID"
+      },
+      {
+        "body": "The new method FromContext(ctx context.Context) Logger was added to the Logger interface and implemented in TestLogger and grafanaInfraLogWrapper. This method returns a new contextual logger based on the provided context. However, the TestLogger's FromContext method always returns a new TestLogger without preserving any context from the input context. This could lead to loss of contextual information when using TestLogger in tests that rely on FromContext to propagate context. The implementation should consider preserving or extracting relevant context from the input context to maintain expected behavior.",
+        "category": "correctness",
+        "end_line": 48,
+        "file": "pkg/plugins/log/fake.go",
+        "line": 46,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Modify TestLogger.FromContext to extract and preserve relevant context from the input context or document that it returns a fresh logger without context.",
+        "title": "TestLogger.FromContext discards input context, losing contextual information"
+      },
+      {
+        "body": "In the LoggerMiddleware.logRequest method, the logger is obtained by calling m.logger.FromContext(ctx).Info(...). This relies on the FromContext method to return a logger with the context from ctx. The new FromContext method in grafanaInfraLogWrapper calls d.l.FromContext(ctx) and expects it to return a *log.ConcreteLogger. If the assertion fails, it falls back to d.New(). This is correct but depends on the underlying log.ConcreteLogger's FromContext implementation. There is no direct issue here but the behavior depends on the underlying logger's FromContext method. This is a design consideration rather than a bug.",
+        "category": "other",
+        "end_line": 56,
+        "file": "pkg/plugins/log/logger.go",
+        "line": 48,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "LoggerMiddleware depends on underlying logger's FromContext implementation"
+      },
+      {
+        "body": "The MetricsMiddleware no longer adds a contextual logger to the context in instrumentPluginRequest (the call to instrumentContext is removed). Instead, a new ContextualLoggerMiddleware was added to add contextual logger attributes to the context. This separation is cleaner but requires that ContextualLoggerMiddleware be placed before LoggerMiddleware in the middleware chain to ensure the logger context is enriched before logging. The CreateMiddlewares function was updated to add ContextualLoggerMiddleware before LoggerMiddleware, which is correct. No issue here but requires correct middleware ordering.",
+        "category": "correctness",
+        "end_line": 159,
+        "file": "pkg/services/pluginsintegration/clientmiddleware/metrics_middleware.go",
+        "line": 126,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Ensure ContextualLoggerMiddleware is placed before LoggerMiddleware in the middleware chain to enrich logger context before logging.",
+        "title": "ContextualLoggerMiddleware must precede LoggerMiddleware to enrich logger context"
+      },
+      {
+        "body": "The Logger interface was changed to use variadic ctx ...any instead of ...interface{} for New, Debug, Info, Warn, and Error methods. This is a backward-compatible change since 'any' is an alias for interface{}. However, this change is stylistic and does not affect functionality. Similarly, PrettyLogger interface methods changed from ...interface{} to ...any. No issues here.",
+        "category": "other",
+        "end_line": 40,
+        "file": "pkg/plugins/log/ifaces.go",
+        "line": 1,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "nit",
+        "suggestion": null,
+        "title": "Logger and PrettyLogger interfaces changed ctx parameter type from interface{} to any"
+      },
+      {
+        "body": "The new ContextualLoggerMiddleware adds contextual logger attributes to the context for plugin requests. It adds endpoint, pluginId, datasource name and UID, and user name if available. This middleware is added in CreateMiddlewares before LoggerMiddleware, which uses FromContext to get the contextual logger. This is a good design to separate concerns. No issues found here.",
+        "category": "other",
+        "end_line": 69,
+        "file": "pkg/services/pluginsintegration/clientmiddleware/contextual_logger_middleware.go",
+        "line": 1,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "nit",
+        "suggestion": null,
+        "title": "ContextualLoggerMiddleware adds contextual logger attributes correctly"
+      },
+      {
+        "body": "The MetricsMiddleware renamed from InstrumentationMiddleware and some functions and types renamed accordingly. This is a refactor with no functional change. The tests were renamed accordingly. No issues found here.",
+        "category": "other",
+        "end_line": 164,
+        "file": "pkg/services/pluginsintegration/clientmiddleware/metrics_middleware_test.go",
+        "line": 1,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "nit",
+        "suggestion": null,
+        "title": "InstrumentationMiddleware renamed to MetricsMiddleware with no functional change"
+      },
+      {
+        "body": "In CreateMiddlewares, the InstrumentationMiddleware was replaced by MetricsMiddleware and ContextualLoggerMiddleware was added before LoggerMiddleware. This is consistent with the new design separating metrics and contextual logging. No issues found here.",
+        "category": "other",
+        "end_line": 185,
+        "file": "pkg/services/pluginsintegration/pluginsintegration.go",
+        "line": 155,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "nit",
+        "suggestion": null,
+        "title": "CreateMiddlewares updated to use MetricsMiddleware and ContextualLoggerMiddleware"
+      }
+    ],
+    "head": "303cdc2",
+    "mode": "range 58ba11ecbd60863e2bfc6e32f0399ed4feb3927a..303cdc2caf256aa5df660611120c2e3f7392365d",
+    "models": [
+      {
+        "completion_tokens": 1254,
+        "cost_usd": 0.0128264,
+        "elapsed_ms": 11976,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 27050,
+        "summary": "The change introduces a new FromContext method to the Logger interface and implements it in TestLogger and grafanaInfraLogWrapper. The LoggerMiddleware was simplified to log less contextual information, which is a regression in observability. This is partially mitigated by adding a new ContextualLoggerMiddleware that enriches the context with logger attributes, but it requires correct middleware ordering. The TestLogger's FromContext implementation discards input context, which may cause loss of context in tests. Other changes are renames and stylistic improvements with no issues.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 430,
+      "diff_tokens": 5708,
+      "estimated_tokens": 23985,
+      "files_changed": 8,
+      "files_scanned": 10886,
+      "files_tokens": 11969,
+      "snippet_tokens": 6308,
+      "snippets_dropped": 17,
+      "snippets_kept": 47
+    },
+    "total_ms": 12418,
+    "verdict": "request_changes"
+  }
+}

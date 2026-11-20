@@ -1,0 +1,117 @@
+{
+  "case": "cal_dot_com-10967",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "c0eca2706e693756c61938383c3dfdbee398ddf6bbcc936eb9b39fb30195e6a0",
+  "review_sha256": "7dd886419c8deba7df4f8d4814bfca1ce11b215d38b20012fc12e5e3e59ba214",
+  "references": [
+    {
+      "comment": "A null reference occurs in GoogleCalendarService.createEvent() and updateEvent() when mainHostDestinationCalendar is destructured from evt.destinationCalendar but evt.destinationCalendar is null or an empty array, causing mainHostDestinationCalendar to be undefined.",
+      "severity": "High",
+      "category": "bug"
+    },
+    {
+      "comment": "The optional chaining on mainHostDestinationCalendar?.integration is redundant since you already check mainHostDestinationCalendar in the ternary condition.",
+      "severity": "Low",
+      "category": "style"
+    },
+    {
+      "comment": "Logic error: when externalCalendarId is provided, you're searching for a calendar where externalId === externalCalendarId, but this will always fail since you're looking for a calendar that matches itself. Should likely find by credentialId or use different logic.",
+      "severity": "High",
+      "category": "bug"
+    },
+    {
+      "comment": "Logic inversion in organization creation: The slug property is now conditionally set when IS_TEAM_BILLING_ENABLED is true, instead of when it's false as originally intended. This change, combined with requestedSlug still being set when IS_TEAM_BILLING_ENABLED is true, results in both properties being set when billing is enabled, and neither when disabled",
+      "severity": "Medium",
+      "category": "bug"
+    },
+    {
+      "comment": "The Calendar interface now requires createEvent(event, credentialId), but some implementations (e.g., Lark/Office365) still declare createEvent(event) only—this breaks the interface contract (also applies to other locations in the PR).",
+      "severity": "Low",
+      "category": "api"
+    },
+    {
+      "comment": "The `credential` may be undefined when passed to `updateEvent` if `reference.credentialId` is set but the credential is not found. This can lead to a runtime error when `updateEvent` is called with an undefined credential, which should be handled to prevent crashes.",
+      "severity": "High",
+      "category": "bug"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "match",
+      "reference": 0,
+      "reason": "Both identify a null/undefined dereference when destinationCalendar is empty or null and mainHostDestinationCalendar is destructured from it in GoogleCalendarService createEvent/updateEvent."
+    },
+    {
+      "finding": 1,
+      "label": "match",
+      "reference": 5,
+      "reason": "Both identify that credential may be undefined/null after DB lookup in updateAllCalendarEvents and that calling updateEvent with an undefined credential causes a runtime error without a null check."
+    },
+    {
+      "finding": 2,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The finding about empty destinationCalendar arrays is a valid concern but the diff shows explicit empty-array fallbacks are intentional; downstream handling is subjective and not clearly broken by this PR."
+    },
+    {
+      "finding": 3,
+      "label": "match",
+      "reference": 2,
+      "reason": "Both identify the logic error in updateEvent where externalCalendarId is provided but the find uses cal.externalId === externalCalendarId, which will always fail since it searches for a calendar matching the same value being looked up."
+    },
+    {
+      "finding": 4,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The concern about multiple event creations for destinations without credentialId is a real behavioral change but whether it is a bug or intended design is not clearly established by the diff alone."
+    },
+    {
+      "finding": 5,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The error handling returning an empty array when calendarReference is undefined is a real edge case, but the diff shows calendarReference is initialized to undefined and the map with ?? [] handles it; the severity is debatable."
+    },
+    {
+      "finding": 6,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The concern about mutation and nested arrays is plausible but the types show eventType.destinationCalendar and organizerUser.destinationCalendar are single objects in the schema, so wrapping in arrays is correct; mutation risk is minor and subjective."
+    },
+    {
+      "finding": 7,
+      "label": "match",
+      "reference": 3,
+      "reason": "Both identify the inverted conditional logic for slug/requestedSlug assignment in the organization creation handler with IS_TEAM_BILLING_ENABLED."
+    },
+    {
+      "finding": 8,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The original code was `bookingToReschedule?.destinationCalendar || bookingToReschedule?.destinationCalendar` (a copy-paste of the same expression), and the new code correctly uses `[bookingToReschedule?.destinationCalendar]` with an empty array fallback. The finding claims the fallback should be user.destinationCalendar, but the original code never used that either; this is not a regression introduced by the PR."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 31742,
+    "completion_tokens": 607,
+    "total_tokens": 32349,
+    "cost": 0.104331,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.104331,
+      "upstream_inference_prompt_cost": 0.095226,
+      "upstream_inference_completions_cost": 0.009105
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

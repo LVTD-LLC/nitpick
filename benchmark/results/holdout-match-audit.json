@@ -1,0 +1,187 @@
+[
+  {
+    "case": "cal_dot_com-11059",
+    "note": "Only the Salesforce response-status check identifies the referenced failure. The webhook finding concerns environment configuration.",
+    "baseline": {
+      "report_sha256": "f3bf3f1b7e8f041cd6d61f8e48bac586f153161bdd3e93b38bf442540d02cdd4",
+      "pairs": []
+    },
+    "tuned": {
+      "report_sha256": "0106fa209309a8803cc1521b5668a08ffc1320a02997fda8010a2c8b3510845b",
+      "pairs": [
+        [
+          2,
+          6
+        ]
+      ]
+    }
+  },
+  {
+    "case": "cal_dot_com-8330",
+    "note": "Both reviews identify Dayjs object identity and the reused slot start time.",
+    "baseline": {
+      "report_sha256": "68e1934ed07e5dfbcfba79dc79cbf1deb038cea6c221ac8b3918be75bf53018f",
+      "pairs": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ]
+      ]
+    },
+    "tuned": {
+      "report_sha256": "9a53ce30650de6750edf85d4c87c1feb0212c1a4f3cda5f849d83827db4abea2",
+      "pairs": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ]
+      ]
+    }
+  },
+  {
+    "case": "discourse-3",
+    "note": "Both identify writes on validation. Baseline also describes unanchored domain substring matching.",
+    "baseline": {
+      "report_sha256": "cf32e50aace2b054aee2c7c6554087eaf40b566280270da2e5271a284bc13c6d",
+      "pairs": [
+        [
+          2,
+          0
+        ],
+        [
+          4,
+          1
+        ]
+      ]
+    },
+    "tuned": {
+      "report_sha256": "5380c97fa57f9685ace14b438220d2e7821598dcdde4c0426acf4d2b185ab57d",
+      "pairs": [
+        [
+          0,
+          0
+        ]
+      ]
+    }
+  },
+  {
+    "case": "discourse-4",
+    "note": "Baseline mentions that the referer can be manipulated but diagnoses rejected legitimate requests and recommends relaxing the check. The candidate diagnoses feed retrieval and URL format, missing the specific content and escaping defects.",
+    "baseline": {
+      "report_sha256": "4c9eee87d1f5fbaa30b58fdacde7cb87f4dd0aa899d9c312c7fd7c267cf6fb97",
+      "pairs": []
+    },
+    "tuned": {
+      "report_sha256": "1b8794800329e60ff06bef45ef4ffb21720388914ba92a34bcd5ce2b26de2404",
+      "pairs": []
+    }
+  },
+  {
+    "case": "grafana-79265",
+    "note": "Candidate diagnoses the misleading update error and newly blocked anonymous authentication. Baseline focuses on other errors being swallowed.",
+    "baseline": {
+      "report_sha256": "57cf733dd96deb3b96a248177290156913a90ab8db7fc0dbb3b8d150c6ea1ccd",
+      "pairs": []
+    },
+    "tuned": {
+      "report_sha256": "acfb66d82917223905cfb20c1ca05f5e10a2ff94e3ccaf6209dc2833ba57efd3",
+      "pairs": [
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          1
+        ]
+      ]
+    }
+  },
+  {
+    "case": "grafana-76186",
+    "note": "Candidate explicitly identifies lost trace IDs. Both discussions of TestLogger focus on input context, missing the lost receiver and its recorded logs.",
+    "baseline": {
+      "report_sha256": "8c3de25d934503bc6a3580113995622aecd5a660bcd35a0e7250d22170938b5e",
+      "pairs": []
+    },
+    "tuned": {
+      "report_sha256": "0b8bd6a357cb504faa53846130086ba862fe0b809586a3d940693fadca62f98c",
+      "pairs": [
+        [
+          0,
+          1
+        ]
+      ]
+    }
+  },
+  {
+    "case": "keycloak-1",
+    "note": "Baseline identifies the missing method argument. Candidate describes the conditional behavior as correct.",
+    "baseline": {
+      "report_sha256": "86af97f21e784fa38914b63b846dba6fb0f5a2ad6ed2cd53e179b8f77351b584",
+      "pairs": [
+        [
+          0,
+          0
+        ]
+      ]
+    },
+    "tuned": {
+      "report_sha256": "4965d7d79abd28bf21e2bf62cb9284b005dbe90b59dffec83f300de2c0517415",
+      "pairs": []
+    }
+  },
+  {
+    "case": "keycloak-37429",
+    "note": "General praise of the anchor sanitizer does not identify the unchecked matcher state. Neither review identifies the reference translation or naming issues.",
+    "baseline": {
+      "report_sha256": "5551b75649e6b2a7eba766146ed5321ca5520c36ab96e6a429aa2a5b6f35ad0d",
+      "pairs": []
+    },
+    "tuned": {
+      "report_sha256": "b911b931d50bbf0f2d6a7f4b238ac0f47cfcedac699895bfd0bfdc587dea5d84",
+      "pairs": []
+    }
+  },
+  {
+    "case": "sentry-67876",
+    "note": "Baseline identifies reused OAuth state and the missing metadata key. Candidate describes intended behavior.",
+    "baseline": {
+      "report_sha256": "ed8dfcd6e4a05ed7ddbb7cc041d95eedd4ddb810b954b63a3090a90ef30aa099",
+      "pairs": [
+        [
+          0,
+          1
+        ],
+        [
+          2,
+          2
+        ]
+      ]
+    },
+    "tuned": {
+      "report_sha256": "8d2822af3e16cdc2ce77c87be630f822b95c67482f26a02c2d9a8e7e2db03fb8",
+      "pairs": []
+    }
+  },
+  {
+    "case": "sentry-3",
+    "note": "Neither review identifies the falsy zero rate, cross-process hash issue, or the wrong dataset passed to the eligibility check.",
+    "baseline": {
+      "report_sha256": "7505b504e1d537150c852d21db0480eeb48fc09f1fcb547333b55ccbe26b1102",
+      "pairs": []
+    },
+    "tuned": {
+      "report_sha256": "b7cdf21e071dd0ecab97e1ad6c203d8bdd5576945c4a9144d2c16a8a3b4d59e0",
+      "pairs": []
+    }
+  }
+]

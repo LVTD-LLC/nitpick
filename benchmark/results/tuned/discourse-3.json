@@ -1,0 +1,122 @@
+{
+  "case": {
+    "id": "discourse-3",
+    "source": "discourse.json",
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/3",
+    "split": "holdout",
+    "base": "e25638dab0d4b98f99c8fe8976ccaae8f4fb9db3",
+    "head": "5f8a130277dbddc95d133cd2832be639baf89213"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json",
+      "--focus",
+      "Review each changed hunk before drafting findings. For each altered decision, trace a concrete input through the old and new behavior. Check boundary values, failure paths, and the contracts imposed by surrounding callers and tests. Verify suspected failures against the actual types, guards, and versions shown. Drop claims that the code contradicts, observations of correct behavior, and guesses that lack a failing scenario. Group repeated instances of one root cause into a single actionable finding, citing one changed line and mentioning other affected sites in its body."
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [
+      {
+        "body": "The new email validation logic in `EmailValidator` checks if an email is blocked by querying the `BlockedEmail` model. The `BlockedEmail.should_block?` method increments `match_count` and updates `last_match_at` every time it is called for a matching email. This means that every validation attempt on a blocked email causes a database write, which can lead to performance degradation under high load or frequent validation attempts. This side effect in a validation method is unexpected and can cause scalability issues.",
+        "category": "performance",
+        "end_line": 14,
+        "file": "lib/validators/email_validator.rb",
+        "line": 13,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Move the increment of `match_count` and update of `last_match_at` out of the validation path, e.g., into a separate logging or monitoring mechanism triggered only on actual blocked sign-up attempts, not on every validation call.",
+        "title": "BlockedEmail.should_block? causes DB writes on every validation call, impacting performance"
+      },
+      {
+        "body": "In `CreateAccountController#createAccount`, when the server responds with errors including `result.errors.email` and `result.values`, the email is added to `rejectedEmails` to prevent repeated attempts with the same invalid email. However, the check in `emailValidation` uses `rejectedEmails.contains(email)` to block the email with a generic 'invalid' message. This approach may cause confusion because the user sees a generic invalid email message instead of the specific reason for rejection. Also, the `rejectedEmails` list grows indefinitely during the session without any cleanup, potentially causing memory bloat.",
+        "category": "correctness",
+        "end_line": 69,
+        "file": "app/assets/javascripts/discourse/controllers/create_account_controller.js",
+        "line": 69,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Consider showing the specific error message returned from the server instead of a generic invalid message. Also, implement a mechanism to clear or limit the size of `rejectedEmails` to avoid unbounded growth.",
+        "title": "Generic invalid email message for rejected emails and unbounded rejectedEmails growth"
+      },
+      {
+        "body": "The `UsersController#create` action now returns additional JSON keys `errors` and `values` on failure, including the user's attributes for name, username, and email. This change supports the frontend's use of `result.errors` and `result.values` to handle rejected emails. This is a backward-compatible API extension and should not break existing clients.",
+        "category": "api",
+        "end_line": 199,
+        "file": "app/controllers/users_controller.rb",
+        "line": 196,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "UsersController#create returns detailed errors and values on failure for frontend use"
+      },
+      {
+        "body": "The previous email validation logic in `User` model was removed and replaced by the new `EmailValidator` class. The old logic checked email domain whitelist and blacklist settings and added errors accordingly. The new validator replicates this logic but also adds blocking based on the `BlockedEmail` model. This change is consistent and does not remove any existing checks, but the new blocking feature is additive. The new validator is only applied if the email changed, which is consistent with previous behavior.",
+        "category": "correctness",
+        "end_line": 47,
+        "file": "app/models/user.rb",
+        "line": 46,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Email validation logic refactored and extended with blocked email check"
+      }
+    ],
+    "head": "5f8a130",
+    "mode": "range e25638dab0d4b98f99c8fe8976ccaae8f4fb9db3..5f8a130277dbddc95d133cd2832be639baf89213",
+    "models": [
+      {
+        "completion_tokens": 791,
+        "cost_usd": 0.0074332,
+        "elapsed_ms": 7235,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 15419,
+        "summary": "This change introduces a new blocked email feature with a dedicated model and validator, refactors email validation logic, and enhances error reporting in the user creation API. The main concern is the side effect in the `BlockedEmail.should_block?` method that causes database writes on every validation call, which can impact performance. Other issues include generic error messaging for rejected emails on the frontend and potential unbounded growth of the rejected emails list in the create account controller. The API changes are backward compatible and support the new frontend logic.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 155,
+      "diff_tokens": 1876,
+      "estimated_tokens": 13903,
+      "files_changed": 10,
+      "files_scanned": 1898,
+      "files_tokens": 9865,
+      "snippet_tokens": 2162,
+      "snippets_dropped": 0,
+      "snippets_kept": 8
+    },
+    "total_ms": 7400,
+    "verdict": "comment"
+  }
+}

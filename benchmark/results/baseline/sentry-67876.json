@@ -1,0 +1,107 @@
+{
+  "case": {
+    "id": "sentry-67876",
+    "source": "sentry.json",
+    "url": "https://github.com/getsentry/sentry/pull/67876",
+    "split": "holdout",
+    "base": "f3b740199ef0b8057c2c68a377fd3b4d42346deb",
+    "head": "bb75657fc8f13923c1d7983f422290908a1e7310"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "In OAuthLoginView.dispatch, the OAuth 'state' parameter is compared directly to pipeline.signature for CSRF protection. However, pipeline.signature is used as the state parameter without additional entropy or binding to the user session. This may allow replay or CSRF attacks if pipeline.signature is predictable or reused. The OAuth state parameter should be a cryptographically secure random string bound to the user session or pipeline state to prevent CSRF attacks.",
+        "category": "security",
+        "end_line": 438,
+        "file": "src/sentry/integrations/github/integration.py",
+        "line": 412,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Use a cryptographically secure random string for the OAuth state parameter and bind it to the user session or pipeline state. Verify it on callback.",
+        "title": "Insecure OAuth state parameter handling in OAuthLoginView"
+      },
+      {
+        "body": "In GitHubInstallation.dispatch, the check for installations_exist uses OrganizationIntegration.objects.filter with integration=Integration.objects.get(external_id=installation_id). This will raise Integration.DoesNotExist if the Integration does not exist, which is caught and pipeline.next_step() is returned. However, if the Integration exists but is inactive (status != ACTIVE), it will not be caught and will proceed to the next block where Integration.objects.get(external_id=installation_id, status=ObjectStatus.ACTIVE) is called. If this second call raises Integration.DoesNotExist, an error page is returned. This logic is inconsistent and may cause unexpected behavior if the Integration exists but is inactive. The code should unify the logic to handle Integration existence and status checks consistently.",
+        "category": "bug",
+        "end_line": 481,
+        "file": "src/sentry/integrations/github/integration.py",
+        "line": 476,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Refactor to fetch the Integration once with status=ACTIVE and handle DoesNotExist once, avoiding duplicate queries and inconsistent behavior.",
+        "title": "Inconsistent Integration existence and status checks in GitHubInstallation.dispatch"
+      },
+      {
+        "body": "In GitHubInstallation.dispatch, the check that the authenticated GitHub user matches the installation sender is done by comparing pipeline.fetch_state('github_authenticated_user') with integration.metadata['sender']['login']. If the 'sender' key is missing in integration.metadata, this will raise a KeyError and cause a server error. The code should defensively check for the presence of 'sender' and 'login' keys before comparing.",
+        "category": "bug",
+        "end_line": 505,
+        "file": "src/sentry/integrations/github/integration.py",
+        "line": 500,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add checks to ensure 'sender' and 'login' keys exist in integration.metadata before comparison, and handle missing keys gracefully.",
+        "title": "Potential KeyError when checking authenticated user in GitHubInstallation.dispatch"
+      }
+    ],
+    "head": "bb75657",
+    "mode": "range f3b740199ef0b8057c2c68a377fd3b4d42346deb..bb75657fc8f13923c1d7983f422290908a1e7310",
+    "models": [
+      {
+        "completion_tokens": 611,
+        "cost_usd": 0.0206432,
+        "elapsed_ms": 6987,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 49164,
+        "summary": "The change adds OAuth login flow and improves GitHub installation pipeline with additional security checks. However, there are security concerns with OAuth state parameter handling and some inconsistent or unsafe checks in the installation dispatch logic. Defensive coding improvements and security hardening are recommended.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 522,
+      "diff_tokens": 6031,
+      "estimated_tokens": 49277,
+      "files_changed": 3,
+      "files_scanned": 13270,
+      "files_tokens": 14885,
+      "snippet_tokens": 28361,
+      "snippets_dropped": 0,
+      "snippets_kept": 87
+    },
+    "total_ms": 7521,
+    "verdict": "request_changes"
+  }
+}

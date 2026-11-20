@@ -1,0 +1,107 @@
+{
+  "case": {
+    "id": "keycloak-1",
+    "source": "keycloak.json",
+    "url": "https://github.com/ai-code-review-evaluation/keycloak-greptile/pull/1",
+    "split": "holdout",
+    "base": "30f804af450dec523909a52f2a4b97302d27f5cc",
+    "head": "3214b188de808fdb0fff335556b686f1b0a63218"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "In UsernamePasswordForm.java, the method isConditionalPasskeysEnabled() is called without arguments in UsernameForm.java at line 47, but the method requires a UserModel argument. This will cause a compilation error or runtime failure due to missing argument.",
+        "category": "bug",
+        "end_line": 47,
+        "file": "services/src/main/java/org/keycloak/authentication/authenticators/browser/UsernameForm.java",
+        "line": 47,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Change the call to isConditionalPasskeysEnabled(context.getUser()) to pass the UserModel argument as required.",
+        "title": "Incorrect call to isConditionalPasskeysEnabled() without required UserModel argument"
+      },
+      {
+        "body": "In PasskeysUsernameFormTest.java at line 89, the test sets WebAuthnPolicyRequireResidentKey and WebAuthnPolicyUserVerificationRequirement to null, but later checks for constants representing 'yes' and 'required'. This may cause inconsistent test behavior or failures if the system expects non-null values for these policies.",
+        "category": "test",
+        "end_line": 91,
+        "file": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/webauthn/passwordless/PasskeysUsernameFormTest.java",
+        "line": 89,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Set WebAuthnPolicyRequireResidentKey and WebAuthnPolicyUserVerificationRequirement to appropriate constants instead of null to match expected configuration.",
+        "title": "Test sets WebAuthn policy fields to null but expects non-null constants"
+      },
+      {
+        "body": "In PasskeysUsernamePasswordFormTest.java, the test webauthnLoginWithDiscoverableKey() sets WebAuthnPolicyRequireResidentKey and WebAuthnPolicyUserVerificationRequirement to null (lines 89-90), which may cause inconsistent behavior similar to the issue in PasskeysUsernameFormTest.java. This could lead to flaky or failing tests.",
+        "category": "test",
+        "end_line": 91,
+        "file": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/webauthn/passwordless/PasskeysUsernamePasswordFormTest.java",
+        "line": 89,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Set WebAuthnPolicyRequireResidentKey and WebAuthnPolicyUserVerificationRequirement to appropriate constants instead of null to ensure consistent test behavior.",
+        "title": "Test sets WebAuthn policy fields to null but expects non-null constants"
+      }
+    ],
+    "head": "3214b18",
+    "mode": "range 30f804af450dec523909a52f2a4b97302d27f5cc..3214b188de808fdb0fff335556b686f1b0a63218",
+    "models": [
+      {
+        "completion_tokens": 547,
+        "cost_usd": 0.0163556,
+        "elapsed_ms": 8226,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 38701,
+        "summary": "The change introduces a critical bug in UsernameForm.java where a method is called without required arguments, causing compilation or runtime errors. Additionally, some tests set WebAuthn policy fields to null while expecting non-null constants, which may cause flaky or failing tests. These test issues should be corrected for reliable test execution.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 119,
+      "diff_tokens": 10807,
+      "estimated_tokens": 45765,
+      "files_changed": 9,
+      "files_scanned": 9956,
+      "files_tokens": 34241,
+      "snippet_tokens": 717,
+      "snippets_dropped": 0,
+      "snippets_kept": 2
+    },
+    "total_ms": 8355,
+    "verdict": "request_changes"
+  }
+}

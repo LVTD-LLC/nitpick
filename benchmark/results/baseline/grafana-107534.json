@@ -1,0 +1,120 @@
+{
+  "case": {
+    "id": "grafana-107534",
+    "source": "grafana.json",
+    "url": "https://github.com/grafana/grafana/pull/107534",
+    "split": "dev",
+    "base": "d9a8253640464014aa3662c91131278990cfb828",
+    "head": "1cab4143d443c33079566f6ca36931eb8468159f"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "In `public/app/plugins/datasource/loki/shardQuerySplitting.ts` at line 281, the function `groupHasPendingRequests` mutates the `cycle` property of the group by setting it to `nextCycle`. This side effect during a predicate check is unexpected and can cause incorrect behavior in the iteration logic that depends on `cycle`. Predicate functions should not mutate their inputs as it can lead to subtle bugs and make the code harder to reason about.",
+        "category": "bug",
+        "end_line": 289,
+        "file": "public/app/plugins/datasource/loki/shardQuerySplitting.ts",
+        "line": 281,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Refactor `groupHasPendingRequests` to avoid mutating `group.cycle`. Instead, update `cycle` explicitly in the calling code after confirming the group has pending requests.",
+        "title": "Predicate function `groupHasPendingRequests` mutates input group state"
+      },
+      {
+        "body": "In the tests added in `public/app/plugins/datasource/loki/querySplitting.test.ts` and `public/app/plugins/datasource/loki/shardQuerySplitting.test.ts`, the interpolation of template variables is verified. However, there is no test verifying behavior when `applyTemplateVariables` throws an error or returns invalid queries. This could lead to unhandled exceptions or unexpected behavior in production.",
+        "category": "test",
+        "end_line": 87,
+        "file": "public/app/plugins/datasource/loki/querySplitting.test.ts",
+        "line": 75,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add tests to verify that `runSplitQuery` and `runShardSplitQuery` handle errors thrown by `applyTemplateVariables` gracefully.",
+        "title": "Missing tests for error handling in template variable interpolation"
+      },
+      {
+        "body": "In `public/app/plugins/datasource/loki/querySplitting.ts` at line 296, the `runSplitQuery` function now applies template variable interpolation to queries before splitting and running them. This is a positive change and aligns with the tests added to verify interpolation. However, the change assumes that `datasource.applyTemplateVariables` is synchronous and side-effect free. If `applyTemplateVariables` has side effects or asynchronous behavior, this could cause issues. The tests mock this method as synchronous, so this is likely safe, but it is worth confirming the contract of `applyTemplateVariables`.",
+        "category": "correctness",
+        "end_line": 299,
+        "file": "public/app/plugins/datasource/loki/querySplitting.ts",
+        "line": 296,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Confirm that `applyTemplateVariables` is synchronous and side-effect free. If not, consider handling asynchronous interpolation properly.",
+        "title": "Assumption that `applyTemplateVariables` is synchronous in `runSplitQuery`"
+      },
+      {
+        "body": "In `public/app/plugins/datasource/loki/shardQuerySplitting.ts` at line 163, `runSplitQuery` is called with options `{ skipPartialUpdates: true, disableRetry: true }`. This disables retry logic for shard split queries, which may reduce robustness against transient errors. The retry logic is handled separately in `runShardSplitQuery`. This is likely intentional, but it should be documented clearly to avoid confusion.",
+        "category": "docs",
+        "end_line": 166,
+        "file": "public/app/plugins/datasource/loki/shardQuerySplitting.ts",
+        "line": 163,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Add a comment explaining why retries are disabled when calling `runSplitQuery` from `runShardSplitQuery`.",
+        "title": "Retries disabled in nested `runSplitQuery` call in shard splitting"
+      }
+    ],
+    "head": "1cab4143",
+    "mode": "range d9a8253640464014aa3662c91131278990cfb828..1cab4143d443c33079566f6ca36931eb8468159f",
+    "models": [
+      {
+        "completion_tokens": 808,
+        "cost_usd": 0.0107796,
+        "elapsed_ms": 7569,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 23717,
+        "summary": "The change adds template variable interpolation before query splitting in both `runSplitQuery` and `runShardSplitQuery`, improving correctness and test coverage. However, a critical bug is present in `groupHasPendingRequests` where it mutates input state unexpectedly, which can cause incorrect query splitting behavior. Some minor correctness and documentation improvements are suggested, along with additional tests for error handling.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 245,
+      "diff_tokens": 2060,
+      "estimated_tokens": 21865,
+      "files_changed": 4,
+      "files_scanned": 15111,
+      "files_tokens": 13106,
+      "snippet_tokens": 6699,
+      "snippets_dropped": 0,
+      "snippets_kept": 17
+    },
+    "total_ms": 7823,
+    "verdict": "request_changes"
+  }
+}

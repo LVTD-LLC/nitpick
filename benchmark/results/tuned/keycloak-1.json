@@ -1,0 +1,148 @@
+{
+  "case": {
+    "id": "keycloak-1",
+    "source": "keycloak.json",
+    "url": "https://github.com/ai-code-review-evaluation/keycloak-greptile/pull/1",
+    "split": "holdout",
+    "base": "30f804af450dec523909a52f2a4b97302d27f5cc",
+    "head": "3214b188de808fdb0fff335556b686f1b0a63218"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json",
+      "--focus",
+      "Review each changed hunk before drafting findings. For each altered decision, trace a concrete input through the old and new behavior. Check boundary values, failure paths, and the contracts imposed by surrounding callers and tests. Verify suspected failures against the actual types, guards, and versions shown. Drop claims that the code contradicts, observations of correct behavior, and guesses that lack a failing scenario. Group repeated instances of one root cause into a single actionable finding, citing one changed line and mentioning other affected sites in its body."
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [
+      {
+        "body": "In UsernameForm, the authenticate method now skips the form if context.getUser() != null and passkeys conditional UI is not enabled. This prevents skipping the form when conditional passkeys UI is enabled, ensuring passkeys login UI is shown appropriately. This change fixes a logic gap where passkeys conditional UI would be bypassed incorrectly.",
+        "category": "correctness",
+        "end_line": 46,
+        "file": "services/src/main/java/org/keycloak/authentication/authenticators/browser/UsernameForm.java",
+        "line": 44,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "No change needed; logic correctly added to prevent skipping form when conditional passkeys UI enabled.",
+        "title": "Fix skipping username form when conditional passkeys UI enabled"
+      },
+      {
+        "body": "In AbstractUsernameFormAuthenticator, the previous inline code for setting form attributes on reauthentication error was replaced by a call to AuthenticatorUtils.setupReauthenticationInUsernamePasswordFormError(context). This utility method reads the auth note USER_SET_BEFORE_USERNAME_PASSWORD_AUTH and sets form attributes USERNAME_HIDDEN and REGISTRATION_DISABLED accordingly. This refactor centralizes the logic and avoids duplication, improving maintainability without changing behavior.",
+        "category": "correctness",
+        "end_line": 223,
+        "file": "services/src/main/java/org/keycloak/authentication/authenticators/browser/AbstractUsernameFormAuthenticator.java",
+        "line": 219,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Refactor to utility method for reauthentication form setup"
+      },
+      {
+        "body": "The method isConditionalPasskeysEnabled(UserModel user) in UsernamePasswordForm returns true only if webauthnAuth is not null, passkeys are enabled, and user is not null. This method is used to conditionally fill the context form with WebAuthn data and to decide whether to skip the username form when a user is already set. This logic appears consistent and correctly guards WebAuthn usage on user presence and feature enablement.",
+        "category": "correctness",
+        "end_line": 156,
+        "file": "services/src/main/java/org/keycloak/authentication/authenticators/browser/UsernamePasswordForm.java",
+        "line": 147,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Correct conditional check for passkeys enabled with user present"
+      },
+      {
+        "body": "WebAuthnAuthenticator now has a protected method shouldShowWebAuthnAuthenticators(AuthenticationFlowContext context) returning true if user is not null. This method is used to decide whether to show WebAuthn authenticators during 2-factor authentication. The default implementation is consistent with previous behavior and allows subclasses to override this logic, as done in WebAuthnConditionalUIAuthenticator where it returns false. This design improves extensibility without regressions.",
+        "category": "correctness",
+        "end_line": 130,
+        "file": "services/src/main/java/org/keycloak/authentication/authenticators/browser/WebAuthnAuthenticator.java",
+        "line": 98,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Add overridable method to control showing WebAuthn authenticators"
+      },
+      {
+        "body": "The tests added in PasskeysUsernamePasswordFormTest and PasskeysOrganizationAuthenticationTest cover re-authentication scenarios with passkeys enabled, including prompt=login OIDC parameter. They verify that passkeys UI elements are shown or hidden appropriately, and that login succeeds with passkeys or password as expected. These tests improve coverage for the new conditional passkeys logic and reauthentication flows, reducing risk of regressions.",
+        "category": "test",
+        "end_line": 374,
+        "file": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/webauthn/passwordless/PasskeysUsernamePasswordFormTest.java",
+        "line": 255,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Add tests for passkeys re-authentication scenarios"
+      },
+      {
+        "body": "In PasskeysUsernamePasswordFormTest, the test reauthenticationOfUserWithoutPasskey verifies that when passkeys feature is disabled in the realm, the passkeys UI is not shown during re-authentication and password login works normally. This test ensures correct behavior when passkeys are disabled, preventing UI confusion or security issues.",
+        "category": "test",
+        "end_line": 320,
+        "file": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/webauthn/passwordless/PasskeysUsernamePasswordFormTest.java",
+        "line": 280,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Test passkeys UI absence when passkeys disabled in realm"
+      }
+    ],
+    "head": "3214b18",
+    "mode": "range 30f804af450dec523909a52f2a4b97302d27f5cc..3214b188de808fdb0fff335556b686f1b0a63218",
+    "models": [
+      {
+        "completion_tokens": 960,
+        "cost_usd": 0.0054816,
+        "elapsed_ms": 8541,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 9864,
+        "summary": "The change refactors reauthentication form setup into a utility method, adds conditional logic for passkeys UI display based on user presence and feature enablement, and introduces tests covering passkeys reauthentication scenarios. The logic changes are consistent with expected behavior and improve extensibility and test coverage. One medium severity issue fixes skipping the username form incorrectly when conditional passkeys UI is enabled, ensuring correct UI presentation.",
+        "verdict": "approve"
+      }
+    ],
+    "stats": {
+      "build_ms": 138,
+      "diff_tokens": 10807,
+      "estimated_tokens": 10807,
+      "files_changed": 9,
+      "files_scanned": 9956,
+      "files_tokens": 0,
+      "snippet_tokens": 0,
+      "snippets_dropped": 0,
+      "snippets_kept": 0
+    },
+    "total_ms": 8690,
+    "verdict": "comment"
+  }
+}

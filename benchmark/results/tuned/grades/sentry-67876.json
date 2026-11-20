@@ -1,0 +1,78 @@
+{
+  "case": "sentry-67876",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "46330f264b72de44a446c3acd6279dcb3bcc3fcd36690adf7361b072c38335aa",
+  "review_sha256": "8d2822af3e16cdc2ce77c87be630f822b95c67482f26a02c2d9a8e7e2db03fb8",
+  "references": [
+    {
+      "comment": "Null reference if github_authenticated_user state is missing",
+      "severity": "Medium",
+      "category": "bug"
+    },
+    {
+      "comment": "OAuth state uses pipeline.signature (static) instead of a per-request random value",
+      "severity": "Medium",
+      "category": "security"
+    },
+    {
+      "comment": "The code attempts to access integration.metadata[sender][login] without checking for the existence of the sender key. This causes a KeyError for integrations where the sender metadata was not set during creation",
+      "severity": "High",
+      "category": "bug"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "Finding describes the OAuthLoginView broadly and correctly notes state validation, but does not identify the specific weakness that pipeline.signature is static rather than a per-request random value (ref 1), nor any other concrete defect introduced by this diff."
+    },
+    {
+      "finding": 1,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff does add fallback to pipeline.fetch_state('installation_id') and bind it, which is a real correctness fix for preserving installation_id across pipeline steps. This is independently supported by the code change."
+    },
+    {
+      "finding": 2,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The finding describes the sender/login check as a security improvement, which it is, but misses that integration.metadata['sender']['login'] raises a KeyError when sender is absent (only conditionally set in build_integration). The finding does not identify the bug and presents the code as correct."
+    },
+    {
+      "finding": 3,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff in pipeline_advancer.py does redirect GitHub installs without a pipeline to the org picker, and the finding correctly describes this behavior change. Independently supported by the code."
+    },
+    {
+      "finding": 4,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The error() helper function is genuinely introduced to centralize error rendering, reducing duplication. This is clearly supported by the diff."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 12638,
+    "completion_tokens": 856,
+    "total_tokens": 13494,
+    "cost": 0.050754,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.050754,
+      "upstream_inference_prompt_cost": 0.037914,
+      "upstream_inference_completions_cost": 0.01284
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "case": {
+    "id": "cal_dot_com-11059",
+    "source": "cal_dot_com.json",
+    "url": "https://github.com/calcom/cal.com/pull/11059",
+    "split": "holdout",
+    "base": "bc89fe00ea84d20bedcec782f0701b9711dc8201",
+    "head": "9fde0e906897cc0f4f71793f647dd629faba3317"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json",
+      "--focus",
+      "Review each changed hunk before drafting findings. For each altered decision, trace a concrete input through the old and new behavior. Check boundary values, failure paths, and the contracts imposed by surrounding callers and tests. Verify suspected failures against the actual types, guards, and versions shown. Drop claims that the code contradicts, observations of correct behavior, and guesses that lack a failing scenario. Group repeated instances of one root cause into a single actionable finding, citing one changed line and mentioning other affected sites in its body."
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "The new `refreshOAuthTokens` utility is introduced and used across multiple calendar and video service integrations to handle OAuth token refresh logic. This centralizes token refresh logic and adds retry and error handling. However, in the SalesforceCalendarService (packages/app-store/salesforce/lib/CalendarService.ts), the refresh token flow is implemented manually and does not use `refreshOAuthTokens`. This inconsistency risks missing the improved error handling and retry logic provided by the new utility, potentially causing silent failures or unhandled errors during token refresh for Salesforce integration.",
+        "category": "bug",
+        "end_line": 72,
+        "file": "packages/app-store/salesforce/lib/CalendarService.ts",
+        "line": 60,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Refactor SalesforceCalendarService to use the new `refreshOAuthTokens` utility for refreshing tokens, similar to other integrations, to ensure consistent error handling and retries.",
+        "title": "Salesforce token refresh does not use new centralized refreshOAuthTokens utility"
+      },
+      {
+        "body": "The new environment variables `CALCOM_WEBHOOK_SECRET`, `CALCOM_WEBHOOK_HEADER_NAME`, `CALCOM_CREDENTIAL_SYNC_ENDPOINT`, and `CALCOM_APP_CREDENTIAL_ENCRYPTION_KEY` are added and referenced in the code (e.g., in apps/web/pages/api/webhook/app-credential.ts). However, there is no validation or fallback if these environment variables are missing or invalid, which could cause runtime errors or security issues if the webhook secret or encryption key is not set properly.",
+        "category": "security",
+        "end_line": 15,
+        "file": "apps/web/pages/api/webhook/app-credential.ts",
+        "line": 1,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add validation on server startup or in the webhook handler to ensure required environment variables are set and valid, and fail fast or log errors if not.",
+        "title": "Missing validation for new webhook secret and encryption environment variables"
+      },
+      {
+        "body": "In the SalesforceCalendarService token refresh code, the response status is checked with `response.statusText !== \"OK\"` to detect errors. However, HTTP statusText is not a reliable way to check for HTTP errors; status codes should be used instead (e.g., `response.ok` or `response.status`). This can cause failure to detect error responses correctly, leading to unexpected behavior or crashes downstream when parsing invalid JSON.",
+        "category": "bug",
+        "end_line": 66,
+        "file": "packages/app-store/salesforce/lib/CalendarService.ts",
+        "line": 63,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Replace `response.statusText !== \"OK\"` with `!response.ok` to correctly detect HTTP error responses.",
+        "title": "Incorrect HTTP error detection using statusText in Salesforce token refresh"
+      },
+      {
+        "body": "The new `refreshOAuthTokens` utility is used in many integrations to wrap token refresh calls with retry and error handling. However, the retry count and delay parameters are hardcoded inside the utility (3 retries, 1000ms delay). There is no way to customize these parameters per integration or per call, which might be needed for integrations with different rate limits or error characteristics.",
+        "category": "performance",
+        "end_line": 15,
+        "file": "packages/app-store/_utils/oauth/refreshOAuthTokens.ts",
+        "line": 1,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Add optional parameters to `refreshOAuthTokens` to allow callers to specify retry count and delay to better tune retry behavior per integration.",
+        "title": "No customization of retry parameters in refreshOAuthTokens utility"
+      }
+    ],
+    "head": "9fde0e9",
+    "mode": "range bc89fe00ea84d20bedcec782f0701b9711dc8201..9fde0e906897cc0f4f71793f647dd629faba3317",
+    "models": [
+      {
+        "completion_tokens": 916,
+        "cost_usd": 0.01315,
+        "elapsed_ms": 9386,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 29211,
+        "summary": "This change centralizes OAuth token refresh logic into a new utility and applies it across many integrations, improving consistency and error handling. However, the Salesforce integration does not yet use this new utility, leading to inconsistent error handling and potential bugs. Additionally, some HTTP error checks are incorrect, and environment variable validation is missing for new webhook-related secrets. Retry parameters in the new utility are not customizable, which may limit flexibility.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 378,
+      "diff_tokens": 12659,
+      "estimated_tokens": 19515,
+      "files_changed": 40,
+      "files_scanned": 3101,
+      "files_tokens": 0,
+      "snippet_tokens": 6856,
+      "snippets_dropped": 0,
+      "snippets_kept": 41
+    },
+    "total_ms": 9774,
+    "verdict": "request_changes"
+  }
+}

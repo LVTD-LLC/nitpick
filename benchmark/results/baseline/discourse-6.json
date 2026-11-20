@@ -1,0 +1,120 @@
+{
+  "case": {
+    "id": "discourse-6",
+    "source": "discourse.json",
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/6",
+    "split": "dev",
+    "base": "7a5fbae060bd0d3e29f3a4b5c6f2bfd8b2914dc7",
+    "head": "267d8be1f556ed59639ced396c885bb44586da19"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [
+      {
+        "body": "The method `website_name` in `user_serializer.rb` attempts to parse the user's website URL and compare its host with the current Discourse instance hostname to decide how to display the website name. However, the logic is complex and uses string splitting and comparisons that may not correctly handle all domain variations, such as subdomains, ports, or internationalized domain names. This could lead to incorrect website name display or even errors if the URL is malformed. Additionally, the method rescues URI parsing errors silently but then proceeds, which might cause unexpected nil errors later.",
+        "category": "correctness",
+        "end_line": 151,
+        "file": "app/serializers/user_serializer.rb",
+        "line": 137,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Refactor `website_name` to use a robust domain parsing library or method that correctly handles subdomains and edge cases. Add explicit handling for nil or invalid URLs to avoid silent failures.",
+        "title": "Fragile and complex domain parsing in `website_name` method"
+      },
+      {
+        "body": "In `user_serializer.rb`, the method `include_stats?` returns `!omit_stats == true`, which is a confusing expression. The intention seems to be to include stats unless `omit_stats` is true, but the current expression may not behave as expected due to operator precedence and double negation. This could cause stats to be included or excluded incorrectly.",
+        "category": "bug",
+        "end_line": 203,
+        "file": "app/serializers/user_serializer.rb",
+        "line": 202,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Change `def include_stats?; !omit_stats == true; end` to `def include_stats?; !omit_stats; end` for clarity and correctness.",
+        "title": "Incorrect logic in `include_stats?` method"
+      },
+      {
+        "body": "The removed `websiteName` computed property in `user.js.es6` was replaced by using `model.website_name` from the serializer. However, the old property split the website URL by '/' and took the third element as the domain, which is a simplistic approach. The new approach relies on the server-side `website_name` attribute. This change is consistent but the removal of the client-side fallback means any issues in the server-side logic will directly affect the UI without fallback.",
+        "category": "correctness",
+        "end_line": 19,
+        "file": "app/assets/javascripts/discourse/controllers/user.js.es6",
+        "line": 14,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Ensure the server-side `website_name` attribute is always correctly set and consider adding client-side validation or fallback if needed.",
+        "title": "Removed client-side `websiteName` computed property without fallback"
+      },
+      {
+        "body": "In the template `user.hbs`, the `website_name` is used directly from the model, which depends on the serializer providing this attribute. If the serializer does not include `website_name` (e.g., if `website` is blank), the template will not render the website link. This is expected behavior but should be noted as a change from previous behavior where the client computed the domain name.",
+        "category": "correctness",
+        "end_line": 73,
+        "file": "app/assets/javascripts/discourse/templates/user/user.hbs",
+        "line": 66,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "No change needed, but verify that all code paths provide `website_name` when `website` is present.",
+        "title": "Template relies on server-provided `website_name` attribute"
+      }
+    ],
+    "head": "267d8be",
+    "mode": "range 7a5fbae060bd0d3e29f3a4b5c6f2bfd8b2914dc7..267d8be1f556ed59639ced396c885bb44586da19",
+    "models": [
+      {
+        "completion_tokens": 780,
+        "cost_usd": 0.006766,
+        "elapsed_ms": 9137,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 13795,
+        "summary": "This change refactors the user website display logic by removing client-side domain extraction and adding a server-side `website_name` attribute with complex domain parsing logic. The overall approach is sound but the domain parsing method is fragile and could cause incorrect display or errors. There is also a minor logic issue in the `include_stats?` method. The template and controller changes align with the new server-side attribute usage. Testing covers the new behavior well.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 60,
+      "diff_tokens": 1554,
+      "estimated_tokens": 11225,
+      "files_changed": 5,
+      "files_scanned": 3883,
+      "files_tokens": 9644,
+      "snippet_tokens": 27,
+      "snippets_dropped": 0,
+      "snippets_kept": 1
+    },
+    "total_ms": 9209,
+    "verdict": "comment"
+  }
+}

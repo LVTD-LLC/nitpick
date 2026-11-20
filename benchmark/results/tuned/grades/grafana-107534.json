@@ -1,0 +1,62 @@
+{
+  "case": "grafana-107534",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "1d9516cf06f544a68a4abcc540031c054d529359d4136a3b56421ae6b94ec4a6",
+  "review_sha256": "e79c8ba29f1becf61028f5ffaea499895a8c257ebbc919b8b166f962dfd6caf2",
+  "references": [
+    {
+      "comment": "The applyTemplateVariables method is called with request.filters as the third parameter, but this parameter is not used in the corresponding test setup.",
+      "severity": "Low",
+      "category": "test_gap"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The finding correctly identifies that applyTemplateVariables is now called with request.filters as the third parameter. The reference notes that request.filters is not exercised in the test setup, but finding 0 focuses on the correctness improvement of interpolation before splitting rather than the test gap around filters. The reference is closer to finding 2 (test coverage). No direct match to the reference's specific claim about filters not being tested."
+    },
+    {
+      "finding": 1,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The finding describes replacing interpolateVariablesInQueries with applyTemplateVariables per query in shardQuerySplitting.ts. This is a real behavioral change supported by the diff. No reference matches this specific claim."
+    },
+    {
+      "finding": 2,
+      "label": "match",
+      "reference": 0,
+      "reason": "The reference notes that applyTemplateVariables is called with request.filters as the third parameter but this parameter is not exercised/verified in the test setup. Finding 2 discusses the new tests for interpolation but does not cover the gap around request.filters being untested, making the reference a test_gap that aligns with the test coverage finding."
+    },
+    {
+      "finding": 3,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The finding observes that retry logic is unaffected by the interpolation change. This is an observational/informational note with no concrete defect identified and no matching reference."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 7873,
+    "completion_tokens": 329,
+    "total_tokens": 8202,
+    "cost": 0.028554,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.028554,
+      "upstream_inference_prompt_cost": 0.023619,
+      "upstream_inference_completions_cost": 0.004935
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "case": {
+    "id": "sentry-3",
+    "source": "sentry.json",
+    "url": "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/3",
+    "split": "holdout",
+    "base": "83f40559985e1365a43f35ba3febb7ea4fabb5d5",
+    "head": "6ad6fe3899f630ccf922ce7ac681147dc7987435"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json",
+      "--focus",
+      "Review each changed hunk before drafting findings. For each altered decision, trace a concrete input through the old and new behavior. Check boundary values, failure paths, and the contracts imposed by surrounding callers and tests. Verify suspected failures against the actual types, guards, and versions shown. Drop claims that the code contradicts, observations of correct behavior, and guesses that lack a failing scenario. Group repeated instances of one root cause into a single actionable finding, citing one changed line and mentioning other affected sites in its body."
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "The new error upsampling feature introduces a caching mechanism for eligibility checks based on project allowlists. The cache key is constructed using a hash of the sorted project IDs tuple. However, the cache invalidation function `invalidate_upsampling_cache` uses the same hash key but does not guarantee that the project IDs are sorted before hashing. This can lead to cache keys that do not match between set and delete operations, causing stale cache entries and inconsistent behavior in eligibility checks.",
+        "category": "bug",
+        "end_line": 74,
+        "file": "src/sentry/api/helpers/error_upsampling.py",
+        "line": 67,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Ensure that project_ids are sorted before hashing in `invalidate_upsampling_cache`, e.g., use `hash(tuple(sorted(project_ids)))` consistently as in the getter.",
+        "title": "Cache invalidation uses unsorted project_ids causing cache key mismatch"
+      },
+      {
+        "body": "The function `_should_apply_sample_weight_transform` determines whether to apply sample_weight transformations based on dataset and query context. It returns True for the errors dataset, False for transactions, and for discover dataset it checks if the query is error-focused by looking for 'event.type:error' in the query string. However, this check is simplistic and may miss queries that imply error events but do not explicitly contain 'event.type:error'. This could lead to inconsistent application of upsampling transformations.",
+        "category": "correctness",
+        "end_line": 139,
+        "file": "src/sentry/api/helpers/error_upsampling.py",
+        "line": 130,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Consider enhancing `_is_error_focused_query` to parse the query more robustly or use existing query parsing utilities to detect error event filters more reliably.",
+        "title": "Simplistic error event detection in query may cause missed upsampling opportunities"
+      },
+      {
+        "body": "The new test `OrganizationEventsStatsErrorUpsamplingTest` in `tests/snuba/api/endpoints/test_organization_events_stats.py` covers various scenarios for error upsampling including allowlisted projects, partial allowlist, transaction events, and no allowlist. However, it does not test the cache invalidation behavior or the effect of changing the allowlist during runtime, which is critical given the caching mechanism introduced.",
+        "category": "test",
+        "end_line": 3718,
+        "file": "tests/snuba/api/endpoints/test_organization_events_stats.py",
+        "line": 3554,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add tests that simulate allowlist changes and verify that cache invalidation leads to updated eligibility checks.",
+        "title": "Missing tests for cache invalidation and allowlist changes in error upsampling"
+      },
+      {
+        "body": "In `OrganizationEventsStatsEndpoint._get_event_stats`, the upsampling transformation is applied multiple times depending on the query path (top events, RPC, standard). The variable `final_columns` is reassigned each time before query execution. This is correct but the code repeats the transformation logic in multiple branches, which risks inconsistency if future changes are made. Also, the initial assignment of `final_columns = query_columns` is overwritten later without use in some branches.",
+        "category": "style",
+        "end_line": 297,
+        "file": "src/sentry/api/endpoints/organization_events_stats.py",
+        "line": 210,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Refactor to apply the upsampling transformation once before branching or encapsulate the logic in a helper function to reduce duplication and risk of inconsistency.",
+        "title": "Repeated upsampling transformation logic in multiple query branches"
+      },
+      {
+        "body": "The helper `_set_sample_rate_from_error_sampling` in `src/sentry/testutils/factories.py` sets the 'sample_rate' field on normalized event data if the 'contexts.error_sampling.client_sample_rate' is present. This is a good addition for testing error sampling. However, it silently ignores exceptions and does not validate that the sample rate is within a valid range (e.g., 0 to 1).",
+        "category": "correctness",
+        "end_line": 357,
+        "file": "src/sentry/testutils/factories.py",
+        "line": 344,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Add validation to ensure 'client_sample_rate' is a float between 0 and 1, and log or raise if invalid to avoid silent failures.",
+        "title": "Silent failure and lack of validation in sample_rate setting helper"
+      }
+    ],
+    "head": "6ad6fe38",
+    "mode": "range 83f40559985e1365a43f35ba3febb7ea4fabb5d5..6ad6fe3899f630ccf922ce7ac681147dc7987435",
+    "models": [
+      {
+        "completion_tokens": 952,
+        "cost_usd": 0.0107416,
+        "elapsed_ms": 9052,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 23046,
+        "summary": "This change adds error upsampling support with caching for eligibility checks, query transformations, and tests. The main issue is a cache key mismatch due to unsorted project IDs in cache invalidation, risking stale cache entries. Other concerns include simplistic query error detection, repeated transformation logic, missing cache invalidation tests, and minor validation gaps in test helpers. Overall, the implementation is sound but requires fixes for cache consistency and improved test coverage.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 702,
+      "diff_tokens": 5061,
+      "estimated_tokens": 24000,
+      "files_changed": 8,
+      "files_scanned": 16733,
+      "files_tokens": 18556,
+      "snippet_tokens": 383,
+      "snippets_dropped": 150,
+      "snippets_kept": 8
+    },
+    "total_ms": 9769,
+    "verdict": "request_changes"
+  }
+}

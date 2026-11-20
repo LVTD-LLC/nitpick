@@ -1,0 +1,187 @@
+{
+  "case": {
+    "id": "cal_dot_com-8087",
+    "source": "cal_dot_com.json",
+    "url": "https://github.com/calcom/cal.com/pull/8087",
+    "split": "dev",
+    "base": "ba9688a04a8398c9a8332ee7061bfae2f2efd524",
+    "head": "820d7fa87e0c824c5dee8082a33efadb1a2566f7"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json",
+      "--focus",
+      "Review each changed hunk before drafting findings. For each altered decision, trace a concrete input through the old and new behavior. Check boundary values, failure paths, and the contracts imposed by surrounding callers and tests. Verify suspected failures against the actual types, guards, and versions shown. Drop claims that the code contradicts, observations of correct behavior, and guesses that lack a failing scenario. Group repeated instances of one root cause into a single actionable finding, citing one changed line and mentioning other affected sites in its body."
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 5,
+    "findings": [
+      {
+        "body": "In packages/app-store/vital/lib/reschedule.ts and packages/app-store/wipemycalother/lib/reschedule.ts, the code uses forEach with an async callback (lines 125-134). This does not wait for the async operations to complete, leading to unhandled promises and potential race conditions or incomplete deletions. The correct approach is to use a for...of loop with await or Promise.all with map to ensure all async operations complete before proceeding.",
+        "category": "bug",
+        "end_line": 134,
+        "file": "packages/app-store/vital/lib/reschedule.ts",
+        "line": 125,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Replace bookingRefsFiltered.forEach(async (bookingRef) => { ... }) with a for...of loop:\nfor (const bookingRef of bookingRefsFiltered) {\n  if (bookingRef.uid) {\n    if (bookingRef.type.endsWith(\"_calendar\")) {\n      const calendar = await getCalendar(credentialsMap.get(bookingRef.type));\n      await calendar?.deleteEvent(bookingRef.uid, builder.calendarEvent);\n    } else if (bookingRef.type.endsWith(\"_video\")) {\n      await deleteMeeting(credentialsMap.get(bookingRef.type), bookingRef.uid);\n    }\n  }\n}",
+        "title": "Async forEach does not wait for async operations to complete"
+      },
+      {
+        "body": "Similar async forEach misuse is present in packages/app-store/wipemycalother/lib/reschedule.ts at the same lines (125-134). This causes the same issue of unawaited promises and potential incomplete operations.",
+        "category": "bug",
+        "end_line": 134,
+        "file": "packages/app-store/wipemycalother/lib/reschedule.ts",
+        "line": 125,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Use a for...of loop with await instead of forEach with async callback, as described in the previous finding.",
+        "title": "Async forEach does not wait for async operations to complete"
+      },
+      {
+        "body": "In packages/core/CalendarManager.ts, getCalendarCredentials returns calendar objects that are now promises (due to getCalendar being async). The code at line 28 calls getCalendar without awaiting, which means calendar is a Promise, not a Calendar instance. This is a bug because subsequent code expects calendar to be a Calendar instance, not a Promise.",
+        "category": "bug",
+        "end_line": 29,
+        "file": "packages/core/CalendarManager.ts",
+        "line": 28,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Change getCalendarCredentials to await getCalendar calls or refactor to return promises and handle them appropriately. For example, make getCalendarCredentials async and await getCalendar calls, or rename and handle promises downstream.",
+        "title": "getCalendarCredentials returns unresolved promises due to missing await"
+      },
+      {
+        "body": "In packages/features/bookings/lib/handleCancelBooking.ts, multiple places use forEach with async callbacks (e.g., lines 460-470) without awaiting the promises. This can cause unhandled promise rejections and incomplete operations, especially when deleting or updating calendar events asynchronously.",
+        "category": "bug",
+        "end_line": 470,
+        "file": "packages/features/bookings/lib/handleCancelBooking.ts",
+        "line": 460,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Replace forEach with a for...of loop and await each async operation to ensure all calendar updates/deletions complete before continuing.",
+        "title": "Async forEach without await causes unhandled promises"
+      },
+      {
+        "body": "In packages/trpc/server/routers/viewer/bookings.tsx at lines 553-567, bookingRefsFiltered.forEach is used with an async callback without awaiting the promises. This means the deletions may not complete before subsequent code runs, potentially causing inconsistent state or errors.",
+        "category": "bug",
+        "end_line": 567,
+        "file": "packages/trpc/server/routers/viewer/bookings.tsx",
+        "line": 553,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Replace forEach with a for...of loop and await each async operation, or collect promises with map and await Promise.all to ensure all deletions complete before proceeding.",
+        "title": "Async forEach without await leads to unhandled promises"
+      },
+      {
+        "body": "In packages/app-store/index.ts, appStore entries are changed from static imports to dynamic imports (promises). This changes the type of appStore entries from modules to promises of modules. All usages of appStore now await these entries before accessing their properties. This is a breaking change but the diff shows all usages have been updated accordingly.",
+        "category": "api",
+        "end_line": 31,
+        "file": "packages/app-store/index.ts",
+        "line": 1,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Ensure all usages of appStore entries await the promise before accessing properties, as done in this diff.",
+        "title": "appStore entries changed to dynamic imports requiring await"
+      },
+      {
+        "body": "In packages/app-store/_utils/getCalendar.ts, getCalendar is changed to async and awaits appStore entries which are now dynamic imports (promises). This requires all callers to await getCalendar. The diff shows that all callers have been updated to await getCalendar, which is correct.",
+        "category": "other",
+        "end_line": 23,
+        "file": "packages/app-store/_utils/getCalendar.ts",
+        "line": 9,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "nit",
+        "suggestion": null,
+        "title": "Correct async handling of getCalendar and its callers"
+      },
+      {
+        "body": "In packages/core/videoClient.ts, the getVideoAdapters function is changed to async and uses a for...of loop with await inside, which is correct. However, this change makes all callers of getVideoAdapters async and requires awaiting them. The diff shows that all call sites have been updated accordingly, which is correct.",
+        "category": "other",
+        "end_line": 36,
+        "file": "packages/core/videoClient.ts",
+        "line": 21,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "nit",
+        "suggestion": null,
+        "title": "Correct async handling of getVideoAdapters and its callers"
+      },
+      {
+        "body": "In packages/features/bookings/lib/handleCancelBooking.ts, at lines 477-483, a for...of loop is correctly used with await for calendar deletions. This is the correct pattern and should be used consistently instead of forEach with async callbacks elsewhere in the file.",
+        "category": "other",
+        "end_line": 483,
+        "file": "packages/features/bookings/lib/handleCancelBooking.ts",
+        "line": 477,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "nit",
+        "suggestion": "Ensure all async iterations use for...of with await for consistency and correctness.",
+        "title": "Correct use of for...of with await for async iteration"
+      }
+    ],
+    "head": "820d7fa",
+    "mode": "range ba9688a04a8398c9a8332ee7061bfae2f2efd524..820d7fa87e0c824c5dee8082a33efadb1a2566f7",
+    "models": [
+      {
+        "completion_tokens": 1556,
+        "cost_usd": 0.0124492,
+        "elapsed_ms": 14065,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 24899,
+        "summary": "The change converts appStore entries to dynamic imports and makes getCalendar async, requiring callers to await it. Most call sites are updated correctly to await async calls. However, there are multiple instances where async functions are used inside forEach without awaiting, causing unhandled promises and potential incomplete operations. Also, getCalendarCredentials calls getCalendar without await, returning promises typed as Calendar, causing type mismatches and potential bugs. These async iteration and missing await issues are critical and should be fixed by using for...of loops with await or Promise.all. The getCalendarCredentials function should be fixed to properly await getCalendar calls or return promises with correct typing.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 407,
+      "diff_tokens": 6280,
+      "estimated_tokens": 23995,
+      "files_changed": 12,
+      "files_scanned": 2082,
+      "files_tokens": 14737,
+      "snippet_tokens": 2978,
+      "snippets_dropped": 90,
+      "snippets_kept": 25
+    },
+    "total_ms": 14483,
+    "verdict": "request_changes"
+  }
+}

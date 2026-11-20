@@ -1,0 +1,67 @@
+{
+  "case": "grafana-94942",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "e0ab4db448103180a090431b4a630754fdeccc90bc223a16ee2764dd568d3a0d",
+  "review_sha256": "801d04e4c7fe6d12b45c53e9f010ed96522c5a747256809026db13630438bd7d",
+  "references": [
+    {
+      "comment": "The enableSqlExpressions function has flawed logic that always returns false, effectively disabling SQL expressions unconditionally:",
+      "severity": "Critical",
+      "category": "bug"
+    },
+    {
+      "comment": "The DB methods NewInMemoryDB().RunCommands, DB.QueryFramesInto, and DB.TablesList in pkg/expr/sql/db.go return hardcoded 'not implemented' errors after removing the go-duck dependency.",
+      "severity": "High",
+      "category": "api"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "match",
+      "reference": 0,
+      "reason": "Finding 0 and reference 0 both identify the same concrete bug: enableSqlExpressions always returns false due to flawed logic (negated flag check plus unconditional return false), disabling SQL expressions regardless of the feature flag state."
+    },
+    {
+      "finding": 1,
+      "label": "match",
+      "reference": 1,
+      "reason": "Finding 1 and reference 1 both identify that DB.RunCommands (and related DB methods) return hardcoded 'not implemented' errors after removing the go-duck dependency, making TablesList and SQL parsing non-functional."
+    },
+    {
+      "finding": 2,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "This finding describes the same stub DB implementation already covered by finding 1 (matched to reference 1). The concrete failure—all DB methods returning 'not implemented'—is the same mechanism and defect."
+    },
+    {
+      "finding": 3,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "This finding describes SQLCommand.Execute failing because db.QueryFramesInto is unimplemented, which is the same stub DB defect already covered by finding 1 (matched to reference 1)."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 26934,
+    "completion_tokens": 269,
+    "total_tokens": 27203,
+    "cost": 0.084837,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.084837,
+      "upstream_inference_prompt_cost": 0.080802,
+      "upstream_inference_completions_cost": 0.004035
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

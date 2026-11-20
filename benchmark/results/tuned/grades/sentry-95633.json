@@ -1,0 +1,67 @@
+{
+  "case": "sentry-95633",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "1f3095564d79bd8c3173d0af671b955a57a153524d18aec4919d01589f40eae0",
+  "review_sha256": "4bdf0adb7a31f3c7310b7ed5c4807ef7c94468a6ceaee5304e9163b041b7841c",
+  "references": [
+    {
+      "comment": "The magic number 50 for max_wait is used repeatedly throughout the tests. Consider extracting this as a named constant to improve maintainability.",
+      "severity": "Low",
+      "category": "style"
+    },
+    {
+      "comment": "The test test_thread_queue_parallel_error_handling has a docstring that doesn't match the test implementation.",
+      "severity": "Low",
+      "category": "doc_defect"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "This is a positive assessment finding claiming correctness, not identifying a defect. There is nothing to match or classify as a real issue."
+    },
+    {
+      "finding": 1,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "This is another positive assessment finding, not identifying a defect. No issue to classify."
+    },
+    {
+      "finding": 2,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "This is a positive assessment confirming correct offset semantics, not a defect finding."
+    },
+    {
+      "finding": 3,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "This is a positive assessment of test coverage, not a defect finding."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 22772,
+    "completion_tokens": 164,
+    "total_tokens": 22936,
+    "cost": 0.070776,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.070776,
+      "upstream_inference_prompt_cost": 0.068316,
+      "upstream_inference_completions_cost": 0.00246
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

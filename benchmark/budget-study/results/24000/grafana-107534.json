@@ -1,0 +1,81 @@
+{
+  "case": {
+    "id": "grafana-107534",
+    "source": "grafana.json",
+    "url": "https://github.com/grafana/grafana/pull/107534",
+    "split": "dev",
+    "base": "d9a8253640464014aa3662c91131278990cfb828",
+    "head": "1cab4143d443c33079566f6ca36931eb8468159f"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "In `public/app/plugins/datasource/loki/shardQuerySplitting.ts` at line 281, the function `groupHasPendingRequests` mutates the `cycle` property of the group by setting it to `nextCycle`. This side effect during a predicate check is unexpected and can lead to incorrect behavior in the iteration logic that depends on `cycle`. Predicate functions should not mutate their inputs as it breaks assumptions and can cause subtle bugs in control flow.",
+        "category": "bug",
+        "end_line": 289,
+        "file": "public/app/plugins/datasource/loki/shardQuerySplitting.ts",
+        "line": 281,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Refactor `groupHasPendingRequests` to avoid mutating `group.cycle`. Instead, update `cycle` explicitly in the calling code after the predicate check.",
+        "title": "Predicate function `groupHasPendingRequests` mutates input state causing unexpected side effects"
+      }
+    ],
+    "head": "1cab4143",
+    "mode": "range d9a8253640464014aa3662c91131278990cfb828..1cab4143d443c33079566f6ca36931eb8468159f",
+    "models": [
+      {
+        "completion_tokens": 272,
+        "cost_usd": 0.0098132,
+        "elapsed_ms": 6109,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 23445,
+        "summary": "The change adds query interpolation before execution in query splitting and shard query splitting, improving template variable handling. However, a critical bug exists in `groupHasPendingRequests` where it mutates the input group's `cycle` property during a predicate check, which can cause incorrect iteration behavior in shard query splitting. This should be fixed to avoid side effects in predicate functions.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 276,
+      "diff_tokens": 2060,
+      "estimated_tokens": 21569,
+      "files_changed": 4,
+      "files_scanned": 15111,
+      "files_tokens": 13106,
+      "snippet_tokens": 6403,
+      "snippets_dropped": 0,
+      "snippets_kept": 17
+    },
+    "total_ms": 6404,
+    "verdict": "request_changes"
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "case": {
+    "id": "discourse-3",
+    "source": "discourse.json",
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/3",
+    "split": "holdout",
+    "base": "e25638dab0d4b98f99c8fe8976ccaae8f4fb9db3",
+    "head": "5f8a130277dbddc95d133cd2832be639baf89213"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "The new EmailValidator class uses SiteSetting.email_domains_whitelist and email_domains_blacklist to validate emails, and also checks BlockedEmail.should_block? to add an error if the email is blocked. However, the regex used in email_in_restriction_setting? is constructed by escaping dots but does not properly handle multiple domains separated by commas or spaces, potentially causing incorrect matching. This could lead to false negatives or positives in domain restriction checks.",
+        "category": "bug",
+        "end_line": 20,
+        "file": "lib/validators/email_validator.rb",
+        "line": 18,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Parse the domain list from SiteSetting properly (split by comma or whitespace), escape each domain, and join with '|' in the regex to correctly match any of the domains.",
+        "title": "Incorrect regex construction for domain whitelist/blacklist in EmailValidator"
+      },
+      {
+        "body": "In create_account_controller.js, the rejectedEmails array is used to track emails rejected by the server during account creation. However, the check for rejectedEmails.contains(email) uses strict equality, which may fail if email strings differ in case or whitespace. This could allow blocked emails to bypass client-side validation if the email case differs. Consider normalizing emails (e.g., downcasing and trimming) before storing and checking in rejectedEmails.",
+        "category": "correctness",
+        "end_line": 69,
+        "file": "app/assets/javascripts/discourse/controllers/create_account_controller.js",
+        "line": 69,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Normalize emails by downcasing and trimming whitespace before adding to or checking in rejectedEmails to ensure consistent matching.",
+        "title": "Email case sensitivity in rejectedEmails check may allow blocked emails through"
+      },
+      {
+        "body": "The new BlockedEmail model tracks blocked emails and increments match_count and updates last_match_at each time an email is checked and found blocked. However, this update occurs synchronously in the should_block? method, which is called during validation of user emails. This could cause performance issues or race conditions under high load or concurrent requests, as each validation triggers a database write. Consider deferring the update to an asynchronous job or using a more efficient counter mechanism.",
+        "category": "performance",
+        "end_line": 18,
+        "file": "app/models/blocked_email.rb",
+        "line": 11,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Refactor BlockedEmail.should_block? to update match_count and last_match_at asynchronously or batch updates to reduce database writes during validation.",
+        "title": "Synchronous DB writes in BlockedEmail.should_block? may cause performance issues"
+      },
+      {
+        "body": "The migration CreateBlockedEmails creates a blocked_emails table with an action_type integer column but does not specify a default value. The model sets a default in before_validation, but this does not affect existing records or direct inserts. This could lead to null action_type values in the database, causing unexpected behavior in BlockedEmail.should_block? which compares action_type to BlockedEmail.actions[:block].",
+        "category": "bug",
+        "end_line": 7,
+        "file": "db/migrate/20130724201552_create_blocked_emails.rb",
+        "line": 5,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add a default value for action_type in the migration, e.g., t.integer :action_type, null: false, default: 1 (assuming 1 corresponds to :block). Alternatively, add a database constraint to prevent nulls.",
+        "title": "Missing default for action_type in blocked_emails migration may cause null values"
+      },
+      {
+        "body": "In users_controller.rb, the create action now returns errors and values keys in the JSON response when user creation fails. However, the values key includes user.attributes.slice(\"name\", \"username\", \"email\") which may expose sensitive or unexpected data if attributes change. Also, the errors key exposes the full error hash, which might include internal validation details. This could be a minor information disclosure risk.",
+        "category": "security",
+        "end_line": 199,
+        "file": "app/controllers/users_controller.rb",
+        "line": 198,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Review and sanitize the errors and values returned in the JSON response to avoid exposing sensitive information.",
+        "title": "Potential information disclosure in user creation error response"
+      }
+    ],
+    "head": "5f8a130",
+    "mode": "range e25638dab0d4b98f99c8fe8976ccaae8f4fb9db3..5f8a130277dbddc95d133cd2832be639baf89213",
+    "models": [
+      {
+        "completion_tokens": 918,
+        "cost_usd": 0.0080996,
+        "elapsed_ms": 12640,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 16577,
+        "summary": "The change introduces a blocked email feature with model, validator, and client-side handling. The main issues are a performance concern due to synchronous DB writes during validation, a regex bug in domain restriction checks, potential email case sensitivity issues in client-side rejected email tracking, and minor security concerns in error response data exposure. Also, the migration lacks a default for action_type, risking null values.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 135,
+      "diff_tokens": 1876,
+      "estimated_tokens": 14991,
+      "files_changed": 10,
+      "files_scanned": 1898,
+      "files_tokens": 9865,
+      "snippet_tokens": 3250,
+      "snippets_dropped": 0,
+      "snippets_kept": 11
+    },
+    "total_ms": 12794,
+    "verdict": "request_changes"
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "case": {
+    "id": "discourse-4",
+    "source": "discourse.json",
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/4",
+    "split": "holdout",
+    "base": "62db063e1e1abe691313ab42682a68f796d63769",
+    "head": "4f8aed295a29954023b2849c060ef4fb299d1b5d"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "In app/controllers/embed_controller.rb line 26, the code compares the host of the HTTP referer header to the configured embeddable_host setting. However, the referer header can be manipulated or omitted by clients, and the code raises an error if the referer host does not exactly match the embeddable_host. This strict check may cause legitimate requests to fail if the referer is missing or uses a different subdomain or protocol. Also, the code does not handle the case where request.referer is nil gracefully before calling URI().host, which could raise an exception. Although there is a rescue for URI::InvalidURIError, a nil referer would cause a NoMethodError before that. This could lead to unexpected errors or denial of service for legitimate embed requests.",
+        "category": "security",
+        "end_line": 26,
+        "file": "app/controllers/embed_controller.rb",
+        "line": 26,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Add a nil check for request.referer before parsing the URI, and consider relaxing the host check to allow subdomains or use a whitelist. For example:\n\nreferer_host = URI(request.referer).host if request.referer.present?\nraise Discourse::InvalidAccess.new('invalid referer host') unless referer_host && referer_host.ends_with?(SiteSetting.embeddable_host)",
+        "title": "Strict and unsafe referer host check in EmbedController#ensure_embeddable"
+      }
+    ],
+    "head": "4f8aed2",
+    "mode": "range 62db063e1e1abe691313ab42682a68f796d63769..4f8aed295a29954023b2849c060ef4fb299d1b5d",
+    "models": [
+      {
+        "completion_tokens": 377,
+        "cost_usd": 0.0148448,
+        "elapsed_ms": 7203,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 35604,
+        "summary": "This change adds embedding support with new models, controllers, jobs, and views, including RSS feed importing and Disqus import integration. The code is generally well structured and includes tests. However, there is a security concern with the referer host validation in EmbedController that could cause legitimate requests to fail or unexpected errors due to missing or malformed referer headers.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 131,
+      "diff_tokens": 3552,
+      "estimated_tokens": 31428,
+      "files_changed": 27,
+      "files_scanned": 2371,
+      "files_tokens": 26707,
+      "snippet_tokens": 1169,
+      "snippets_dropped": 0,
+      "snippets_kept": 3
+    },
+    "total_ms": 7345,
+    "verdict": "request_changes"
+  }
+}

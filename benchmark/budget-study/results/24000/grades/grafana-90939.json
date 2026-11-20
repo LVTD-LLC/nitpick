@@ -1,0 +1,49 @@
+{
+  "case": "grafana-90939",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "dc5744f14bca02ef9096c300d8605fc5c5294428bf4cb25e896ebd594772c2c6",
+  "review_sha256": "6fead47b46cf03f8e85ced392eb62a70014ee3ff549f5a328bd48e5a5264e8ff",
+  "references": [
+    {
+      "comment": "The GetWebAssets function implements an incomplete double-checked locking pattern for caching web assets. The function first checks if the cache is populated using a read lock (RLock), and if the cache is empty, it acquires a write lock to populate it. However, it fails to re-check whether the cache was populated by another goroutine while waiting to acquire the write lock.",
+      "severity": "Medium",
+      "category": "concurrency"
+    },
+    {
+      "comment": "In addition to the missing double-check, the function has a critical flaw in its error handling: it unconditionally assigns the fetch result to the cache (line 69: entryPointAssetsCache = result) regardless of whether the fetch succeeded or failed. When an error occurs during asset fetching, result is nil, and this nil value overwrites any previously valid cache entry.",
+      "severity": "High",
+      "category": "bug"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "match",
+      "reference": 0,
+      "reason": "Both identify the same incomplete double-checked locking pattern: the cache is read under RLock, the lock is released, then a write lock is acquired without re-checking whether another goroutine already populated the cache in the interim."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 2358,
+    "completion_tokens": 78,
+    "total_tokens": 2436,
+    "cost": 0.008244,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.008244,
+      "upstream_inference_prompt_cost": 0.007074,
+      "upstream_inference_completions_cost": 0.00117
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "case": {
+    "id": "discourse-6",
+    "source": "discourse.json",
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/6",
+    "split": "dev",
+    "base": "7a5fbae060bd0d3e29f3a4b5c6f2bfd8b2914dc7",
+    "head": "267d8be1f556ed59639ced396c885bb44586da19"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [
+      {
+        "body": "The method `website_name` in `UserSerializer` attempts to parse the user's website URL and compare its host with the current Discourse instance hostname to decide how to display the website name. However, the logic for comparing domains is complex and may not handle all edge cases correctly, especially subdomains and domain suffixes. For example, it assumes that if the number of domain parts is equal and greater than 2, then the domains are comparable by stripping the first subdomain, but this may fail for domains with different structures or country-code TLDs. This could lead to incorrect website name display or even errors if the URI parsing fails unexpectedly. The rescue nil on URI parsing hides potential errors silently, which might make debugging harder.",
+        "category": "correctness",
+        "end_line": 151,
+        "file": "app/serializers/user_serializer.rb",
+        "line": 137,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Consider using a robust domain parsing library or method to compare domains and subdomains correctly. Add more comprehensive tests for various domain structures and edge cases. Also, handle URI parsing errors explicitly rather than rescuing nil silently.",
+        "title": "Fragile domain comparison logic in website_name method"
+      },
+      {
+        "body": "In `UserSerializer`, the method `include_stats?` returns `!omit_stats == true`, which is a confusing expression. The intention seems to be to include stats unless `omit_stats` is true, but the expression `!omit_stats == true` is parsed as `(!omit_stats) == true`, which is equivalent to `!omit_stats`. This is confusing and could lead to misunderstandings or bugs if `omit_stats` is not strictly boolean. The method should be clearer in intent.",
+        "category": "style",
+        "end_line": 203,
+        "file": "app/serializers/user_serializer.rb",
+        "line": 201,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Change `!omit_stats == true` to `!omit_stats` or `omit_stats != true` for clarity.",
+        "title": "Confusing boolean expression in include_stats?"
+      }
+    ],
+    "head": "267d8be",
+    "mode": "range 7a5fbae060bd0d3e29f3a4b5c6f2bfd8b2914dc7..267d8be1f556ed59639ced396c885bb44586da19",
+    "models": [
+      {
+        "completion_tokens": 528,
+        "cost_usd": 0.0022652,
+        "elapsed_ms": 6271,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 13727,
+        "summary": "The change adds a new computed attribute `website_name` to the user serializer and updates the user template and controller accordingly. The main logic for `website_name` attempts to display a simplified or full website URL depending on the relation between the user's website domain and the Discourse instance domain. The implementation is mostly correct but has some fragile domain comparison logic and a minor confusing boolean expression in `include_stats?`. Tests for `website_name` are added and cover some cases. Overall, the change is good but could be improved for robustness and clarity.",
+        "verdict": "approve"
+      }
+    ],
+    "stats": {
+      "build_ms": 56,
+      "diff_tokens": 1554,
+      "estimated_tokens": 11198,
+      "files_changed": 5,
+      "files_scanned": 3883,
+      "files_tokens": 9644,
+      "snippet_tokens": 0,
+      "snippets_dropped": 0,
+      "snippets_kept": 0
+    },
+    "total_ms": 6336,
+    "verdict": "comment"
+  }
+}

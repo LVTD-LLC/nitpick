@@ -1,0 +1,109 @@
+{
+  "case": {
+    "id": "cal_dot_com-8330",
+    "source": "cal_dot_com.json",
+    "url": "https://github.com/calcom/cal.com/pull/8330",
+    "split": "holdout",
+    "base": "93cb21f55a2a40d9116c014741f5679fbeff5fd9",
+    "head": "ee38fd295fd294b9fc787eba482bde24bbfea69b"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json",
+      "--focus",
+      "Review each changed hunk before drafting findings. For each altered decision, trace a concrete input through the old and new behavior. Check boundary values, failure paths, and the contracts imposed by surrounding callers and tests. Verify suspected failures against the actual types, guards, and versions shown. Drop claims that the code contradicts, observations of correct behavior, and guesses that lack a failing scenario. Group repeated instances of one root cause into a single actionable finding, citing one changed line and mentioning other affected sites in its body."
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 2,
+    "findings": [
+      {
+        "body": "In `checkIfIsAvailable` (packages/trpc/server/routers/viewer/slots.ts lines 75-181), the logic for checking if a slot is within a date override is incorrect. The comparison uses strict equality (`===`) between two Dayjs objects (line 114), which always returns false because they are different instances. This means the condition to allow slots when start and end override times are equal never triggers correctly. Also, the logic to determine if the slot is outside the override range is convoluted and may incorrectly exclude slots that should be included. This can cause valid slots to be incorrectly marked unavailable or vice versa, breaking scheduling correctness.",
+        "category": "bug",
+        "end_line": 181,
+        "file": "packages/trpc/server/routers/viewer/slots.ts",
+        "line": 114,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Replace `dayjs(date.start).add(utcOffset, \"minutes\") === dayjs(date.end).add(utcOffset, \"minutes\")` with `.isSame()` method, e.g. `dayjs(date.start).add(utcOffset, \"minutes\").isSame(dayjs(date.end).add(utcOffset, \"minutes\"))`. Also, refactor the date override range checks to clearly and correctly determine if the slot is within the override period.",
+        "title": "Incorrect equality check for Dayjs objects in date override logic"
+      },
+      {
+        "body": "In `checkIfIsAvailable` (packages/trpc/server/routers/viewer/slots.ts lines 139-147), the working hours check uses the same value for `start` and `end` (lines 141-142), both set to the slot start time in minutes. This means the condition `start < workingHour.startTime || end > workingHour.endTime` will never correctly detect slots outside working hours because `start` and `end` are identical. This causes slots to be incorrectly considered inside working hours even if they are not, leading to incorrect availability results.",
+        "category": "bug",
+        "end_line": 147,
+        "file": "packages/trpc/server/routers/viewer/slots.ts",
+        "line": 141,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Set `end` to `slotStartTime.hour() * 60 + slotStartTime.minute() + eventLength` (or equivalent) to represent the slot end time in minutes, so the comparison against working hours range is correct.",
+        "title": "Working hours check uses identical start and end times, causing incorrect availability"
+      },
+      {
+        "body": "In `getSlots` (packages/lib/slots.ts lines 210-246), the calculation of override start and end times adjusts the override times by the difference between the invitee and organizer UTC offsets (lines 212-223). However, the offsets are computed from the override start time only, ignoring that the override end time may have a different offset due to DST changes. This can cause incorrect slot times when overrides span DST transitions, leading to incorrect availability slots.",
+        "category": "bug",
+        "end_line": 246,
+        "file": "packages/lib/slots.ts",
+        "line": 212,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Compute the UTC offsets separately for override start and override end times and adjust each accordingly, rather than using the same offset for both.",
+        "title": "Incorrect UTC offset adjustment for override end time spanning DST changes"
+      }
+    ],
+    "head": "ee38fd2",
+    "mode": "range 93cb21f55a2a40d9116c014741f5679fbeff5fd9..ee38fd295fd294b9fc787eba482bde24bbfea69b",
+    "models": [
+      {
+        "completion_tokens": 766,
+        "cost_usd": 0.009922,
+        "elapsed_ms": 9495,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 21741,
+        "summary": "The change introduces important timezone and date override handling improvements but contains critical bugs in date override equality checks and working hours validation that can cause incorrect slot availability results. The equality check between Dayjs objects uses strict equality instead of `.isSame()`, and the working hours check uses identical start and end times, both leading to incorrect availability decisions. Additionally, the override time adjustment does not account for DST changes between start and end times, potentially causing subtle errors.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 163,
+      "diff_tokens": 2759,
+      "estimated_tokens": 18801,
+      "files_changed": 4,
+      "files_scanned": 2097,
+      "files_tokens": 10640,
+      "snippet_tokens": 5402,
+      "snippets_dropped": 0,
+      "snippets_kept": 31
+    },
+    "total_ms": 9666,
+    "verdict": "request_changes"
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "case": "sentry-95633",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "c238ba76f81d9f7d7183a70823577bc83ffaa33ab735fae1fa4ad80b5e954690",
+  "review_sha256": "cbd05b08c030de04ed9ec0e9a072f24e6a24b5b61665dea41b088c9cea70ac80",
+  "references": [
+    {
+      "comment": "The magic number 50 for max_wait is used repeatedly throughout the tests. Consider extracting this as a named constant to improve maintainability.",
+      "severity": "Low",
+      "category": "style"
+    },
+    {
+      "comment": "The test test_thread_queue_parallel_error_handling has a docstring that doesn't match the test implementation.",
+      "severity": "Low",
+      "category": "doc_defect"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The worker calls work_queue.get() without a timeout and the shutdown flag is only set without any unblocking mechanism, so threads will hang indefinitely on empty queues during shutdown. This is a concrete bug introduced by this diff."
+    },
+    {
+      "finding": 1,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "queue.ShutDown does not exist in standard Python's queue module (it was added in Python 3.13 and may not be available); even if it were, the code catches it in the wrong place (inside the processing try block rather than only around get()). This is a concrete issue introduced by this diff."
+    },
+    {
+      "finding": 2,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "queue.Queue has no shutdown() method in standard Python (pre-3.13), so calling q.shutdown(immediate=False) will raise AttributeError, preventing proper cleanup. This is a concrete bug introduced by this diff."
+    },
+    {
+      "finding": 3,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The _get_partition_lock method uses dict.setdefault which is atomic in CPython due to the GIL, making the race condition largely theoretical in practice. The concern is valid in principle but the actual risk is low given CPython's threading model."
+    },
+    {
+      "finding": 4,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "This is the same issue as finding 1 — both identify that queue.ShutDown is not a valid exception for queue.Queue.get() in standard Python. Finding 1 is the stronger statement of the same defect."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 23221,
+    "completion_tokens": 367,
+    "total_tokens": 23588,
+    "cost": 0.075168,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.075168,
+      "upstream_inference_prompt_cost": 0.069663,
+      "upstream_inference_completions_cost": 0.005505
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "case": {
+    "id": "keycloak-1",
+    "source": "keycloak.json",
+    "url": "https://github.com/ai-code-review-evaluation/keycloak-greptile/pull/1",
+    "split": "holdout",
+    "base": "30f804af450dec523909a52f2a4b97302d27f5cc",
+    "head": "3214b188de808fdb0fff335556b686f1b0a63218"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [
+      {
+        "body": "In UsernamePasswordForm.java, the method isConditionalPasskeysEnabled(UserModel user) returns true if webauthnAuth is not null, passkeys are enabled, and user is not null. This method is used to conditionally fill the context form with webauthn data. However, in the authenticate method, the condition to skip the form when user is re-authenticating is changed to skip only if user is not null and conditional passkeys are disabled. This change might cause the form to be shown unexpectedly if conditional passkeys are enabled, potentially altering the authentication flow. The impact depends on how isConditionalPasskeysEnabled is expected to behave and whether this change aligns with the intended UX for passkeys.",
+        "category": "correctness",
+        "end_line": 49,
+        "file": "services/src/main/java/org/keycloak/authentication/authenticators/browser/UsernameForm.java",
+        "line": 44,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Review the logic in UsernameForm.authenticate to ensure that skipping the form when user is re-authenticating behaves correctly with conditional passkeys enabled. Possibly add comments or tests to clarify expected behavior.",
+        "title": "Potential change in authentication flow due to conditional passkeys check in UsernameForm.authenticate"
+      },
+      {
+        "body": "In AbstractUsernameFormAuthenticator.java, the constant USER_SET_BEFORE_USERNAME_PASSWORD_AUTH is changed from protected static final to public static final. This change increases the visibility of the constant, which is used in AuthenticatorUtils.setupReauthenticationInUsernamePasswordFormError. This is likely intentional to allow usage outside the class. No direct bug here but the visibility change should be confirmed as intended.",
+        "category": "api",
+        "end_line": 58,
+        "file": "services/src/main/java/org/keycloak/authentication/authenticators/browser/AbstractUsernameFormAuthenticator.java",
+        "line": 55,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Confirm that making USER_SET_BEFORE_USERNAME_PASSWORD_AUTH public is intended and does not expose internal details unnecessarily.",
+        "title": "Increased visibility of USER_SET_BEFORE_USERNAME_PASSWORD_AUTH constant"
+      },
+      {
+        "body": "In WebAuthnConditionalUIAuthenticator.java, the method shouldShowWebAuthnAuthenticators(AuthenticationFlowContext context) is overridden to always return false, preventing showing authenticators during login with conditional passkeys. This is consistent with the intent to not show authenticators during username/password login with conditional passkeys. No issue found here.",
+        "category": "other",
+        "end_line": 64,
+        "file": "services/src/main/java/org/keycloak/authentication/authenticators/browser/WebAuthnConditionalUIAuthenticator.java",
+        "line": 60,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "nit",
+        "suggestion": null,
+        "title": "Explicitly disable showing authenticators in WebAuthnConditionalUIAuthenticator"
+      },
+      {
+        "body": "The extensive new tests added in PasskeysUsernamePasswordFormTest.java and PasskeysOrganizationAuthenticationTest.java cover re-authentication scenarios with passkeys, including prompt=login cases, and verify UI elements and events. This improves test coverage for the new conditional passkeys behavior. No missing tests found for the new behavior.",
+        "category": "test",
+        "end_line": 368,
+        "file": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/webauthn/passwordless/PasskeysUsernamePasswordFormTest.java",
+        "line": 255,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "nit",
+        "suggestion": null,
+        "title": "Good test coverage added for passkeys re-authentication scenarios"
+      }
+    ],
+    "head": "3214b18",
+    "mode": "range 30f804af450dec523909a52f2a4b97302d27f5cc..3214b188de808fdb0fff335556b686f1b0a63218",
+    "models": [
+      {
+        "completion_tokens": 747,
+        "cost_usd": 0.002678,
+        "elapsed_ms": 11451,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 9755,
+        "summary": "The change introduces conditional passkeys support in authentication forms and updates related authenticators and utilities. The main concern is the altered logic in UsernameForm.authenticate regarding skipping the form when conditional passkeys are enabled, which may affect authentication flow. The visibility change of a constant is likely intentional but should be confirmed. Test coverage for new behavior is comprehensive.",
+        "verdict": "approve"
+      }
+    ],
+    "stats": {
+      "build_ms": 127,
+      "diff_tokens": 10807,
+      "estimated_tokens": 10807,
+      "files_changed": 9,
+      "files_scanned": 9956,
+      "files_tokens": 0,
+      "snippet_tokens": 0,
+      "snippets_dropped": 0,
+      "snippets_kept": 0
+    },
+    "total_ms": 11588,
+    "verdict": "comment"
+  }
+}

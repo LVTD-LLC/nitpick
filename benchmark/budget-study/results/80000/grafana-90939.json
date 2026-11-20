@@ -1,0 +1,81 @@
+{
+  "case": {
+    "id": "grafana-90939",
+    "source": "grafana.json",
+    "url": "https://github.com/grafana/grafana/pull/90939",
+    "split": "dev",
+    "base": "cca9dee702ac4338ddc38aa56257273b8143e32e",
+    "head": "b1613e320acff00623e6efc59f00ee68c7684a97"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [
+      {
+        "body": "The function GetWebAssets uses a read lock to check if the cache is set and then releases it before acquiring a write lock to update the cache. However, there is a potential race condition: between releasing the read lock and acquiring the write lock, another goroutine could update the cache, causing this goroutine to overwrite the cache unnecessarily or with stale data. This can lead to redundant work and possibly inconsistent cache state under concurrent access.",
+        "category": "concurrency",
+        "end_line": 71,
+        "file": "pkg/api/webassets/webassets.go",
+        "line": 40,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "After acquiring the write lock, re-check if the cache is already set to avoid redundant work and overwriting. For example:\n\nentryPointAssetsCacheMu.Lock()\nif entryPointAssetsCache != nil {\n    ret = entryPointAssetsCache\n    entryPointAssetsCacheMu.Unlock()\n    return ret, nil\n}\n// proceed to load and set cache\n...",
+        "title": "Potential race condition in cache update in GetWebAssets"
+      }
+    ],
+    "head": "b1613e32",
+    "mode": "range cca9dee702ac4338ddc38aa56257273b8143e32e..b1613e320acff00623e6efc59f00ee68c7684a97",
+    "models": [
+      {
+        "completion_tokens": 305,
+        "cost_usd": 0.0039468,
+        "elapsed_ms": 4627,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 8647,
+        "summary": "The change adds synchronization to protect the global cache with a RWMutex, improving concurrency safety. However, the cache update logic in GetWebAssets has a race condition where the cache is re-checked only once before acquiring the write lock, but not after, which can cause redundant cache reloads and overwrites under concurrent access. Adding a double-check after acquiring the write lock would fix this.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 398,
+      "diff_tokens": 360,
+      "estimated_tokens": 4852,
+      "files_changed": 1,
+      "files_scanned": 12530,
+      "files_tokens": 1475,
+      "snippet_tokens": 3017,
+      "snippets_dropped": 0,
+      "snippets_kept": 5
+    },
+    "total_ms": 5040,
+    "verdict": "comment"
+  }
+}

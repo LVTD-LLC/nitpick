@@ -1,0 +1,120 @@
+{
+  "case": {
+    "id": "grafana-94942",
+    "source": "grafana.json",
+    "url": "https://github.com/grafana/grafana/pull/94942",
+    "split": "fresh",
+    "base": "cbe1e7d63f098e306058c0fbcab2f5c30602fa7d",
+    "head": "f3317b329b4eb8fd96f99dd86525bc4a22d20248"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 2,
+    "findings": [
+      {
+        "body": "The function enableSqlExpressions always returns false regardless of the feature flag state, effectively disabling SQL expressions unconditionally. This means the SQL query type in ReadQuery will never be enabled, and the error \"sqlExpressions is not implemented\" will always be returned. This is likely unintended and prevents the new SQL expression functionality from being used.",
+        "category": "bug",
+        "end_line": 199,
+        "file": "pkg/expr/reader.go",
+        "line": 194,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Fix enableSqlExpressions to correctly return true when the feature flag is enabled, e.g., return h.features.IsEnabledGlobally(featuremgmt.FlagSqlExpressions). Remove the redundant if statement and ensure the logic matches the intended feature flag behavior.",
+        "title": "enableSqlExpressions always returns false, disabling SQL expressions"
+      },
+      {
+        "body": "In pkg/expr/sql/parser.go, the TablesList function calls NewInMemoryDB().RunCommands with a SQL command that calls json_serialize_sql, but since the DB implementation is a stub returning \"not implemented\", this will always fail. The TablesList function will always return an error, making SQL parsing unusable currently.",
+        "category": "bug",
+        "end_line": 26,
+        "file": "pkg/expr/sql/parser.go",
+        "line": 22,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Either implement the DB.RunCommands method to support json_serialize_sql or mock this functionality for testing. Alternatively, disable or guard the TablesList usage until the DB is implemented.",
+        "title": "TablesList always fails due to unimplemented DB.RunCommands"
+      },
+      {
+        "body": "The new sql.DB implementation in pkg/expr/sql/db.go has all methods returning \"not implemented\" errors. This means that any SQLCommand execution will fail with \"not implemented\" errors when calling QueryFramesInto. This is expected as a stub, but there are no tests or comments indicating this is a work in progress or a placeholder. Users invoking SQL commands will get runtime errors.",
+        "category": "bug",
+        "end_line": 22,
+        "file": "pkg/expr/sql/db.go",
+        "line": 9,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add a comment indicating this is a stub implementation. Consider adding tests that expect these errors or implement the functionality before enabling SQL commands in production.",
+        "title": "SQL DB methods are unimplemented and always return errors"
+      },
+      {
+        "body": "In pkg/expr/sql_command.go, the Execute method calls sql.NewInMemoryDB().QueryFramesInto which is unimplemented and returns an error. This causes all SQLCommand executions to fail with \"not implemented\" errors. This is consistent with the stub DB but means SQL commands are non-functional currently.",
+        "category": "bug",
+        "end_line": 101,
+        "file": "pkg/expr/sql_command.go",
+        "line": 79,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add a comment or feature flag to disable SQLCommand execution until the DB is implemented. Consider returning a clear error indicating the feature is not yet implemented.",
+        "title": "SQLCommand.Execute always fails due to unimplemented DB.QueryFramesInto"
+      }
+    ],
+    "head": "f3317b32",
+    "mode": "range cbe1e7d63f098e306058c0fbcab2f5c30602fa7d..f3317b329b4eb8fd96f99dd86525bc4a22d20248",
+    "models": [
+      {
+        "completion_tokens": 672,
+        "cost_usd": 0.016168,
+        "elapsed_ms": 9133,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 37732,
+        "summary": "The change introduces a stub SQL DB implementation with unimplemented methods returning errors, and disables SQL expressions via a feature flag check that always returns false. This results in SQL expression queries always failing with \"not implemented\" errors. The feature is not yet functional and lacks clear indication or tests for this state.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 310,
+      "diff_tokens": 3329,
+      "estimated_tokens": 23961,
+      "files_changed": 6,
+      "files_scanned": 13066,
+      "files_tokens": 15589,
+      "snippet_tokens": 5043,
+      "snippets_dropped": 2,
+      "snippets_kept": 18
+    },
+    "total_ms": 9456,
+    "verdict": "request_changes"
+  }
+}

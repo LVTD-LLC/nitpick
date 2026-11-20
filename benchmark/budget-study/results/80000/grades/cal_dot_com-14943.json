@@ -1,0 +1,61 @@
+{
+  "case": "cal_dot_com-14943",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "26c5201ef159791a4405434012525e63341e2449714673c12677d59bc745c359",
+  "review_sha256": "a76ba436ededab1688990c422392c21d32b68e9b7921e066414f89f599e61552",
+  "references": [
+    {
+      "comment": "Using retryCount: reminder.retryCount + 1 reads a possibly stale value and can lose increments under concurrency; consider an atomic increment via Prisma (increment: 1) to avoid race conditions (also applies to the similar update in the catch block).",
+      "severity": "High",
+      "category": "concurrency"
+    },
+    {
+      "comment": "The deletion logic in scheduleSMSReminders.ts incorrectly deletes non-SMS workflow reminders (e.g., Email, WhatsApp) that have retryCount > 1. This occurs because the retryCount condition within the OR clause for deletion lacks a method: WorkflowMethods.SMS filter, causing it to apply to all reminder types instead of only SMS reminders, which is the intended scope of this function.",
+      "severity": "High",
+      "category": "bug"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "match",
+      "reference": 1,
+      "reason": "Both identify the same concrete bug: the retryCount > 1 OR clause in deleteMany lacks a method: WorkflowMethods.SMS filter, causing non-SMS reminders to be incorrectly deleted."
+    },
+    {
+      "finding": 1,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The claim that retryCount > 1 causes premature deletion (should be >= 3) is a design/threshold judgment rather than a clear bug; the retry logic deletes after 2 failures which may or may not be intentional. No reference covers this specific threshold concern."
+    },
+    {
+      "finding": 2,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The concern about unbounded retryCount growth is real but minor given the deleteMany runs each cron cycle and removes records with retryCount > 1, bounding growth in practice. No reference covers this specific issue."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 4405,
+    "completion_tokens": 213,
+    "total_tokens": 4618,
+    "cost": 0.01641,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.01641,
+      "upstream_inference_prompt_cost": 0.013215,
+      "upstream_inference_completions_cost": 0.003195
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "case": {
+    "id": "grafana-79265",
+    "source": "grafana.json",
+    "url": "https://github.com/grafana/grafana/pull/79265",
+    "split": "holdout",
+    "base": "7ddcd0c9611882858701f4f876fb8e449fe73980",
+    "head": "bbd8c507cdf56f6b884373809e0b24abd4a2353d"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 3,
+    "findings": [
+      {
+        "body": "In pkg/services/anonymous/anonimpl/anonstore/database.go at lines 73-103, the updateDevice method uses a SQL query with updated_at BETWEEN ? AND ? to restrict updates to devices updated recently. This query may fail to update devices that exist but have updated_at outside this window, causing ErrDeviceLimitReached to be returned incorrectly. This can cause legitimate updates to fail unexpectedly.",
+        "category": "bug",
+        "end_line": 103,
+        "file": "pkg/services/anonymous/anonimpl/anonstore/database.go",
+        "line": 73,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Remove or relax the updated_at BETWEEN condition in the update query to allow updating any existing device regardless of updated_at timestamp.",
+        "title": "updateDevice SQL query restricts updates causing false ErrDeviceLimitReached"
+      },
+      {
+        "body": "In pkg/services/anonymous/anonimpl/anonstore/database.go at lines 109-117, the CreateOrUpdateDevice method enforces a device limit by counting devices and if the limit is reached, only allows updating existing devices updated recently. However, the updateDevice method uses a time window of updated_at BETWEEN now - 30 days and now + 1 minute, which may exclude devices updated slightly outside this window, causing updateDevice to fail with ErrDeviceLimitReached even if the device exists. This could cause unexpected errors when updating devices near the expiration boundary.",
+        "category": "bug",
+        "end_line": 117,
+        "file": "pkg/services/anonymous/anonimpl/anonstore/database.go",
+        "line": 109,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Adjust the time window in updateDevice to include all devices regardless of updated_at or ensure the window matches the device expiration policy exactly to avoid false negatives.",
+        "title": "updateDevice may fail to update existing devices due to strict updated_at time window"
+      },
+      {
+        "body": "In pkg/services/anonymous/anonimpl/client.go at line 44, the error returned by anonDeviceService.TagDevice is checked for ErrDeviceLimitReached and returned immediately, but other errors are only logged and not returned. This means that if TagDevice fails for reasons other than device limit, the error is swallowed and the authentication proceeds as if successful, which could hide real errors and cause inconsistent state.",
+        "category": "error_handling",
+        "end_line": 50,
+        "file": "pkg/services/anonymous/anonimpl/client.go",
+        "line": 44,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Return all errors from TagDevice, not just ErrDeviceLimitReached, to ensure failures are handled properly. Change to: if err != nil { return nil, err }",
+        "title": "Error from TagDevice swallowed except for ErrDeviceLimitReached"
+      },
+      {
+        "body": "In pkg/services/anonymous/anonimpl/impl.go at line 144, the call to a.tagDeviceUI returns an error which is logged and then returned. However, in the calling function TagDevice (line 44 in client.go), the error is handled specially only for ErrDeviceLimitReached and otherwise logged but not returned. This inconsistency means that some errors may be lost or inconsistently handled.",
+        "category": "error_handling",
+        "end_line": 147,
+        "file": "pkg/services/anonymous/anonimpl/impl.go",
+        "line": 144,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Ensure consistent error propagation from tagDeviceUI through TagDevice and up to the caller, returning errors instead of only logging them.",
+        "title": "Inconsistent error propagation from tagDeviceUI to TagDevice"
+      }
+    ],
+    "head": "bbd8c50",
+    "mode": "range 7ddcd0c9611882858701f4f876fb8e449fe73980..bbd8c507cdf56f6b884373809e0b24abd4a2353d",
+    "models": [
+      {
+        "completion_tokens": 930,
+        "cost_usd": 0.0133072,
+        "elapsed_ms": 13154,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 29548,
+        "summary": "The change adds anonymous device limit enforcement and propagates the limit error to the anonymous client. However, the updateDevice method restricts updates to devices updated within a time window, which can cause legitimate updates to fail with ErrDeviceLimitReached. Also, error handling in the anonymous client swallows errors other than ErrDeviceLimitReached, causing silent failures. These issues can cause unexpected errors and inconsistent state when the device limit is reached or near expiration boundaries. Fixing the updateDevice query and improving error propagation is recommended.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 461,
+      "diff_tokens": 4447,
+      "estimated_tokens": 23993,
+      "files_changed": 11,
+      "files_scanned": 11260,
+      "files_tokens": 12292,
+      "snippet_tokens": 7254,
+      "snippets_dropped": 14,
+      "snippets_kept": 32
+    },
+    "total_ms": 13629,
+    "verdict": "request_changes"
+  }
+}

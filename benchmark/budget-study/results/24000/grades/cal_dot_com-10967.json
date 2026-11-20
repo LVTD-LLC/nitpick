@@ -1,0 +1,117 @@
+{
+  "case": "cal_dot_com-10967",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "35a7abb028a80096dcba8b645a3c2a304b1eb67b3d1065b0332989ada42b300d",
+  "review_sha256": "e109eba2d57eea6c211a82b4967858fe9f9fd52112818b036dce07ed26f7e1bb",
+  "references": [
+    {
+      "comment": "A null reference occurs in GoogleCalendarService.createEvent() and updateEvent() when mainHostDestinationCalendar is destructured from evt.destinationCalendar but evt.destinationCalendar is null or an empty array, causing mainHostDestinationCalendar to be undefined.",
+      "severity": "High",
+      "category": "bug"
+    },
+    {
+      "comment": "The optional chaining on mainHostDestinationCalendar?.integration is redundant since you already check mainHostDestinationCalendar in the ternary condition.",
+      "severity": "Low",
+      "category": "style"
+    },
+    {
+      "comment": "Logic error: when externalCalendarId is provided, you're searching for a calendar where externalId === externalCalendarId, but this will always fail since you're looking for a calendar that matches itself. Should likely find by credentialId or use different logic.",
+      "severity": "High",
+      "category": "bug"
+    },
+    {
+      "comment": "Logic inversion in organization creation: The slug property is now conditionally set when IS_TEAM_BILLING_ENABLED is true, instead of when it's false as originally intended. This change, combined with requestedSlug still being set when IS_TEAM_BILLING_ENABLED is true, results in both properties being set when billing is enabled, and neither when disabled",
+      "severity": "Medium",
+      "category": "bug"
+    },
+    {
+      "comment": "The Calendar interface now requires createEvent(event, credentialId), but some implementations (e.g., Lark/Office365) still declare createEvent(event) only—this breaks the interface contract (also applies to other locations in the PR).",
+      "severity": "Low",
+      "category": "api"
+    },
+    {
+      "comment": "The `credential` may be undefined when passed to `updateEvent` if `reference.credentialId` is set but the credential is not found. This can lead to a runtime error when `updateEvent` is called with an undefined credential, which should be handled to prevent crashes.",
+      "severity": "High",
+      "category": "bug"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "match",
+      "reference": 0,
+      "reason": "Both identify the null/undefined dereference when mainHostDestinationCalendar is destructured from an empty/null destinationCalendar array in GoogleCalendarService.createEvent, though the diff shows the guard was added; the reference notes the same concrete failure."
+    },
+    {
+      "finding": 1,
+      "label": "match",
+      "reference": 2,
+      "reason": "Finding 1 and reference 2 both identify the logic error in updateEvent/deleteEvent where externalCalendarId is used as both the search key and the value being searched for (cal.externalId === externalCalendarId when externalCalendarId is already provided), making the find always return undefined."
+    },
+    {
+      "finding": 2,
+      "label": "match",
+      "reference": 4,
+      "reason": "Both identify that LarkCalendarService and Office365CalendarService implement createEvent(event) without the new credentialId parameter required by the updated Calendar interface, breaking the interface contract."
+    },
+    {
+      "finding": 3,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The finding is about a structural change from object to array for destinationCalendar in API responses. This is a deliberate refactor and the diff shows all consumers are being updated; whether any external consumers are missed is speculative without more evidence."
+    },
+    {
+      "finding": 4,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The claim about duplicate event creation when multiple destinationCalendar entries share the same integration type without credentialId is plausible but speculative—it depends on data conditions not clearly demonstrated by the diff alone."
+    },
+    {
+      "finding": 5,
+      "label": "match",
+      "reference": 5,
+      "reason": "Both identify that in handleCancelBooking.ts the credential fetched from DB may be undefined/not found and is used without proper type mapping, potentially causing a runtime error when passed to getCalendar/updateEvent."
+    },
+    {
+      "finding": 6,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The concern about unhandled exceptions in loadUsers is subjective; the diff actually adds try/catch error handling to loadUsers, making this finding questionable as a new bug introduced by the PR."
+    },
+    {
+      "finding": 7,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The externalId parameter added to createEvent is optional (externalId?: string), so existing call sites without it remain valid TypeScript. The concern about required parameter is factually incorrect for optional params, but the broader compatibility question is subjective."
+    },
+    {
+      "finding": 8,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The change in error-case return behavior from a single default object to a mapped array is a real behavioral change, but whether callers are affected depends on how they consume the result—insufficient evidence to confirm or deny impact."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 30700,
+    "completion_tokens": 601,
+    "total_tokens": 31301,
+    "cost": 0.101115,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.101115,
+      "upstream_inference_prompt_cost": 0.0921,
+      "upstream_inference_completions_cost": 0.009015
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

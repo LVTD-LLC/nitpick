@@ -1,0 +1,44 @@
+{
+  "case": "grafana-107534",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "d3d49893132c2fb5aeada51a18e3232cbeb7a9e38ac52463c531ceef735f4fcd",
+  "review_sha256": "366b6373fff2e143285b959bf41bc4b7498420007b5dba062f05743d3b67c9ab",
+  "references": [
+    {
+      "comment": "The applyTemplateVariables method is called with request.filters as the third parameter, but this parameter is not used in the corresponding test setup.",
+      "severity": "Low",
+      "category": "test_gap"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The mutation of group.cycle inside groupHasPendingRequests is intentional design: it advances the cycle pointer as part of the iteration protocol. The function is not a pure predicate but a stateful iterator step. The logic is consistent and the calling code relies on this side effect to advance through shards. This is a pre-existing pattern, not introduced by this diff, and the diff does not touch this function."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 4683,
+    "completion_tokens": 115,
+    "total_tokens": 4798,
+    "cost": 0.015774,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.015774,
+      "upstream_inference_prompt_cost": 0.014049,
+      "upstream_inference_completions_cost": 0.001725
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "case": {
+    "id": "sentry-3",
+    "source": "sentry.json",
+    "url": "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/3",
+    "split": "holdout",
+    "base": "83f40559985e1365a43f35ba3febb7ea4fabb5d5",
+    "head": "6ad6fe3899f630ccf922ce7ac681147dc7987435"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "The function `is_errors_query_for_error_upsampled_projects` caches the eligibility result for error upsampling based on the organization ID and project IDs. However, it uses `hash(tuple(sorted(snuba_params.project_ids)))` as part of the cache key. Since Python's built-in `hash()` is randomized per process by default, this can lead to inconsistent cache keys across different processes, causing cache misses and inconsistent behavior. This is a correctness and performance issue.",
+        "category": "correctness",
+        "end_line": 40,
+        "file": "src/sentry/api/helpers/error_upsampling.py",
+        "line": 27,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Use a stable hash function like hashlib.sha256 or a deterministic string representation for the cache key instead of Python's built-in hash(). For example, use `hashlib.sha256(\":\".join(map(str, sorted(project_ids))).encode()).hexdigest()`.",
+        "title": "Use of Python built-in hash() for cache key causes inconsistent caching"
+      },
+      {
+        "body": "The function `_are_all_projects_error_upsampled` reads the allowlist configuration fresh each time it is called, which can lead to inconsistent results if the configuration changes during request processing. While this is intentional for freshness, it can cause inconsistent behavior within the same request if called multiple times with the same inputs.",
+        "category": "correctness",
+        "end_line": 64,
+        "file": "src/sentry/api/helpers/error_upsampling.py",
+        "line": 43,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Document this behavior clearly and consider caching the allowlist per request context to ensure consistency within a single request if needed.",
+        "title": "Allowlist check can return different results within the same request"
+      },
+      {
+        "body": "In `transform_query_columns_for_error_upsampling`, the transformation replaces 'count()' with 'upsampled_count() as count'. However, if the original query columns contain multiple 'count()' or differently cased variants, the transformation might not handle all cases consistently. Also, the function only transforms exact 'count()' strings, which might miss variants like 'COUNT()' with spaces or other formatting.",
+        "category": "correctness",
+        "end_line": 100,
+        "file": "src/sentry/api/helpers/error_upsampling.py",
+        "line": 77,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Normalize the input column strings by stripping whitespace and lowercasing before comparison, which is done, but ensure all variants are covered. Add tests for edge cases with different casing and spacing.",
+        "title": "Potential incomplete transformation of count() columns for upsampling"
+      },
+      {
+        "body": "In `src/sentry/api/endpoints/organization_events_stats.py`, the `_get_event_stats` function applies the upsampling transformation multiple times before different query executions (top events, RPC, standard). This repeated transformation could be simplified by applying it once before branching, reducing code duplication and potential inconsistencies.",
+        "category": "performance",
+        "end_line": 324,
+        "file": "src/sentry/api/endpoints/organization_events_stats.py",
+        "line": 218,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Apply the upsampling transformation once to `final_columns` before the conditional branches to avoid repeated calls.",
+        "title": "Repeated application of upsampling transformation in query execution"
+      },
+      {
+        "body": "The new helper `_set_sample_rate_from_error_sampling` in `src/sentry/testutils/factories.py` sets `sample_rate` on normalized event data if `contexts.error_sampling.client_sample_rate` is present. However, it silently ignores exceptions and does not validate the type or range of `client_sample_rate`. This could lead to unexpected `sample_rate` values in tests.",
+        "category": "correctness",
+        "end_line": 357,
+        "file": "src/sentry/testutils/factories.py",
+        "line": 344,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Add explicit type and range checks for `client_sample_rate` before setting `sample_rate`. Log or raise on invalid values to catch test data issues early.",
+        "title": "Silent failure and lack of validation in setting sample_rate from error_sampling context"
+      }
+    ],
+    "head": "6ad6fe38",
+    "mode": "range 83f40559985e1365a43f35ba3febb7ea4fabb5d5..6ad6fe3899f630ccf922ce7ac681147dc7987435",
+    "models": [
+      {
+        "completion_tokens": 893,
+        "cost_usd": 0.0266644,
+        "elapsed_ms": 20569,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 79121,
+        "summary": "The change adds error upsampling support with caching and query transformations. The main issue is the use of Python's built-in hash() for cache keys, which is not stable across processes and can cause inconsistent caching. Other issues include potential inconsistent allowlist checks, repeated transformations in query execution, and minor validation gaps in test helpers. Overall, the implementation is sound but requires fixes for cache key stability and minor improvements.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 806,
+      "diff_tokens": 5066,
+      "estimated_tokens": 80000,
+      "files_changed": 8,
+      "files_scanned": 16733,
+      "files_tokens": 18556,
+      "snippet_tokens": 56378,
+      "snippets_dropped": 59,
+      "snippets_kept": 98
+    },
+    "total_ms": 21390,
+    "verdict": "request_changes"
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "case": {
+    "id": "discourse-6",
+    "source": "discourse.json",
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/6",
+    "split": "dev",
+    "base": "7a5fbae060bd0d3e29f3a4b5c6f2bfd8b2914dc7",
+    "head": "267d8be1f556ed59639ced396c885bb44586da19"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json",
+      "--focus",
+      "Review each changed hunk before drafting findings. For each altered decision, trace a concrete input through the old and new behavior. Check boundary values, failure paths, and the contracts imposed by surrounding callers and tests. Verify suspected failures against the actual types, guards, and versions shown. Drop claims that the code contradicts, observations of correct behavior, and guesses that lack a failing scenario. Group repeated instances of one root cause into a single actionable finding, citing one changed line and mentioning other affected sites in its body."
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [
+      {
+        "body": "The new `website_name` method in `UserSerializer` attempts to return a simplified or full website host/path depending on the relationship between the user's website domain and the Discourse instance domain. However, the logic is complex and may produce unexpected results for certain domain configurations, especially with subdomains and multi-level domains. For example, the check for equal length domain parts and the fallback using `ends_with?` may not correctly handle all valid domain scenarios, potentially causing incorrect website_name values to be shown in the UI. This could confuse users or cause incorrect links or display names.",
+        "category": "correctness",
+        "end_line": 149,
+        "file": "app/serializers/user_serializer.rb",
+        "line": 137,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add comprehensive unit tests covering various domain and subdomain combinations to ensure correct behavior. Consider using a well-tested domain parsing library or simplifying the logic to avoid edge cases.",
+        "title": "Potential incorrect domain handling in website_name method"
+      },
+      {
+        "body": "The tests added in `user_serializer_spec.rb` cover the new `website_name` method behavior for three domain scenarios: different domain, same domain, and parent domain. This is good coverage for the main cases. However, edge cases such as invalid URLs, nil website, or unusual domain structures are not tested. Also, the tests stub `Discourse.current_hostname` but do not test behavior when `website` is nil or malformed, which could cause exceptions in URI parsing.",
+        "category": "test",
+        "end_line": 90,
+        "file": "spec/serializers/user_serializer_spec.rb",
+        "line": 76,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add tests for nil, empty, and malformed website URLs to ensure `website_name` method handles these gracefully without exceptions.",
+        "title": "Insufficient test coverage for edge cases in website_name method"
+      },
+      {
+        "body": "The removed `websiteName` computed property in `user.js.es6` was replaced by using `model.website_name` directly from the serializer. This is correct and consistent with the new backend logic. However, the template and controller changes rely on the presence of `model.website_name` which is only included if `website` is present (per `include_website_name`). If `website` is empty or invalid, `website_name` will be nil, and the UI will not show the website link. This is expected behavior but should be noted.",
+        "category": "correctness",
+        "end_line": 69,
+        "file": "app/assets/javascripts/discourse/templates/user/user.hbs",
+        "line": 66,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Template uses new website_name property from serializer"
+      }
+    ],
+    "head": "267d8be",
+    "mode": "range 7a5fbae060bd0d3e29f3a4b5c6f2bfd8b2914dc7..267d8be1f556ed59639ced396c885bb44586da19",
+    "models": [
+      {
+        "completion_tokens": 620,
+        "cost_usd": 0.0065264,
+        "elapsed_ms": 6598,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 13836,
+        "summary": "This change refactors how the user's website name is computed and displayed by moving logic from frontend to backend serializer. The new `website_name` method attempts to intelligently simplify or fully display the website URL based on domain relationships. The frontend templates and controller are updated accordingly. Tests cover main domain scenarios but lack edge case coverage. The domain parsing logic is somewhat complex and may produce incorrect results for some domain configurations.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 78,
+      "diff_tokens": 1554,
+      "estimated_tokens": 11198,
+      "files_changed": 5,
+      "files_scanned": 3883,
+      "files_tokens": 9644,
+      "snippet_tokens": 0,
+      "snippets_dropped": 0,
+      "snippets_kept": 0
+    },
+    "total_ms": 6686,
+    "verdict": "comment"
+  }
+}

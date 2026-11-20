@@ -1,0 +1,67 @@
+{
+  "case": {
+    "id": "discourse-5",
+    "source": "discourse.json",
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/5",
+    "split": "dev",
+    "base": "98fa098e6fade3097a11fe7f99a98a4e6ffb4728",
+    "head": "5b229316ee4c661836ed1161139692a3e8527444"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [],
+    "head": "5b22931",
+    "mode": "range 98fa098e6fade3097a11fe7f99a98a4e6ffb4728..5b229316ee4c661836ed1161139692a3e8527444",
+    "models": [
+      {
+        "completion_tokens": 95,
+        "cost_usd": 0.0116052,
+        "elapsed_ms": 2614,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 38521,
+        "summary": "This change refactors several SCSS files to replace float-based layouts with flexbox-based layouts using newly added mixins for flexbox, inline-flex, align-items, and order. It also cleans up some padding and margin inconsistencies. The mixins are added to the foundation mixins file with appropriate vendor prefixes. Overall, the change modernizes the CSS layout approach without introducing regressions or breaking existing styles.",
+        "verdict": "approve"
+      }
+    ],
+    "stats": {
+      "build_ms": 209,
+      "diff_tokens": 1105,
+      "estimated_tokens": 34951,
+      "files_changed": 5,
+      "files_scanned": 3874,
+      "files_tokens": 9701,
+      "snippet_tokens": 24145,
+      "snippets_dropped": 0,
+      "snippets_kept": 1
+    },
+    "total_ms": 2832,
+    "verdict": "approve"
+  }
+}

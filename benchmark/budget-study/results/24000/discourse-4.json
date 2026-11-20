@@ -1,0 +1,107 @@
+{
+  "case": {
+    "id": "discourse-4",
+    "source": "discourse.json",
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/4",
+    "split": "holdout",
+    "base": "62db063e1e1abe691313ab42682a68f796d63769",
+    "head": "4f8aed295a29954023b2849c060ef4fb299d1b5d"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "In app/assets/javascripts/embed.js at line 17, the origin check uses `discourseUrl.indexOf(e.origin) === -1` which is incorrect. `e.origin` is the origin of the message sender (e.g., 'https://example.com'), and `discourseUrl` is presumably a full URL or base URL string. Using `indexOf` to check if `e.origin` is contained in `discourseUrl` is fragile and can cause false negatives or positives. This can lead to accepting messages from unauthorized origins or rejecting valid ones, causing security issues or broken functionality.",
+        "category": "security",
+        "end_line": 17,
+        "file": "app/assets/javascripts/embed.js",
+        "line": 17,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Replace the origin check with a strict equality check, e.g., `if (e.origin !== discourseUrl) return;` or parse and compare origins properly.",
+        "title": "Incorrect origin check in postMessageReceived handler"
+      },
+      {
+        "body": "In app/controllers/embed_controller.rb at lines 24-31, the `ensure_embeddable` method compares the host of the HTTP referer to the configured `embeddable_host`. However, the referer header can be missing or manipulated, and the code raises an error if the referer is missing or invalid. This can cause legitimate requests to fail if the referer is not sent by the client (some browsers or proxies omit referer).",
+        "category": "security",
+        "end_line": 31,
+        "file": "app/controllers/embed_controller.rb",
+        "line": 24,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Consider allowing requests with no referer or provide a more robust validation mechanism, or document that embedding requires referer header.",
+        "title": "Strict referer host check may block legitimate embed requests"
+      },
+      {
+        "body": "In lib/topic_retriever.rb at line 15, the method `invalid_host?` compares `SiteSetting.embeddable_host` to the host of the embed URL. If `SiteSetting.embeddable_host` is nil or empty, this will cause the method to return true (invalid host), which is correct. However, in the test spec/components/topic_retriever_spec.rb, the test for embeddable_host being nil expects `perform_retrieve` not to be called, but the code does not explicitly check for nil before comparing hosts. This is minor but could be clearer.",
+        "category": "correctness",
+        "end_line": 15,
+        "file": "lib/topic_retriever.rb",
+        "line": 15,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Add explicit check for presence of SiteSetting.embeddable_host before comparing hosts to improve clarity.",
+        "title": "No explicit check for nil embeddable_host in invalid_host?"
+      }
+    ],
+    "head": "4f8aed2",
+    "mode": "range 62db063e1e1abe691313ab42682a68f796d63769..4f8aed295a29954023b2849c060ef4fb299d1b5d",
+    "models": [
+      {
+        "completion_tokens": 655,
+        "cost_usd": 0.0107396,
+        "elapsed_ms": 9277,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 24229,
+        "summary": "The change adds embedding functionality with new models, controllers, jobs, and frontend assets. Overall the implementation is solid and well tested. The main issue is a security concern in the JavaScript origin check for postMessage events, which uses an incorrect substring check instead of strict origin comparison. There is also a strict referer host check in the embed controller that may block legitimate requests if the referer header is missing. Minor correctness improvement suggested for host validation in TopicRetriever.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 135,
+      "diff_tokens": 3552,
+      "estimated_tokens": 20726,
+      "files_changed": 27,
+      "files_scanned": 2371,
+      "files_tokens": 15546,
+      "snippet_tokens": 1628,
+      "snippets_dropped": 0,
+      "snippets_kept": 4
+    },
+    "total_ms": 9422,
+    "verdict": "request_changes"
+  }
+}

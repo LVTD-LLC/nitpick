@@ -1,0 +1,159 @@
+{
+  "case": {
+    "id": "keycloak-37038",
+    "source": "keycloak.json",
+    "url": "https://github.com/keycloak/keycloak/pull/37038",
+    "split": "fresh",
+    "base": "7ea067aae9be56cb2622bce6563864817c3dfeaf",
+    "head": "7355f05e6aafe2a7acc6434fb40c686665416606"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 3,
+    "findings": [
+      {
+        "body": "In rest/admin-ui-ext/src/main/java/org/keycloak/admin/ui/rest/BruteForceUsersResource.java, the code changed from checking !auth.users().canView() before setting session attribute UserModel.GROUPS to unconditionally setting it if groupIds is not empty. This may cause unintended side effects by setting the attribute even when the user can view all users. The original condition should be restored to preserve behavior.",
+        "category": "bug",
+        "end_line": 150,
+        "file": "rest/admin-ui-ext/src/main/java/org/keycloak/admin/ui/rest/BruteForceUsersResource.java",
+        "line": 144,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Restore the original condition: if (!auth.users().canView()) { ... } around setting the session attribute UserModel.GROUPS.",
+        "title": "Incorrect unconditional setting of UserModel.GROUPS attribute in BruteForceUsersResource"
+      },
+      {
+        "body": "In services/src/main/java/org/keycloak/services/resources/admin/UsersResource.java at lines 445-458, the method searchForUser sets the session attribute UserModel.GROUPS to the set of group IDs with view permission. However, the previous code only set this attribute if the user could not view all users (i.e., !auth.users().canView()). The new code sets the attribute unconditionally if the groupIds set is not empty, regardless of whether the user can view all users. This may cause unintended filtering or permission issues because the attribute is set even when the user has full view permission. The original condition should be preserved to avoid changing behavior.",
+        "category": "bug",
+        "end_line": 458,
+        "file": "services/src/main/java/org/keycloak/services/resources/admin/UsersResource.java",
+        "line": 445,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Restore the original condition: if (!auth.users().canView()) { ... } around setting the session attribute UserModel.GROUPS.",
+        "title": "Incorrect unconditional setting of UserModel.GROUPS attribute in searchForUser method"
+      },
+      {
+        "body": "In services/src/main/java/org/keycloak/services/resources/admin/permissions/GroupPermissionsV2.java, the hasPermission method calls resourceStore.findByName(server, groupId) to find the resource by group ID. However, the AdminPermissionsSchema.resolveGroup method returns group.getId() (the ID) instead of a name or unique resource name. If resourceStore.findByName expects a resource name rather than an ID, this may cause the resource lookup to fail, leading to incorrect permission evaluation. The code should ensure that the resource name used matches what resourceStore.findByName expects, possibly by using a different identifier or mapping.",
+        "category": "bug",
+        "end_line": 211,
+        "file": "services/src/main/java/org/keycloak/services/resources/admin/permissions/GroupPermissionsV2.java",
+        "line": 100,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Verify that resourceStore.findByName expects a resource name and not an ID. If so, adjust resolveGroup to return the resource name or adjust hasPermission to use the correct identifier.",
+        "title": "Potential mismatch in resource identifier used in hasPermission method in GroupPermissionsV2"
+      },
+      {
+        "body": "In services/src/main/java/org/keycloak/services/resources/admin/permissions/GroupPermissions.java, the method canList() returns root.hasOneAdminRole(AdminRoles.QUERY_GROUPS) || canView(). The original code returned canView() || root.hasOneAdminRole(AdminRoles.VIEW_USERS, AdminRoles.MANAGE_USERS, AdminRoles.QUERY_GROUPS). The new code removes the check for VIEW_USERS and MANAGE_USERS roles explicitly, relying on canView() to cover those. This is likely correct but should be verified to ensure no regression in permission checks.",
+        "category": "correctness",
+        "end_line": 80,
+        "file": "services/src/main/java/org/keycloak/services/resources/admin/permissions/GroupPermissions.java",
+        "line": 73,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Verify that canView() correctly covers VIEW_USERS and MANAGE_USERS roles to avoid permission regression.",
+        "title": "Change in canList() logic in GroupPermissions may affect permission checks"
+      },
+      {
+        "body": "In services/src/main/java/org/keycloak/services/resources/admin/permissions/UserPermissions.java, the canView() method was changed from checking canViewDefault() || canManageDefault() to root.hasOneAdminRole(AdminRoles.MANAGE_USERS, AdminRoles.VIEW_USERS). The canViewDefault() and canManageDefault() methods were removed. This is likely a refactor but should be verified that the semantics remain the same and no permission regression occurs.",
+        "category": "correctness",
+        "end_line": 310,
+        "file": "services/src/main/java/org/keycloak/services/resources/admin/permissions/UserPermissions.java",
+        "line": 299,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Verify that root.hasOneAdminRole(AdminRoles.MANAGE_USERS, AdminRoles.VIEW_USERS) covers the same cases as previous canViewDefault() || canManageDefault().",
+        "title": "Refactor of canView() in UserPermissions changes permission check logic"
+      },
+      {
+        "body": "In services/src/main/java/org/keycloak/services/resources/admin/permissions/UserPermissionsV2.java, the canView(UserModel user) and canManage(UserModel user) methods were simplified to return hasPermission(...) || canViewByGroup(user) or canManageByGroup(user). The previous code stored the result in a variable and returned it after checking canViewByGroup or canManageByGroup. The new code is equivalent but more concise. This is acceptable but should be verified that no logic was lost.",
+        "category": "correctness",
+        "end_line": 90,
+        "file": "services/src/main/java/org/keycloak/services/resources/admin/permissions/UserPermissionsV2.java",
+        "line": 45,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "No change needed; just verify logic equivalence.",
+        "title": "Simplification of canView and canManage methods in UserPermissionsV2"
+      },
+      {
+        "body": "In test-framework/core/src/main/java/org/keycloak/testframework/util/ApiUtil.java, the handleCreatedResponse method was changed to use try-with-resources to close the response. This is a good improvement and no issues found.",
+        "category": "other",
+        "end_line": 11,
+        "file": "test-framework/core/src/main/java/org/keycloak/testframework/util/ApiUtil.java",
+        "line": 6,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "nit",
+        "suggestion": null,
+        "title": "Use try-with-resources to close Response in ApiUtil.handleCreatedResponse"
+      }
+    ],
+    "head": "7355f05",
+    "mode": "range 7ea067aae9be56cb2622bce6563864817c3dfeaf..7355f05e6aafe2a7acc6434fb40c686665416606",
+    "models": [
+      {
+        "completion_tokens": 1394,
+        "cost_usd": 0.0103348,
+        "elapsed_ms": 18648,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 20261,
+        "summary": "The change introduces a new GroupPermissionsV2 implementation and refactors permission checks for groups and users to use fine-grained authorization. Most changes are correct refactors or additions. However, there are two high severity bugs where session attributes for group IDs with view permission are set unconditionally instead of conditionally, potentially causing permission issues in user searches. Also, there is a potential mismatch in resource identifier usage in GroupPermissionsV2 that may cause permission evaluation failures. Other changes are medium or low severity refactors or improvements.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 161,
+      "diff_tokens": 20011,
+      "estimated_tokens": 20090,
+      "files_changed": 19,
+      "files_scanned": 9672,
+      "files_tokens": 0,
+      "snippet_tokens": 79,
+      "snippets_dropped": 0,
+      "snippets_kept": 2
+    },
+    "total_ms": 18823,
+    "verdict": "request_changes"
+  }
+}

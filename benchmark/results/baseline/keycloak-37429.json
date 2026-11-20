@@ -1,0 +1,133 @@
+{
+  "case": {
+    "id": "keycloak-37429",
+    "source": "keycloak.json",
+    "url": "https://github.com/keycloak/keycloak/pull/37429",
+    "split": "holdout",
+    "base": "f3c8e8f3487112f2c99aa78400430cce2d30be39",
+    "head": "02f48f776f43734d1ac8914d3ad6a7115acdcb33"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "The new VerifyMessageProperties class adds HTML sanitization checks for message properties files, comparing translations against the English source. It uses the OWASP Java HTML Sanitizer and Apache Commons Text for unescaping. The sanitization policy allows only a limited set of HTML tags if the English source contains HTML, otherwise no HTML is allowed. Anchor tags are specially checked to ensure only those present in the English source are allowed in translations. This prevents injection of unexpected HTML in translations, improving security and consistency.",
+        "category": "security",
+        "end_line": 161,
+        "file": "misc/theme-verifier/src/main/java/org/keycloak/themeverifier/VerifyMessageProperties.java",
+        "line": 37,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": null,
+        "title": "Add HTML sanitization to message properties verification to prevent unsafe HTML in translations"
+      },
+      {
+        "body": "The new VerifyMessageProperties class reads the English source file by replacing 'resources-community' with 'resources' and replacing locale suffix with '_en.properties'. This assumes the English file is always present and named accordingly. If the English file is missing or named differently, the verification will fail with RuntimeException. This could be improved by handling missing English files more gracefully or allowing configuration of the English source path.",
+        "category": "error_handling",
+        "end_line": 79,
+        "file": "misc/theme-verifier/src/main/java/org/keycloak/themeverifier/VerifyMessageProperties.java",
+        "line": 74,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Catch MissingResourceException when loading English file and skip HTML verification or warn instead of throwing RuntimeException.",
+        "title": "English source file loading is brittle and may cause RuntimeException if missing"
+      },
+      {
+        "body": "The VerifyMessagePropertiesTest class adds tests for duplicate keys, illegal HTML tags, disallowed HTML, and changed anchor tags in message properties files. These tests verify the new sanitization logic works correctly and detects violations.",
+        "category": "test",
+        "end_line": 62,
+        "file": "misc/theme-verifier/src/test/java/org/keycloak/themeverifier/VerifyMessagePropertiesTest.java",
+        "line": 17,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": null,
+        "title": "Add tests for message properties HTML sanitization and duplicate keys"
+      },
+      {
+        "body": "The error-invalid-multivalued-size message in multiple languages was changed to use ICU MessageFormat choice syntax for pluralization, e.g., {2,choice,0#values|1#value|1<values}. This improves localization accuracy for plural forms.",
+        "category": "correctness",
+        "end_line": 530,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_*.properties",
+        "line": 180,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Improve pluralization in error-invalid-multivalued-size message"
+      },
+      {
+        "body": "Several message properties files have been updated to fix HTML formatting issues, such as replacing <br/> with <br /> for consistency, fixing malformed HTML tags, and correcting anchor href attributes. These changes improve HTML correctness and rendering in UI and emails.",
+        "category": "correctness",
+        "end_line": 500,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_*.properties",
+        "line": 400,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Fix HTML formatting issues in message properties files"
+      }
+    ],
+    "head": "02f48f7",
+    "mode": "range f3c8e8f3487112f2c99aa78400430cce2d30be39..02f48f776f43734d1ac8914d3ad6a7115acdcb33",
+    "models": [
+      {
+        "completion_tokens": 719,
+        "cost_usd": 0.0307276,
+        "elapsed_ms": 9869,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 73943,
+        "summary": "This change adds a new message properties verification step that sanitizes HTML in translations against the English source, improving security and consistency. It also fixes HTML formatting issues and improves pluralization in message files. Tests for the new verification logic are added. The English source file loading logic could be more robust to avoid RuntimeExceptions if the English file is missing.",
+        "verdict": "approve"
+      }
+    ],
+    "stats": {
+      "build_ms": 224,
+      "diff_tokens": 24994,
+      "estimated_tokens": 78791,
+      "files_changed": 48,
+      "files_scanned": 9707,
+      "files_tokens": 49089,
+      "snippet_tokens": 4708,
+      "snippets_dropped": 1,
+      "snippets_kept": 2
+    },
+    "total_ms": 10108,
+    "verdict": "request_changes"
+  }
+}

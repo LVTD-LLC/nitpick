@@ -1,0 +1,67 @@
+{
+  "case": {
+    "id": "keycloak-36882",
+    "source": "keycloak.json",
+    "url": "https://github.com/keycloak/keycloak/pull/36882",
+    "split": "dev",
+    "base": "1b28ac610dc16e0de14199f9ca5d2acdf7f3cc16",
+    "head": "62bf98939eda58f0d0a1a41a58aa6d4ecdc24dba"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [],
+    "head": "62bf989",
+    "mode": "range 1b28ac610dc16e0de14199f9ca5d2acdf7f3cc16..62bf98939eda58f0d0a1a41a58aa6d4ecdc24dba",
+    "models": [
+      {
+        "completion_tokens": 96,
+        "cost_usd": 0.0063232,
+        "elapsed_ms": 1732,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 15424,
+        "summary": "This change introduces the 'rolling-updates' feature as a preview feature in the Keycloak codebase, including documentation updates, CLI command enhancements, and test coverage. It ensures that the feature must be enabled for certain commands and the operator to function correctly, with appropriate exit codes and error messages when disabled. The changes are consistent and well integrated across the codebase and documentation, with no evident bugs or regressions.",
+        "verdict": "approve"
+      }
+    ],
+    "stats": {
+      "build_ms": 123,
+      "diff_tokens": 3125,
+      "estimated_tokens": 14655,
+      "files_changed": 10,
+      "files_scanned": 9614,
+      "files_tokens": 11530,
+      "snippet_tokens": 0,
+      "snippets_dropped": 0,
+      "snippets_kept": 0
+    },
+    "total_ms": 1866,
+    "verdict": "approve"
+  }
+}

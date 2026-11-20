@@ -1,0 +1,91 @@
+{
+  "case": "discourse-4",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "195ca2b6daa54182dcc08f67f793b469941e1f276fc8dd0cd743eb868ced2a60",
+  "review_sha256": "bcf1cb8800f84fa8d41553da02fc2fd8e95ca62ef4ec67e9d284416580244af6",
+  "references": [
+    {
+      "comment": "The PollFeed job calls open(SiteSetting.feed_polling_url) without validating the URL, allowing an attacker who controls the feed_polling_url site setting to make the server fetch arbitrary internal or external URLs.",
+      "severity": "Critical",
+      "category": "security"
+    },
+    {
+      "comment": "The current origin validation using indexOf is insufficient and can be bypassed. An attacker could use a malicious domain like evil-discourseUrl.com to pass this check.",
+      "severity": "Medium",
+      "category": "security"
+    },
+    {
+      "comment": "postMessage targetOrigin should be the origin (scheme+host+port), not the full referrer URL; using the full URL will cause the message to be dropped and prevent resizing.",
+      "severity": "Medium",
+      "category": "security"
+    },
+    {
+      "comment": "The code sets X-Frame-Options: ALLOWALL which completely disables clickjacking protection. The referer validation can be bypassed (referer headers are easily spoofed), and the fallback to empty string for nil referer masks validation failures.",
+      "severity": "Medium",
+      "category": "security"
+    },
+    {
+      "comment": "The TopicEmbed.import method is susceptible to a NoMethodError if the contents parameter is nil when attempting to append a string, and an XSS vulnerability due to unescaped url interpolation in the generated HTML.",
+      "severity": "Medium",
+      "category": "bug"
+    },
+    {
+      "comment": "The ERB block closes with end if, which is invalid Ruby/ERB and will raise at render; it should just be end to close the if block.",
+      "severity": "Medium",
+      "category": "bug"
+    },
+    {
+      "comment": "Calling `i.content.scrub` assumes that `i.content` is always populated. However, many RSS feeds do not provide a `content` field, leading to a potential nil pointer exception when `i.content` is nil. A fallback to `description` should be implemented to prevent crashes.",
+      "severity": "High",
+      "category": "bug"
+    },
+    {
+      "comment": "An unescaped request header (request.referer) is interpolated into JavaScript without proper escaping, which can lead to XSS vulnerabilities if the referer contains malicious content. This issue can allow attackers to execute arbitrary scripts in the context of the application.",
+      "severity": "Critical",
+      "category": "security"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "match",
+      "reference": 1,
+      "reason": "Both identify the same concrete defect: using indexOf for origin validation in embed.js allows bypass by a domain that contains the discourseUrl string, e.g., evil-discourseUrl.com."
+    },
+    {
+      "finding": 1,
+      "label": "match",
+      "reference": 3,
+      "reason": "Both identify the same concrete issue in embed_controller.rb: X-Frame-Options set to ALLOWALL and referer validation being bypassable/unreliable, with the nil referer falling back to empty string masking failures."
+    },
+    {
+      "finding": 2,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The claim that there is no explicit nil check is wrong: when embeddable_host is nil, comparing nil != URI(...).host returns true, so invalid_host? correctly returns true and perform_retrieve is never called. The behavior is correct and the test confirms it; this is not a real defect."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 16607,
+    "completion_tokens": 222,
+    "total_tokens": 16829,
+    "cost": 0.053151,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.053151,
+      "upstream_inference_prompt_cost": 0.049821,
+      "upstream_inference_completions_cost": 0.00333
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

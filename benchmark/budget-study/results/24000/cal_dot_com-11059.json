@@ -1,0 +1,133 @@
+{
+  "case": {
+    "id": "cal_dot_com-11059",
+    "source": "cal_dot_com.json",
+    "url": "https://github.com/calcom/cal.com/pull/11059",
+    "split": "holdout",
+    "base": "bc89fe00ea84d20bedcec782f0701b9711dc8201",
+    "head": "9fde0e906897cc0f4f71793f647dd629faba3317"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 3,
+    "findings": [
+      {
+        "body": "In the new API route at apps/web/pages/api/webhook/app-credential.ts, the code decrypts the 'keys' field using symmetricDecrypt with the environment variable CALCOM_APP_CREDENTIAL_ENCRYPTION_KEY. However, if this environment variable is empty or missing, the decryption will be attempted with an empty string, which will likely fail or produce incorrect results. There is no explicit validation or error handling for missing or invalid encryption key environment variable, which could lead to silent failures or corrupted data being stored.",
+        "category": "security",
+        "end_line": 92,
+        "file": "apps/web/pages/api/webhook/app-credential.ts",
+        "line": 69,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Add explicit validation to ensure CALCOM_APP_CREDENTIAL_ENCRYPTION_KEY is set and non-empty before attempting decryption. Return a 500 error if missing.",
+        "title": "Missing validation for CALCOM_APP_CREDENTIAL_ENCRYPTION_KEY in webhook handler"
+      },
+      {
+        "body": "In the same webhook handler, the code uses appMetadata.slug as the appId when querying and creating credentials in the database. However, appMetadata.slug is a string, while the Prisma schema likely expects appId to be a numeric ID or UUID. This mismatch can cause the database queries to fail or behave unexpectedly. The code should use the app's numeric ID or the correct identifier type for appId in the credential table.",
+        "category": "bug",
+        "end_line": 92,
+        "file": "apps/web/pages/api/webhook/app-credential.ts",
+        "line": 74,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Fetch the app's numeric ID from the database and use it as appId when querying and creating credentials instead of appMetadata.slug.",
+        "title": "Incorrect appId type used in credential queries in webhook handler"
+      },
+      {
+        "body": "The new refreshOAuthTokens utility function returns the raw fetch Response object when credential sharing is enabled and CALCOM_CREDENTIAL_SYNC_ENDPOINT is set. However, in the callers (e.g., packages/app-store/googlecalendar/lib/CalendarService.ts), the code expects the resolved value to be the token response data object, not a Response. This mismatch can cause runtime errors when accessing properties like res.data or parsing JSON.",
+        "category": "bug",
+        "end_line": 95,
+        "file": "packages/app-store/_utils/oauth/refreshOAuthTokens.ts",
+        "line": 10,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Modify refreshOAuthTokens to parse and return the JSON response body instead of the raw Response object, or update callers to handle the Response correctly.",
+        "title": "refreshOAuthTokens returns Response but callers expect parsed JSON"
+      },
+      {
+        "body": "In packages/app-store/salesforce/lib/CalendarService.ts, the code checks if response.statusText !== 'OK' to detect errors. However, HTTP statusText is not guaranteed to be 'OK' for successful responses; status code should be checked instead. This can cause false error detection or missed errors.",
+        "category": "bug",
+        "end_line": 92,
+        "file": "packages/app-store/salesforce/lib/CalendarService.ts",
+        "line": 74,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Check response.status === 200 instead of statusText for success.",
+        "title": "Incorrect HTTP response success check using statusText instead of status code"
+      },
+      {
+        "body": "In packages/app-store/zoho-bigin/api/add.ts, the redirectUri is constructed as WEBAPP_URL + `/api/integrations/zoho-bigin/callback` instead of using appConfig.slug dynamically. This is inconsistent with other integrations and may cause issues if the slug changes or is different in other environments.",
+        "category": "bug",
+        "end_line": 21,
+        "file": "packages/app-store/zoho-bigin/api/add.ts",
+        "line": 14,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Use appConfig.slug dynamically to construct redirectUri for consistency.",
+        "title": "Hardcoded redirectUri path in zoho-bigin api/add.ts"
+      }
+    ],
+    "head": "9fde0e9",
+    "mode": "range bc89fe00ea84d20bedcec782f0701b9711dc8201..9fde0e906897cc0f4f71793f647dd629faba3317",
+    "models": [
+      {
+        "completion_tokens": 1019,
+        "cost_usd": 0.0145312,
+        "elapsed_ms": 13401,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 32252,
+        "summary": "This change adds a new webhook API for app credential syncing and refactors OAuth token refresh logic to use a centralized utility. The main issues found are related to incorrect use of app identifiers (slug vs ID) in database queries, missing validation for critical environment variables, and inconsistent handling of HTTP response objects in token refresh utilities. These issues can cause runtime errors, security risks, or data corruption if not addressed.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 400,
+      "diff_tokens": 14081,
+      "estimated_tokens": 22689,
+      "files_changed": 40,
+      "files_scanned": 3101,
+      "files_tokens": 0,
+      "snippet_tokens": 8608,
+      "snippets_dropped": 0,
+      "snippets_kept": 45
+    },
+    "total_ms": 13814,
+    "verdict": "request_changes"
+  }
+}

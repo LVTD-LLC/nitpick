@@ -240,6 +240,10 @@ Pass `-m` more than once (or a list in the config). Models run in parallel. Find
 
 `NITPICK_DEBUG_DIR=/tmp/nitpick-debug nitpick -v` writes every request and raw response to that directory.
 
+## Review quality
+
+The [review benchmark](benchmark/README.md) runs Nitpick on 20 pinned public PRs and measures missed reference issues, false positives and source coverage. [See the results and held-out comparison](benchmark/RESULTS.md).
+
 ## Development
 
 ```bash

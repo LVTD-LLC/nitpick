@@ -1,0 +1,62 @@
+{
+  "case": "grafana-107534",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "7970aca28a473d559b1b9c94008761744c2449702e15dc4f3eb6ca521aec7fa0",
+  "review_sha256": "fd5437051ea107b5bb6ae255c040cdc8dbe3bff2ec59300ce8514b6a0c609a29",
+  "references": [
+    {
+      "comment": "The applyTemplateVariables method is called with request.filters as the third parameter, but this parameter is not used in the corresponding test setup.",
+      "severity": "Low",
+      "category": "test_gap"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms `groupHasPendingRequests` mutates `group.cycle` as a side effect inside a predicate function (line 284: `group.cycle = nextCycle`). This is a real bug introduced by this code that is independently verifiable from the diff."
+    },
+    {
+      "finding": 1,
+      "label": "match",
+      "reference": 0,
+      "reason": "Finding 1 describes the new `applyTemplateVariables` call in `runSplitQuery` with `request.filters` as the third parameter. The reference notes that `request.filters` is passed but not exercised in the test setup, which is the same concrete gap about the filters parameter being untested."
+    },
+    {
+      "finding": 2,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "Finding 2 describes the change in `runShardSplitQuery` as safe and consistent with no issues — it is an observation/endorsement, not a bug or concern. There is nothing actionable or problematic claimed."
+    },
+    {
+      "finding": 3,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "Finding 3 similarly just observes that disabling retry and partial updates in inner `runSplitQuery` calls is intentional and correct. No defect is identified; this is purely an endorsement of existing behavior."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 7698,
+    "completion_tokens": 305,
+    "total_tokens": 8003,
+    "cost": 0.027669,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.027669,
+      "upstream_inference_prompt_cost": 0.023094,
+      "upstream_inference_completions_cost": 0.004575
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

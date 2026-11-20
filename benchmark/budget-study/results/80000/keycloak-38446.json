@@ -1,0 +1,133 @@
+{
+  "case": {
+    "id": "keycloak-38446",
+    "source": "keycloak.json",
+    "url": "https://github.com/keycloak/keycloak/pull/38446",
+    "split": "fresh",
+    "base": "85737f52b59aa2e3403c9b8e48acf71ccc5bfae3",
+    "head": "ce2dcc537b4b1f98a335e88cfe8e0b804483252a"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 2,
+    "findings": [
+      {
+        "body": "In RecoveryAuthnCodeInputLoginBean.java constructor, no handling for the case when the user has no recovery codes credential. This can cause runtime exceptions if the user does not have recovery codes configured.",
+        "category": "bug",
+        "end_line": 22,
+        "file": "services/src/main/java/org/keycloak/forms/login/freemarker/model/RecoveryAuthnCodeInputLoginBean.java",
+        "line": 16,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Check if credentialModelOpt.isPresent() before using it and handle the absence case gracefully, e.g., throw an exception with a clear message or provide a default behavior.",
+        "title": "Missing check for presence of recovery codes credential in constructor"
+      },
+      {
+        "body": "In RecoveryAuthnCodeInputLoginBean.java line 19, the code calls credentialModelOpt.get() without checking if the Optional is present. If the Optional is empty, this will throw NoSuchElementException at runtime.",
+        "category": "bug",
+        "end_line": 19,
+        "file": "services/src/main/java/org/keycloak/forms/login/freemarker/model/RecoveryAuthnCodeInputLoginBean.java",
+        "line": 19,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Check if credentialModelOpt.isPresent() before calling get(), and handle the empty case appropriately, e.g., throw a controlled exception or provide a fallback.",
+        "title": "Unsafe Optional.get() call without presence check"
+      },
+      {
+        "body": "In BackwardsCompatibilityUserStorage.java line 218, the disableCredentialType method only supports disabling OTP credentials but does not support disabling recovery codes credentials. This inconsistency means recovery codes cannot be disabled via this method, which may cause unexpected behavior or inability to disable recovery codes credentials.",
+        "category": "bug",
+        "end_line": 221,
+        "file": "testsuite/integration-arquillian/servers/auth-server/services/testsuite-providers/src/main/java/org/keycloak/testsuite/federation/BackwardsCompatibilityUserStorage.java",
+        "line": 217,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add support for disabling recovery codes credential type in disableCredentialType method, similar to OTP, e.g., else if (credentialType.equals(RecoveryAuthnCodesCredentialModel.TYPE)) { myUser.recoveryCodes = null; }.",
+        "title": "disableCredentialType does not support recovery codes credential"
+      },
+      {
+        "body": "In BackwardsCompatibilityUserStorage.java line 259, the getDisableableCredentialTypesStream method returns only OTP as disableable credential type, ignoring recovery codes. This causes recovery codes to not appear as disableable in UI or API, inconsistent with other credential types.",
+        "category": "bug",
+        "end_line": 263,
+        "file": "testsuite/integration-arquillian/servers/auth-server/services/testsuite-providers/src/main/java/org/keycloak/testsuite/federation/BackwardsCompatibilityUserStorage.java",
+        "line": 255,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add recovery codes credential type to the disableable types set if present, similar to OTP.",
+        "title": "Recovery codes missing from disableable credential types stream"
+      },
+      {
+        "body": "In BackwardsCompatibilityUserStorage.java line 263, the method getDisableableCredentialTypesStream only adds CredentialModel.OTP to the returned set if present, but does not add RecoveryAuthnCodesCredentialModel.TYPE even if the user has recovery codes. This causes the recovery codes credential to not be disableable via the user storage provider, which is inconsistent with other credential types and may cause UI or API inconsistencies.",
+        "category": "bug",
+        "end_line": 263,
+        "file": "testsuite/integration-arquillian/servers/auth-server/services/testsuite-providers/src/main/java/org/keycloak/testsuite/federation/BackwardsCompatibilityUserStorage.java",
+        "line": 263,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add a check similar to OTP for RecoveryAuthnCodesCredentialModel.TYPE and add it to the types set if present, e.g., if (credentialType.equals(RecoveryAuthnCodesCredentialModel.TYPE) && myUser.recoveryCodes != null) { types.add(RecoveryAuthnCodesCredentialModel.TYPE); }.",
+        "title": "Recovery codes credential missing from disableable credential types"
+      }
+    ],
+    "head": "ce2dcc5",
+    "mode": "range 85737f52b59aa2e3403c9b8e48acf71ccc5bfae3..ce2dcc537b4b1f98a335e88cfe8e0b804483252a",
+    "models": [
+      {
+        "completion_tokens": 890,
+        "cost_usd": 0.0136768,
+        "elapsed_ms": 14068,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 30632,
+        "summary": "The change adds support for recovery authentication codes across multiple components and includes tests. However, there are several bugs related to missing presence checks on Optional values leading to potential runtime exceptions, and incomplete support for recovery codes in disable/enable credential methods in the BackwardsCompatibilityUserStorage. These issues can cause runtime failures and inconsistent behavior in credential management.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 132,
+      "diff_tokens": 10116,
+      "estimated_tokens": 35176,
+      "files_changed": 8,
+      "files_scanned": 9754,
+      "files_tokens": 23256,
+      "snippet_tokens": 1804,
+      "snippets_dropped": 0,
+      "snippets_kept": 3
+    },
+    "total_ms": 14211,
+    "verdict": "request_changes"
+  }
+}

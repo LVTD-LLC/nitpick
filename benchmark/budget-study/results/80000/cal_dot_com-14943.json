@@ -1,0 +1,107 @@
+{
+  "case": {
+    "id": "cal_dot_com-14943",
+    "source": "cal_dot_com.json",
+    "url": "https://github.com/calcom/cal.com/pull/14943",
+    "split": "fresh",
+    "base": "917c7b0764f4c6bfdca95db2c5f73dbfdbe11757",
+    "head": "c790227e0cda780e6fea9bb03af27948d9e286b9"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 2,
+    "findings": [
+      {
+        "body": "The deletion query deletes reminders where retryCount > 1 regardless of method or scheduledDate. This means reminders with retryCount > 1 but method not SMS or scheduledDate in the future will also be deleted, which may be unintended and cause data loss for other reminder types or future scheduled reminders.",
+        "category": "bug",
+        "end_line": 44,
+        "file": "packages/features/ee/workflows/api/scheduleSMSReminders.ts",
+        "line": 31,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Add method: WorkflowMethods.SMS condition to the retryCount > 1 clause to restrict deletion to SMS reminders only.",
+        "title": "Deletion query deletes reminders with retryCount > 1 regardless of method or scheduledDate"
+      },
+      {
+        "body": "The deletion query deletes reminders where retryCount is greater than 1, but the retryCount is incremented on failure and when scheduledSMS is falsy. This means reminders with retryCount 1 are not deleted and may be retried indefinitely, potentially causing stuck reminders. The condition should likely be retryCount greater than or equal to a threshold (e.g., 3) to avoid premature deletion and allow some retries.",
+        "category": "bug",
+        "end_line": 44,
+        "file": "packages/features/ee/workflows/api/scheduleSMSReminders.ts",
+        "line": 39,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Change the deleteMany condition to delete reminders with retryCount >= MAX_RETRY_LIMIT (e.g., 3) instead of > 1 to avoid deleting reminders too early and allow multiple retries.",
+        "title": "Incorrect retryCount condition in deleteMany leads to premature deletion of reminders"
+      },
+      {
+        "body": "The retryCount is incremented on failure and when scheduledSMS is falsy, but there is no upper bound check on retryCount before incrementing. This can cause retryCount to grow indefinitely, which may lead to database bloat or logic errors elsewhere if retryCount is assumed to be bounded.",
+        "category": "bug",
+        "end_line": 196,
+        "file": "packages/features/ee/workflows/api/scheduleSMSReminders.ts",
+        "line": 184,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add a maximum retry count check before incrementing retryCount to prevent unbounded growth, e.g., only increment if retryCount < MAX_RETRY_LIMIT.",
+        "title": "Missing upper bound check on retryCount increment"
+      }
+    ],
+    "head": "c790227",
+    "mode": "range 917c7b0764f4c6bfdca95db2c5f73dbfdbe11757..c790227e0cda780e6fea9bb03af27948d9e286b9",
+    "models": [
+      {
+        "completion_tokens": 539,
+        "cost_usd": 0.003344,
+        "elapsed_ms": 7063,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 9948,
+        "summary": "The change adds retryCount tracking and retry logic for scheduling SMS reminders. However, the deletion query prematurely deletes reminders with retryCount > 1 regardless of method or scheduledDate, risking data loss. Also, retryCount increments lack upper bound checks, risking unbounded growth. These issues can cause stuck reminders or unintended deletions.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 383,
+      "diff_tokens": 874,
+      "estimated_tokens": 7485,
+      "files_changed": 3,
+      "files_scanned": 4420,
+      "files_tokens": 3594,
+      "snippet_tokens": 3017,
+      "snippets_dropped": 0,
+      "snippets_kept": 20
+    },
+    "total_ms": 7458,
+    "verdict": "request_changes"
+  }
+}

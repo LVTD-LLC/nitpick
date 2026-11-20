@@ -1,0 +1,79 @@
+{
+  "case": "keycloak-1",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "0be3c4891a3abb7a0e1d4dccd0fc24033514c277b9e340a8509221bb457382c1",
+  "review_sha256": "4965d7d79abd28bf21e2bf62cb9284b005dbe90b59dffec83f300de2c0517415",
+  "references": [
+    {
+      "comment": "In UsernameForm.authenticate(), isConditionalPasskeysEnabled() is called without passing the required UserModel parameter.",
+      "severity": "Medium",
+      "category": "api"
+    },
+    {
+      "comment": "With isConditionalPasskeysEnabled(UserModel user) requiring user != null, authenticate(...) will not call webauthnAuth.fillContextForm(context) on the initial login page where context.getUser() is still null, so conditional passkey UI will not be set up for first-time passkey login. Consider whether this should also be enabled when no user has been selected yet so ID-less passkey authentication on the initial login form continues to work.",
+      "severity": "Medium",
+      "category": "speculative"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "match",
+      "reference": 0,
+      "reason": "Finding 0 describes the isConditionalPasskeysEnabled() call in UsernameForm as correct, but Reference 0 identifies that it is called without the required UserModel parameter — a concrete API mismatch that would cause a compile error or wrong method dispatch."
+    },
+    {
+      "finding": 1,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The refactor to AuthenticatorUtils.setupReauthenticationInUsernamePasswordFormError is a straightforward extraction with equivalent behavior; no concrete defect is identified."
+    },
+    {
+      "finding": 2,
+      "label": "match",
+      "reference": 1,
+      "reason": "Finding 2 claims the isConditionalPasskeysEnabled(user != null) guard is correct, but Reference 1 identifies that this breaks first-time passkey login since the old code called fillContextForm precisely when user was null (initial login), and the new guard prevents that."
+    },
+    {
+      "finding": 3,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The shouldShowWebAuthnAuthenticators refactor is a reasonable extensibility improvement; no concrete defect is identified."
+    },
+    {
+      "finding": 4,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "Test coverage observation is subjective and no concrete defect is identified."
+    },
+    {
+      "finding": 5,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "Test coverage observation is subjective and no concrete defect is identified."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 18712,
+    "completion_tokens": 714,
+    "total_tokens": 19426,
+    "cost": 0.066846,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.066846,
+      "upstream_inference_prompt_cost": 0.056136,
+      "upstream_inference_completions_cost": 0.01071
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "case": "grafana-94942",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "55dd4d616a16e58ba154c1f6943fc64d946617b07e865f645621ca58e380506b",
+  "review_sha256": "c7a4b389d856610771e07cc6e0227ced03c4fd6532c2c81f83f831245aa3467f",
+  "references": [
+    {
+      "comment": "The enableSqlExpressions function has flawed logic that always returns false, effectively disabling SQL expressions unconditionally:",
+      "severity": "Critical",
+      "category": "bug"
+    },
+    {
+      "comment": "The DB methods NewInMemoryDB().RunCommands, DB.QueryFramesInto, and DB.TablesList in pkg/expr/sql/db.go return hardcoded 'not implemented' errors after removing the go-duck dependency.",
+      "severity": "High",
+      "category": "api"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "match",
+      "reference": 0,
+      "reason": "Both identify the same concrete bug: enableSqlExpressions always returns false regardless of the feature flag state, due to inverted/redundant logic in the function body."
+    },
+    {
+      "finding": 1,
+      "label": "match",
+      "reference": 1,
+      "reason": "Both identify the same concrete issue: the DB methods (RunCommands, QueryFramesInto, TablesList) in pkg/expr/sql/db.go return hardcoded 'not implemented' errors after removing the go-duck dependency."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 24992,
+    "completion_tokens": 133,
+    "total_tokens": 25125,
+    "cost": 0.076971,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.076971,
+      "upstream_inference_prompt_cost": 0.074976,
+      "upstream_inference_completions_cost": 0.001995
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

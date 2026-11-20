@@ -1,0 +1,20 @@
+{
+  "case": "keycloak-36882",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "621e328edb9b00c644f65aa08698511e9de6278e558a7b01eaf6d8d95a28ac39",
+  "review_sha256": "76b5aca1fea99c510b1c2684b7948a526b0c55b0e5a9f967978a9cd78e98bd85",
+  "references": [
+    {
+      "comment": "Incorrect method call for exit codes. The picocli.exit() method calls System.exit() directly, which is problematic:",
+      "severity": "Medium",
+      "category": "bug"
+    },
+    {
+      "comment": "Need to add changelog/release notes documenting the exit code change and migration guidance",
+      "severity": "Low",
+      "category": "doc_defect"
+    }
+  ],
+  "rows": [],
+  "usage": {}
+}

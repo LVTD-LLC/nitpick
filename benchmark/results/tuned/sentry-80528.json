@@ -1,0 +1,69 @@
+{
+  "case": {
+    "id": "sentry-80528",
+    "source": "sentry.json",
+    "url": "https://github.com/getsentry/sentry/pull/80528",
+    "split": "dev",
+    "base": "0cfc28e76ddc986d2d89dd9b9f63ee916a18a5f9",
+    "head": "dcdcadb771128e79259cc9eff9c70c38fc597976"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json",
+      "--focus",
+      "Review each changed hunk before drafting findings. For each altered decision, trace a concrete input through the old and new behavior. Check boundary values, failure paths, and the contracts imposed by surrounding callers and tests. Verify suspected failures against the actual types, guards, and versions shown. Drop claims that the code contradicts, observations of correct behavior, and guesses that lack a failing scenario. Group repeated instances of one root cause into a single actionable finding, citing one changed line and mentioning other affected sites in its body."
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [],
+    "head": "dcdcadb7",
+    "mode": "range 0cfc28e76ddc986d2d89dd9b9f63ee916a18a5f9..dcdcadb771128e79259cc9eff9c70c38fc597976",
+    "models": [
+      {
+        "completion_tokens": 106,
+        "cost_usd": 0.0070476,
+        "elapsed_ms": 2358,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 17195,
+        "summary": "This change refactors the monitor failure marking logic by extracting the incident threshold handling into a new function `try_incident_threshold` in `incidents.py` and moving issue occurrence creation to `incident_occurrence.py`. The `mark_failed` function now delegates to `try_incident_threshold`. The `SimpleCheckIn` TypedDict is moved to `types.py` for reuse. The refactor preserves existing behavior and improves modularity without introducing regressions or bugs.",
+        "verdict": "approve"
+      }
+    ],
+    "stats": {
+      "build_ms": 186,
+      "diff_tokens": 3430,
+      "estimated_tokens": 15944,
+      "files_changed": 4,
+      "files_scanned": 15071,
+      "files_tokens": 5995,
+      "snippet_tokens": 6519,
+      "snippets_dropped": 0,
+      "snippets_kept": 25
+    },
+    "total_ms": 2553,
+    "verdict": "approve"
+  }
+}

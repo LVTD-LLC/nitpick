@@ -1,0 +1,122 @@
+{
+  "case": {
+    "id": "grafana-107534",
+    "source": "grafana.json",
+    "url": "https://github.com/grafana/grafana/pull/107534",
+    "split": "dev",
+    "base": "d9a8253640464014aa3662c91131278990cfb828",
+    "head": "1cab4143d443c33079566f6ca36931eb8468159f"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json",
+      "--focus",
+      "Review each changed hunk before drafting findings. For each altered decision, trace a concrete input through the old and new behavior. Check boundary values, failure paths, and the contracts imposed by surrounding callers and tests. Verify suspected failures against the actual types, guards, and versions shown. Drop claims that the code contradicts, observations of correct behavior, and guesses that lack a failing scenario. Group repeated instances of one root cause into a single actionable finding, citing one changed line and mentioning other affected sites in its body."
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "In both runSplitQuery (line 296) and runShardSplitQuery (line 49), the code now applies template variable interpolation to each query target before further processing. This is done by mapping each query through datasource.applyTemplateVariables. This change ensures that any template variables in the query expressions or steps are replaced before splitting or sharding logic is applied. The tests added in querySplitting.test.ts and shardQuerySplitting.test.ts confirm that queries with variables like '$__auto' and '$step' are correctly interpolated before execution. This is a correctness improvement, ensuring that query splitting and sharding operate on fully interpolated queries, preventing errors or incorrect query execution due to unprocessed template variables.",
+        "category": "correctness",
+        "end_line": 299,
+        "file": "public/app/plugins/datasource/loki/querySplitting.ts",
+        "line": 296,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": null,
+        "title": "Apply template variable interpolation before query splitting"
+      },
+      {
+        "body": "The previous code in runShardSplitQuery used datasource.interpolateVariablesInQueries to interpolate variables in queries, but this method was replaced with datasource.applyTemplateVariables applied per query (line 49). The tests were updated accordingly to mock applyTemplateVariables instead of interpolateVariablesInQueries. This change aligns the interpolation method with the one used in runSplitQuery, improving consistency and correctness. The new approach applies interpolation individually per query, which is more precise and avoids potential issues with batch interpolation. The tests verify that the interpolation occurs the expected number of times and that the queries are correctly transformed.",
+        "category": "correctness",
+        "end_line": 52,
+        "file": "public/app/plugins/datasource/loki/shardQuerySplitting.ts",
+        "line": 49,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": null,
+        "title": "Replace interpolateVariablesInQueries with applyTemplateVariables for query interpolation in shard splitting"
+      },
+      {
+        "body": "The tests added in querySplitting.test.ts and shardQuerySplitting.test.ts verify that queries with template variables are interpolated before execution. They mock the datasource's replace method to replace variables like '$__auto' and '$step' with concrete values and check that the queries passed to runQuery have these variables replaced. This improves test coverage for the new interpolation behavior introduced in the code. The tests also verify that the interpolation method applyTemplateVariables is called the expected number of times. This is a positive addition ensuring the new behavior is tested.",
+        "category": "test",
+        "end_line": 87,
+        "file": "public/app/plugins/datasource/loki/querySplitting.test.ts",
+        "line": 75,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Add tests verifying query interpolation before execution in runSplitQuery"
+      },
+      {
+        "body": "The retry logic in runSplitGroupedQueries (lines 131-163) and runNextRequest in shardQuerySplitting.ts (lines 103-144) remains unchanged, but the new interpolation step ensures that queries are fully prepared before splitting and retrying. This reduces the risk of retrying queries with unprocessed variables, which could cause errors or inconsistent results. The retry logic uses exponential backoff and limits retries to one or two attempts, which is appropriate. No regressions or issues were found in retry handling related to this change.",
+        "category": "correctness",
+        "end_line": 163,
+        "file": "public/app/plugins/datasource/loki/querySplitting.ts",
+        "line": 131,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Retry logic unaffected and consistent with new interpolation step"
+      }
+    ],
+    "head": "1cab4143",
+    "mode": "range d9a8253640464014aa3662c91131278990cfb828..1cab4143d443c33079566f6ca36931eb8468159f",
+    "models": [
+      {
+        "completion_tokens": 939,
+        "cost_usd": 0.010924,
+        "elapsed_ms": 10364,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 23554,
+        "summary": "The change introduces interpolation of template variables in queries before query splitting and sharding logic is applied, improving correctness and consistency. It replaces a previous batch interpolation method with per-query interpolation for shard splitting, aligning with the approach in query splitting. Tests were added to verify this interpolation behavior. The changes are positive correctness improvements with no regressions detected.",
+        "verdict": "approve"
+      }
+    ],
+    "stats": {
+      "build_ms": 213,
+      "diff_tokens": 2060,
+      "estimated_tokens": 21569,
+      "files_changed": 4,
+      "files_scanned": 15111,
+      "files_tokens": 13106,
+      "snippet_tokens": 6403,
+      "snippets_dropped": 0,
+      "snippets_kept": 17
+    },
+    "total_ms": 10588,
+    "verdict": "request_changes"
+  }
+}

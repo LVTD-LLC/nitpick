@@ -1,0 +1,144 @@
+[
+  {
+    "case": "cal_dot_com-8087",
+    "split": "dev",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "cal_dot_com-10967",
+    "split": "dev",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "cal_dot_com-11059",
+    "split": "holdout",
+    "nonempty_added_text_files": 3,
+    "missing": [
+      "apps/web/pages/api/webhook/app-credential.ts",
+      "packages/app-store/_utils/oauth/parseRefreshTokenResponse.ts",
+      "packages/app-store/_utils/oauth/refreshOAuthTokens.ts"
+    ]
+  },
+  {
+    "case": "cal_dot_com-8330",
+    "split": "holdout",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "discourse-6",
+    "split": "dev",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "discourse-5",
+    "split": "dev",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "discourse-3",
+    "split": "holdout",
+    "nonempty_added_text_files": 6,
+    "missing": []
+  },
+  {
+    "case": "discourse-4",
+    "split": "holdout",
+    "nonempty_added_text_files": 16,
+    "missing": []
+  },
+  {
+    "case": "grafana-90939",
+    "split": "dev",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "grafana-107534",
+    "split": "dev",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "grafana-79265",
+    "split": "holdout",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "grafana-76186",
+    "split": "holdout",
+    "nonempty_added_text_files": 1,
+    "missing": []
+  },
+  {
+    "case": "keycloak-37634",
+    "split": "dev",
+    "nonempty_added_text_files": 8,
+    "missing": [
+      "services/src/main/java/org/keycloak/protocol/oidc/encode/AccessTokenContext.java",
+      "services/src/main/java/org/keycloak/protocol/oidc/encode/DefaultTokenContextEncoderProvider.java",
+      "services/src/main/java/org/keycloak/protocol/oidc/encode/DefaultTokenContextEncoderProviderFactory.java",
+      "services/src/main/java/org/keycloak/protocol/oidc/encode/TokenContextEncoderProvider.java",
+      "services/src/main/java/org/keycloak/protocol/oidc/encode/TokenContextEncoderProviderFactory.java",
+      "services/src/main/java/org/keycloak/protocol/oidc/encode/TokenContextEncoderSpi.java",
+      "services/src/main/resources/META-INF/services/org.keycloak.protocol.oidc.encode.TokenContextEncoderProviderFactory",
+      "services/src/test/java/org/keycloak/protocol/oidc/encode/DefaultTokenContextEncoderProviderTest.java"
+    ]
+  },
+  {
+    "case": "keycloak-36882",
+    "split": "dev",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "keycloak-1",
+    "split": "holdout",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "keycloak-37429",
+    "split": "holdout",
+    "nonempty_added_text_files": 5,
+    "missing": [
+      "misc/theme-verifier/src/test/resources/changedAnchor_de.properties",
+      "misc/theme-verifier/src/test/resources/changedAnchor_en.properties",
+      "misc/theme-verifier/src/test/resources/illegalHtmlTag_en.properties",
+      "misc/theme-verifier/src/test/resources/noHtml_de.properties",
+      "misc/theme-verifier/src/test/resources/noHtml_en.properties"
+    ]
+  },
+  {
+    "case": "sentry-95633",
+    "split": "dev",
+    "nonempty_added_text_files": 2,
+    "missing": [
+      "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
+      "tests/sentry/remote_subscriptions/consumers/test_queue_consumer.py"
+    ]
+  },
+  {
+    "case": "sentry-80528",
+    "split": "dev",
+    "nonempty_added_text_files": 2,
+    "missing": []
+  },
+  {
+    "case": "sentry-67876",
+    "split": "holdout",
+    "nonempty_added_text_files": 0,
+    "missing": []
+  },
+  {
+    "case": "sentry-3",
+    "split": "holdout",
+    "nonempty_added_text_files": 2,
+    "missing": []
+  }
+]

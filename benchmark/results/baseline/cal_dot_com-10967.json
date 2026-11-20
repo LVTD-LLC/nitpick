@@ -1,0 +1,185 @@
+{
+  "case": {
+    "id": "cal_dot_com-10967",
+    "source": "cal_dot_com.json",
+    "url": "https://github.com/calcom/cal.com/pull/10967",
+    "split": "dev",
+    "base": "a308075bc39b77ed7059b0cae9d443d669a7bf98",
+    "head": "de628295646d0848226618108a52f2f1e5d04ac0"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 6,
+    "findings": [
+      {
+        "body": "In multiple places, the code converts a single DestinationCalendar object into an array containing that object (e.g., `destinationCalendar: booking.destinationCalendar ? [booking.destinationCalendar] : ...`). However, the type of `booking.destinationCalendar` is already an array (`DestinationCalendar[] | null`) as updated in the types and class definitions. Wrapping it again in an array results in a nested array (`DestinationCalendar[][]`), which is incorrect and will cause runtime errors when the code expects a flat array of DestinationCalendar objects.",
+        "category": "bug",
+        "end_line": 130,
+        "file": "apps/web/pages/api/cron/bookingReminder.ts",
+        "line": 130,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Remove the extra array wrapping. Use `destinationCalendar: booking.destinationCalendar || user.destinationCalendar || []` directly, assuming these are arrays already.",
+        "title": "Incorrect wrapping of destinationCalendar array causing nested arrays"
+      },
+      {
+        "body": "In `packages/core/EventManager.ts`, the method `createAllCalendarEvents` iterates over `event.destinationCalendar` assuming it is an array, which is correct. However, in places where `destinationCalendar` is assigned from booking or user objects, the code sometimes wraps it again in an array, causing nested arrays. This inconsistency can cause bugs when accessing `destinationCalendar` as an array of DestinationCalendar objects.",
+        "category": "bug",
+        "end_line": 1079,
+        "file": "packages/core/EventManager.ts",
+        "line": 1078,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Ensure that `destinationCalendar` is always assigned as an array of DestinationCalendar objects without extra wrapping. Remove redundant array wrapping when the source is already an array.",
+        "title": "Nested arrays due to redundant wrapping of destinationCalendar"
+      },
+      {
+        "body": "In `packages/features/bookings/lib/handleCancelBooking.ts`, the code wraps `bookingToDelete.destinationCalendar` in an array even though its type is already an array, causing nested arrays. This will cause errors when downstream code expects a flat array of DestinationCalendar objects.",
+        "category": "bug",
+        "end_line": 255,
+        "file": "packages/features/bookings/lib/handleCancelBooking.ts",
+        "line": 252,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Assign `destinationCalendar` directly without wrapping in an array, e.g., `destinationCalendar: bookingToDelete.destinationCalendar || bookingToDelete.user.destinationCalendar || []`.",
+        "title": "Nested arrays due to redundant wrapping of destinationCalendar in handleCancelBooking"
+      },
+      {
+        "body": "In `packages/features/ee/payments/api/paypal-webhook.ts` and `packages/features/ee/payments/api/webhook.ts`, the code wraps `booking.destinationCalendar` in an array even though it is already an array, causing nested arrays. This will cause runtime errors when the calendar event expects a flat array.",
+        "category": "bug",
+        "end_line": 156,
+        "file": "packages/features/ee/payments/api/paypal-webhook.ts",
+        "line": 153,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Assign `destinationCalendar` directly without wrapping in an array, e.g., `destinationCalendar: booking.destinationCalendar || user.destinationCalendar || []`.",
+        "title": "Nested arrays due to redundant wrapping of destinationCalendar in payment webhook handlers"
+      },
+      {
+        "body": "In `packages/trpc/server/routers/loggedInViewer/deleteCredential.handler.ts` and other booking handlers, the code wraps `booking.destinationCalendar` in an array even though it is already an array, causing nested arrays. This will cause errors when the calendar event expects a flat array.",
+        "category": "bug",
+        "end_line": 294,
+        "file": "packages/trpc/server/routers/loggedInViewer/deleteCredential.handler.ts",
+        "line": 291,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Assign `destinationCalendar` directly without wrapping in an array, e.g., `destinationCalendar: booking.destinationCalendar || booking.user?.destinationCalendar || []`.",
+        "title": "Nested arrays due to redundant wrapping of destinationCalendar in deleteCredential handler"
+      },
+      {
+        "body": "In `packages/trpc/server/routers/viewer/bookings/confirm.handler.ts`, `editLocation.handler.ts`, `requestReschedule.handler.ts`, and similar booking handlers, the code wraps `booking.destinationCalendar` or `bookingToReschedule.destinationCalendar` in an array even though it is already an array, causing nested arrays.",
+        "category": "bug",
+        "end_line": 179,
+        "file": "packages/trpc/server/routers/viewer/bookings/confirm.handler.ts",
+        "line": 176,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Assign `destinationCalendar` directly without wrapping in an array, e.g., `destinationCalendar: booking.destinationCalendar || user.destinationCalendar || []`.",
+        "title": "Nested arrays due to redundant wrapping of destinationCalendar in booking handlers"
+      },
+      {
+        "body": "In `packages/app-store/googlecalendar/lib/CalendarService.ts` and other calendar service implementations, the code correctly treats `destinationCalendar` as an array and accesses the first element or finds by credentialId. However, in some update and delete methods, the code uses `event.destinationCalendar?.find(cal => cal.externalId === externalCalendarId)?.externalId` where `externalCalendarId` is used as a search key but can be null or undefined, which may cause unexpected behavior or always return undefined.",
+        "category": "bug",
+        "end_line": 256,
+        "file": "packages/app-store/googlecalendar/lib/CalendarService.ts",
+        "line": 255,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add a null check for `externalCalendarId` before using it in `.find()`. For example, if `externalCalendarId` is falsy, fallback to a default calendar id.",
+        "title": "Potential incorrect calendar selection when externalCalendarId is null or undefined"
+      },
+      {
+        "body": "In `packages/app-store/larkcalendar/lib/CalendarService.ts` and `packages/app-store/office365calendar/lib/CalendarService.ts`, the code correctly treats `destinationCalendar` as an array and accesses the first element. This is consistent with the updated type. No issues found here.",
+        "category": "other",
+        "end_line": 240,
+        "file": "packages/app-store/larkcalendar/lib/CalendarService.ts",
+        "line": 128,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "nit",
+        "suggestion": null,
+        "title": "Correct handling of destinationCalendar as array in LarkCalendarService"
+      },
+      {
+        "body": "In `packages/core/CalendarManager.ts`, the `createEvent` function signature changed to accept an optional `externalId` parameter, and the call sites in `EventManager.ts` were updated accordingly. This is a backward-compatible change and improves calendar event creation by associating external calendar IDs. No issues found.",
+        "category": "other",
+        "end_line": 270,
+        "file": "packages/core/CalendarManager.ts",
+        "line": 218,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "nit",
+        "suggestion": null,
+        "title": "Added externalId parameter to createEvent for better calendar event association"
+      }
+    ],
+    "head": "de62829",
+    "mode": "range a308075bc39b77ed7059b0cae9d443d669a7bf98..de628295646d0848226618108a52f2f1e5d04ac0",
+    "models": [
+      {
+        "completion_tokens": 1459,
+        "cost_usd": 0.0301684,
+        "elapsed_ms": 16761,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 69585,
+        "summary": "The change updates the `destinationCalendar` property from a single object to an array of DestinationCalendar objects across many files. However, in many places, the code incorrectly wraps an already-array `destinationCalendar` in another array, causing nested arrays and likely runtime errors. This is a high-severity bug that needs fixing by removing redundant array wrapping. Other calendar service implementations correctly handle `destinationCalendar` as an array. Minor potential issue with null checks on externalCalendarId in calendar services.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 355,
+      "diff_tokens": 15250,
+      "estimated_tokens": 66805,
+      "files_changed": 22,
+      "files_scanned": 2987,
+      "files_tokens": 33036,
+      "snippet_tokens": 18519,
+      "snippets_dropped": 0,
+      "snippets_kept": 88
+    },
+    "total_ms": 17129,
+    "verdict": "request_changes"
+  }
+}

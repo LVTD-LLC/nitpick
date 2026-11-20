@@ -1,0 +1,109 @@
+{
+  "case": {
+    "id": "keycloak-36882",
+    "source": "keycloak.json",
+    "url": "https://github.com/keycloak/keycloak/pull/36882",
+    "split": "dev",
+    "base": "1b28ac610dc16e0de14199f9ca5d2acdf7f3cc16",
+    "head": "62bf98939eda58f0d0a1a41a58aa6d4ecdc24dba"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json",
+      "--focus",
+      "Review each changed hunk before drafting findings. For each altered decision, trace a concrete input through the old and new behavior. Check boundary values, failure paths, and the contracts imposed by surrounding callers and tests. Verify suspected failures against the actual types, guards, and versions shown. Drop claims that the code contradicts, observations of correct behavior, and guesses that lack a failing scenario. Group repeated instances of one root cause into a single actionable finding, citing one changed line and mentioning other affected sites in its body."
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "The update compatibility commands `UpdateCompatibilityCheck` and `UpdateCompatibilityMetadata` now require the preview feature `rolling-updates` to be enabled, otherwise they exit with a specific code and print an error. This is consistent with the documentation updates and the feature flag addition in `Profile`. However, the exit code for `RECREATE_UPGRADE_EXIT_CODE` was changed from 4 to 3, and a new exit code `FEATURE_DISABLED` was added as 4. This change in exit codes could break existing scripts or automation that rely on the previous exit codes, as the meaning of exit code 4 has changed. The documentation and code comments should clearly reflect this change, and users should be warned about the new exit codes to avoid confusion or automation failures.",
+        "category": "api",
+        "end_line": 34,
+        "file": "quarkus/runtime/src/main/java/org/keycloak/quarkus/runtime/compatibility/CompatibilityResult.java",
+        "line": 34,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Document the exit code changes clearly in the release notes and update any automation scripts accordingly.",
+        "title": "Changed exit codes in CompatibilityResult may break existing automation"
+      },
+      {
+        "body": "The `UpgradeTest` integration test now enables the `rolling-updates` feature explicitly in the `FeatureSpec` when creating the initial deployment. This is consistent with the new requirement that the feature must be enabled for rolling updates. However, the test only enables the feature when `updateStrategy` is not null, which means tests with `null` strategy do not enable the feature. This could lead to inconsistent test behavior or false positives/negatives if the feature flag is required for all rolling update related tests. It is recommended to enable the feature consistently in all relevant tests to avoid flaky or misleading test results.",
+        "category": "test",
+        "end_line": 115,
+        "file": "operator/src/test/java/org/keycloak/operator/testsuite/integration/UpgradeTest.java",
+        "line": 115,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Enable the rolling-updates feature in all tests that involve update strategies, including when updateStrategy is null.",
+        "title": "Inconsistent enabling of rolling-updates feature in UpgradeTest"
+      },
+      {
+        "body": "The documentation in `advanced-configuration.adoc` and `update-compatibility.adoc` was updated to emphasize that the `rolling-updates` feature must be enabled while it is in preview, otherwise the operator or commands will fail. This is consistent with the code changes. However, the documentation should also mention the new exit code 4 (`FEATURE_DISABLED`) returned by the commands when the feature is disabled, to help users understand the failure mode and automate accordingly.",
+        "category": "docs",
+        "end_line": 134,
+        "file": "docs/guides/server/update-compatibility.adoc",
+        "line": 134,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Add documentation about the new exit code 4 indicating the rolling-updates feature is disabled.",
+        "title": "Missing documentation of new exit code for feature disabled in update compatibility guide"
+      }
+    ],
+    "head": "62bf989",
+    "mode": "range 1b28ac610dc16e0de14199f9ca5d2acdf7f3cc16..62bf98939eda58f0d0a1a41a58aa6d4ecdc24dba",
+    "models": [
+      {
+        "completion_tokens": 686,
+        "cost_usd": 0.0073108,
+        "elapsed_ms": 6570,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 15533,
+        "summary": "The change introduces a new preview feature flag 'rolling-updates' that must be enabled for certain commands and operator behavior. It adds new exit codes and modifies existing ones, which may impact automation. Tests were updated to enable the feature selectively. Documentation was updated but lacks mention of new exit codes. Overall, the changes are consistent but require careful communication to users and test coverage improvements.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 136,
+      "diff_tokens": 3125,
+      "estimated_tokens": 14655,
+      "files_changed": 10,
+      "files_scanned": 9614,
+      "files_tokens": 11530,
+      "snippet_tokens": 0,
+      "snippets_dropped": 0,
+      "snippets_kept": 0
+    },
+    "total_ms": 6716,
+    "verdict": "request_changes"
+  }
+}

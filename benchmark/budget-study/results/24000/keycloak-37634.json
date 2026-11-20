@@ -1,0 +1,81 @@
+{
+  "case": {
+    "id": "keycloak-37634",
+    "source": "keycloak.json",
+    "url": "https://github.com/keycloak/keycloak/pull/37634",
+    "split": "dev",
+    "base": "c22f76867f595f0f7c327376a66a08dca01949e8",
+    "head": "daffb05b5ad091d3ec09933c3c99c2b54f448696"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "In AccessTokenContext constructor (services/src/main/java/org/keycloak/protocol/oidc/encode/AccessTokenContext.java line 44), the check for rawTokenId uses Objects.requireNonNull(grantType, ...) instead of rawTokenId. This means rawTokenId can be null without detection, and the error message is misleading.",
+        "category": "bug",
+        "end_line": 44,
+        "file": "services/src/main/java/org/keycloak/protocol/oidc/encode/AccessTokenContext.java",
+        "line": 44,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Change Objects.requireNonNull(grantType, \"Null rawTokenId not allowed\") to Objects.requireNonNull(rawTokenId, \"Null rawTokenId not allowed\") in constructor.",
+        "title": "Incorrect null check for rawTokenId in AccessTokenContext constructor"
+      }
+    ],
+    "head": "daffb05",
+    "mode": "range c22f76867f595f0f7c327376a66a08dca01949e8..daffb05b5ad091d3ec09933c3c99c2b54f448696",
+    "models": [
+      {
+        "completion_tokens": 253,
+        "cost_usd": 0.0073932,
+        "elapsed_ms": 4503,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 17471,
+        "summary": "The change introduces a new token context encoding mechanism with session type, token type, and grant type shortcuts encoded in token IDs. It adds new SPI and provider implementations and updates grant factories to provide shortcuts. The main issue is a bug in AccessTokenContext constructor where rawTokenId null check is incorrectly implemented. Otherwise, the change appears well-structured and tested.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 148,
+      "diff_tokens": 16447,
+      "estimated_tokens": 17033,
+      "files_changed": 28,
+      "files_scanned": 9722,
+      "files_tokens": 0,
+      "snippet_tokens": 586,
+      "snippets_dropped": 0,
+      "snippets_kept": 6
+    },
+    "total_ms": 4662,
+    "verdict": "request_changes"
+  }
+}

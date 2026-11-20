@@ -1,0 +1,69 @@
+{
+  "case": {
+    "id": "grafana-90939",
+    "source": "grafana.json",
+    "url": "https://github.com/grafana/grafana/pull/90939",
+    "split": "dev",
+    "base": "cca9dee702ac4338ddc38aa56257273b8143e32e",
+    "head": "b1613e320acff00623e6efc59f00ee68c7684a97"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json",
+      "--focus",
+      "Review each changed hunk before drafting findings. For each altered decision, trace a concrete input through the old and new behavior. Check boundary values, failure paths, and the contracts imposed by surrounding callers and tests. Verify suspected failures against the actual types, guards, and versions shown. Drop claims that the code contradicts, observations of correct behavior, and guesses that lack a failing scenario. Group repeated instances of one root cause into a single actionable finding, citing one changed line and mentioning other affected sites in its body."
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [],
+    "head": "b1613e32",
+    "mode": "range cca9dee702ac4338ddc38aa56257273b8143e32e..b1613e320acff00623e6efc59f00ee68c7684a97",
+    "models": [
+      {
+        "completion_tokens": 93,
+        "cost_usd": 0.0036636,
+        "elapsed_ms": 1629,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 8787,
+        "summary": "This change adds a read-write mutex to guard access to the global entryPointAssetsCache variable in GetWebAssets, ensuring thread-safe concurrent access. The cache is read under a read lock and updated under a write lock, preventing race conditions. The overall behavior and caching logic remain unchanged, and the locking is correctly applied with defer for unlock. No regressions or bugs are introduced by this concurrency fix.",
+        "verdict": "approve"
+      }
+    ],
+    "stats": {
+      "build_ms": 296,
+      "diff_tokens": 360,
+      "estimated_tokens": 4880,
+      "files_changed": 1,
+      "files_scanned": 12530,
+      "files_tokens": 1475,
+      "snippet_tokens": 3045,
+      "snippets_dropped": 0,
+      "snippets_kept": 5
+    },
+    "total_ms": 1935,
+    "verdict": "approve"
+  }
+}

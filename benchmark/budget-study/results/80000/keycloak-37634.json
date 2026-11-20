@@ -1,0 +1,81 @@
+{
+  "case": {
+    "id": "keycloak-37634",
+    "source": "keycloak.json",
+    "url": "https://github.com/keycloak/keycloak/pull/37634",
+    "split": "dev",
+    "base": "c22f76867f595f0f7c327376a66a08dca01949e8",
+    "head": "daffb05b5ad091d3ec09933c3c99c2b54f448696"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "In `AssertEvents.java` at line 483, the condition `if (items[0].substring(3, 5).equals(expectedGrantShortcut)) return false;` is incorrect. It returns false when the grant shortcut matches the expected grant shortcut, which is the opposite of the intended behavior. This causes the matcher to fail for valid token IDs with the expected grant shortcut.",
+        "category": "bug",
+        "end_line": 485,
+        "file": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/AssertEvents.java",
+        "line": 483,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Change the condition to `if (!items[0].substring(3, 5).equals(expectedGrantShortcut)) return false;` to correctly match the expected grant shortcut.",
+        "title": "Incorrect logic in isAccessTokenId matcher for grant shortcut check"
+      }
+    ],
+    "head": "daffb05",
+    "mode": "range c22f76867f595f0f7c327376a66a08dca01949e8..daffb05b5ad091d3ec09933c3c99c2b54f448696",
+    "models": [
+      {
+        "completion_tokens": 247,
+        "cost_usd": 0.0227172,
+        "elapsed_ms": 6296,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 55805,
+        "summary": "The change adds token context encoding with grant type shortcuts and updates multiple grant factories to provide shortcuts. The main issue is a logic bug in the test matcher `isAccessTokenId` that incorrectly rejects valid token IDs with expected grant shortcuts. Fixing this is critical for tests relying on this matcher.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 166,
+      "diff_tokens": 9295,
+      "estimated_tokens": 60783,
+      "files_changed": 28,
+      "files_scanned": 9722,
+      "files_tokens": 50902,
+      "snippet_tokens": 586,
+      "snippets_dropped": 0,
+      "snippets_kept": 6
+    },
+    "total_ms": 6482,
+    "verdict": "request_changes"
+  }
+}

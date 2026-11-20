@@ -1,0 +1,81 @@
+{
+  "case": {
+    "id": "sentry-80528",
+    "source": "sentry.json",
+    "url": "https://github.com/getsentry/sentry/pull/80528",
+    "split": "dev",
+    "base": "0cfc28e76ddc986d2d89dd9b9f63ee916a18a5f9",
+    "head": "dcdcadb771128e79259cc9eff9c70c38fc597976"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "In src/sentry/monitors/logic/incident_occurrence.py, the function get_monitor_environment_context copies the monitor config but then returns the original config instead of the copied and modified one. This means the schedule_type display update is not reflected in the returned context, potentially causing incorrect or stale schedule_type information in the issue occurrence context.",
+        "category": "bug",
+        "end_line": 171,
+        "file": "src/sentry/monitors/logic/incident_occurrence.py",
+        "line": 164,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Return the modified copy 'config' instead of 'monitor_environment.monitor.config' in the dictionary, i.e., change line 168 to '\"config\": config,'.",
+        "title": "get_monitor_environment_context returns unmodified config ignoring schedule_type update"
+      }
+    ],
+    "head": "dcdcadb7",
+    "mode": "range 0cfc28e76ddc986d2d89dd9b9f63ee916a18a5f9..dcdcadb771128e79259cc9eff9c70c38fc597976",
+    "models": [
+      {
+        "completion_tokens": 250,
+        "cost_usd": 0.0072344,
+        "elapsed_ms": 3062,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 17086,
+        "summary": "The change refactors the mark_failed logic to delegate incident threshold handling to a new function try_incident_threshold in a new incidents.py module and moves issue occurrence creation to incident_occurrence.py. The refactor improves modularity and separation of concerns. However, there is a high severity bug in get_monitor_environment_context where the modified config copy is not returned, causing incorrect context data in issue occurrences.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 164,
+      "diff_tokens": 3430,
+      "estimated_tokens": 15944,
+      "files_changed": 4,
+      "files_scanned": 15071,
+      "files_tokens": 5995,
+      "snippet_tokens": 6519,
+      "snippets_dropped": 0,
+      "snippets_kept": 25
+    },
+    "total_ms": 3237,
+    "verdict": "request_changes"
+  }
+}

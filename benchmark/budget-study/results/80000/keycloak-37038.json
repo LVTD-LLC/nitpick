@@ -1,0 +1,237 @@
+{
+  "case": {
+    "id": "keycloak-37038",
+    "source": "keycloak.json",
+    "url": "https://github.com/keycloak/keycloak/pull/37038",
+    "split": "fresh",
+    "base": "7ea067aae9be56cb2622bce6563864817c3dfeaf",
+    "head": "7355f05e6aafe2a7acc6434fb40c686665416606"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [
+      {
+        "body": "In rest/admin-ui-ext/src/main/java/org/keycloak/admin/ui/rest/BruteForceUsersResource.java at line 144, the method searchForUser sets the session attribute UserModel.GROUPS to the set of group IDs with view permission if the set is not empty. However, the subsequent call to session.users().searchForUserStream does not filter the users by these groups explicitly. Instead, the filtering relies on the UserPermissionEvaluator's canView method. This is consistent with the previous behavior, but the previous code had a conditional check on auth.users().canView() before setting the groups attribute, which is now removed. This change might affect permission evaluation if the UserPermissionEvaluator expects the groups attribute to be set only under certain conditions. The impact depends on the implementation of UserPermissionEvaluator.canView and related methods, which is not fully visible here. This is a medium severity potential correctness issue that requires verification of permission evaluation logic.",
+        "category": "correctness",
+        "end_line": 153,
+        "file": "rest/admin-ui-ext/src/main/java/org/keycloak/admin/ui/rest/BruteForceUsersResource.java",
+        "line": 144,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Verify that setting UserModel.GROUPS unconditionally when groupIds is not empty does not cause permission evaluation issues. If needed, restore the conditional check on auth.users().canView() before setting the attribute.",
+        "title": "Potential permission evaluation impact due to unconditional setting of UserModel.GROUPS attribute in searchForUser"
+      },
+      {
+        "body": "In services/src/main/java/org/keycloak/services/resources/admin/GroupsResource.java at line 113, the code filters the stream of groups by groupsEvaluator::canView without checking if the caller can view all groups globally. Previously, there was a check for canViewGlobal and a conditional filter. The new code simplifies this to always filter by groupsEvaluator::canView. This is consistent with the intended permission model and does not introduce a bug. No issue found here.",
+        "category": "other",
+        "end_line": 114,
+        "file": "services/src/main/java/org/keycloak/services/resources/admin/GroupsResource.java",
+        "line": 113,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Simplified group filtering by permission evaluator"
+      },
+      {
+        "body": "In services/src/main/java/org/keycloak/services/resources/admin/UsersResource.java at lines 398, 425, and 430, the calls to session.users().getUsersCount now pass auth.groups().getGroupIdsWithViewPermission() instead of auth.groups().getGroupsWithViewPermission(). This is a correct fix because the method expects a set of group IDs, not group models. This change fixes a bug in the previous code where group models were passed instead of IDs. No issue here.",
+        "category": "correctness",
+        "end_line": 430,
+        "file": "services/src/main/java/org/keycloak/services/resources/admin/UsersResource.java",
+        "line": 398,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Corrected passing group IDs instead of group models to getUsersCount"
+      },
+      {
+        "body": "In services/src/main/java/org/keycloak/services/resources/admin/UsersResource.java at line 446, the method searchForUser now sets the session attribute UserModel.GROUPS to the set of group IDs with view permission if not empty, without checking if the user can view all users globally. This is consistent with the change in BruteForceUsersResource and aligns with the permission evaluation logic. No issue found here.",
+        "category": "other",
+        "end_line": 453,
+        "file": "services/src/main/java/org/keycloak/services/resources/admin/UsersResource.java",
+        "line": 446,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Consistent setting of UserModel.GROUPS attribute in searchForUser"
+      },
+      {
+        "body": "In services/src/main/java/org/keycloak/services/resources/admin/permissions/AdminPermissions.java at lines 74-98, the registration of the ProviderEventListener is now conditional on Profile.Feature.ADMIN_FINE_GRAINED_AUTHZ being enabled before registering the listener. Previously, the listener was always registered and checked the feature flag inside onEvent. This change avoids unnecessary listener registration when the feature is disabled, which is a positive improvement. No issue found here.",
+        "category": "other",
+        "end_line": 98,
+        "file": "services/src/main/java/org/keycloak/services/resources/admin/permissions/AdminPermissions.java",
+        "line": 74,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Optimize ProviderEventListener registration based on feature flag"
+      },
+      {
+        "body": "In services/src/main/java/org/keycloak/services/resources/admin/permissions/GroupPermissions.java at lines 148-149, the method canList() returns root.hasOneAdminRole(AdminRoles.QUERY_GROUPS) || canView(), which is a correct logic to allow listing if the user has query groups role or can view groups. This is a fix from previous code that had canView() || root.hasOneAdminRole(...). No issue found here.",
+        "category": "other",
+        "end_line": 149,
+        "file": "services/src/main/java/org/keycloak/services/resources/admin/permissions/GroupPermissions.java",
+        "line": 148,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Corrected canList logic in GroupPermissions"
+      },
+      {
+        "body": "In services/src/main/java/org/keycloak/services/resources/admin/permissions/GroupPermissions.java at lines 275-276, the method canManage() now returns root.hasOneAdminRole(AdminRoles.MANAGE_USERS) instead of root.users().canManageDefault(). This aligns with the new permission model and is consistent with other changes. No issue found here.",
+        "category": "other",
+        "end_line": 276,
+        "file": "services/src/main/java/org/keycloak/services/resources/admin/permissions/GroupPermissions.java",
+        "line": 275,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Updated canManage to use hasOneAdminRole for MANAGE_USERS"
+      },
+      {
+        "body": "In services/src/main/java/org/keycloak/services/resources/admin/permissions/GroupPermissions.java at lines 287-288, the method canView() now returns root.hasOneAdminRole(AdminRoles.MANAGE_USERS, AdminRoles.VIEW_USERS) instead of root.users().canViewDefault(). This is consistent with the new permission model. No issue found here.",
+        "category": "other",
+        "end_line": 288,
+        "file": "services/src/main/java/org/keycloak/services/resources/admin/permissions/GroupPermissions.java",
+        "line": 287,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Updated canView to use hasOneAdminRole for MANAGE_USERS and VIEW_USERS"
+      },
+      {
+        "body": "In services/src/main/java/org/keycloak/services/resources/admin/permissions/GroupPermissions.java at lines 298-320, the method getGroupIdsWithViewPermission() returns an empty set if root.users().canView() is true, otherwise it collects group IDs from resources with view members or manage members scope permissions. This replaces the previous method getGroupsWithViewPermission() which returned a boolean per group. This is a correct API change consistent with the interface. No issue found here.",
+        "category": "other",
+        "end_line": 320,
+        "file": "services/src/main/java/org/keycloak/services/resources/admin/permissions/GroupPermissions.java",
+        "line": 298,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Updated getGroupIdsWithViewPermission to return set of group IDs"
+      },
+      {
+        "body": "In services/src/main/java/org/keycloak/services/resources/admin/permissions/GroupPermissions.java at lines 337-341, the method canViewMembers() returns true if root.users().canView() is true, otherwise checks permission with view members and manage members scopes. This is consistent with the new permission model. No issue found here.",
+        "category": "other",
+        "end_line": 341,
+        "file": "services/src/main/java/org/keycloak/services/resources/admin/permissions/GroupPermissions.java",
+        "line": 337,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Updated canViewMembers to check view and manage members scopes"
+      },
+      {
+        "body": "In services/src/main/java/org/keycloak/services/resources/admin/permissions/UserPermissions.java at lines 582-590, the methods canManageByGroup and canViewByGroup use evaluateHierarchy with root.groups()::canManageMembers and root.groups()::canViewMembers respectively. This is consistent with the new permission model and the interface changes. No issue found here.",
+        "category": "other",
+        "end_line": 590,
+        "file": "services/src/main/java/org/keycloak/services/resources/admin/permissions/UserPermissions.java",
+        "line": 582,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Updated canManageByGroup and canViewByGroup to use GroupPermissionEvaluator methods"
+      },
+      {
+        "body": "In test-framework/core/src/main/java/org/keycloak/testframework/util/ApiUtil.java at lines 8-13, the method handleCreatedResponse now uses try-with-resources to close the Response, which is a good resource management improvement. No issue found here.",
+        "category": "other",
+        "end_line": 13,
+        "file": "test-framework/core/src/main/java/org/keycloak/testframework/util/ApiUtil.java",
+        "line": 8,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Improved resource management in ApiUtil.handleCreatedResponse"
+      },
+      {
+        "body": "In services/src/main/java/org/keycloak/services/resources/admin/GroupResource.java at line 179, the variable 'child' is declared as 'GroupModel child = null;' and then immediately assigned in the if-else branches. The initialization to null is redundant and can be removed to clean up the code. This is a nit-level style issue.",
+        "category": "style",
+        "end_line": 179,
+        "file": "services/src/main/java/org/keycloak/services/resources/admin/GroupResource.java",
+        "line": 179,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "nit",
+        "suggestion": "Remove the redundant initialization 'GroupModel child = null;' and declare 'GroupModel child;' instead.",
+        "title": "Redundant initialization of variable 'child'"
+      }
+    ],
+    "head": "7355f05",
+    "mode": "range 7ea067aae9be56cb2622bce6563864817c3dfeaf..7355f05e6aafe2a7acc6434fb40c686665416606",
+    "models": [
+      {
+        "completion_tokens": 2064,
+        "cost_usd": 0.0268856,
+        "elapsed_ms": 28137,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 63470,
+        "summary": "The change introduces a new fine-grained authorization model for groups and users, refactors permission evaluation interfaces and implementations, and updates REST resources accordingly. Most changes are correct and improve permission handling. Minor style issues and a potential correctness concern about unconditional setting of session attributes for group IDs in user search methods were identified. Tests for new group resource type evaluation were added. Overall, the change is sound but requires verification of permission evaluation logic related to session attributes.",
+        "verdict": "approve"
+      }
+    ],
+    "stats": {
+      "build_ms": 149,
+      "diff_tokens": 12829,
+      "estimated_tokens": 69014,
+      "files_changed": 19,
+      "files_scanned": 9672,
+      "files_tokens": 55804,
+      "snippet_tokens": 381,
+      "snippets_dropped": 0,
+      "snippets_kept": 3
+    },
+    "total_ms": 28299,
+    "verdict": "comment"
+  }
+}

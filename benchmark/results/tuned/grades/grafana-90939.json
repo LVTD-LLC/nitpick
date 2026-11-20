@@ -1,0 +1,20 @@
+{
+  "case": "grafana-90939",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "c3bab4dd6d6fae72ff200b18fc110f6e93a9b5900dc33a2a94debeb1cb694bd3",
+  "review_sha256": "b661ac8202b83e60ea12a05bf1df5d535e825f534b46f6dbd3e5e786e1702219",
+  "references": [
+    {
+      "comment": "The GetWebAssets function implements an incomplete double-checked locking pattern for caching web assets. The function first checks if the cache is populated using a read lock (RLock), and if the cache is empty, it acquires a write lock to populate it. However, it fails to re-check whether the cache was populated by another goroutine while waiting to acquire the write lock.",
+      "severity": "Medium",
+      "category": "concurrency"
+    },
+    {
+      "comment": "In addition to the missing double-check, the function has a critical flaw in its error handling: it unconditionally assigns the fetch result to the cache (line 69: entryPointAssetsCache = result) regardless of whether the fetch succeeded or failed. When an error occurs during asset fetching, result is nil, and this nil value overwrites any previously valid cache entry.",
+      "severity": "High",
+      "category": "bug"
+    }
+  ],
+  "rows": [],
+  "usage": {}
+}

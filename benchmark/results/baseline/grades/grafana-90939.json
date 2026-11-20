@@ -1,0 +1,49 @@
+{
+  "case": "grafana-90939",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "9532f7c8c8a94da83af10425b32b52026cb7939c447901833c2768c164b371ff",
+  "review_sha256": "c34c3dc3c2077fd5698c5522e069fd683df1ad09ea30d6356a367b19072b0c37",
+  "references": [
+    {
+      "comment": "The GetWebAssets function implements an incomplete double-checked locking pattern for caching web assets. The function first checks if the cache is populated using a read lock (RLock), and if the cache is empty, it acquires a write lock to populate it. However, it fails to re-check whether the cache was populated by another goroutine while waiting to acquire the write lock.",
+      "severity": "Medium",
+      "category": "concurrency"
+    },
+    {
+      "comment": "In addition to the missing double-check, the function has a critical flaw in its error handling: it unconditionally assigns the fetch result to the cache (line 69: entryPointAssetsCache = result) regardless of whether the fetch succeeded or failed. When an error occurs during asset fetching, result is nil, and this nil value overwrites any previously valid cache entry.",
+      "severity": "High",
+      "category": "bug"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "match",
+      "reference": 0,
+      "reason": "Both the finding and reference 0 identify the same incomplete double-checked locking pattern: the cache is checked under RLock, the lock is released, and then a write lock is acquired without re-checking whether another goroutine already populated the cache in the interim."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 2439,
+    "completion_tokens": 81,
+    "total_tokens": 2520,
+    "cost": 0.008532,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.008532,
+      "upstream_inference_prompt_cost": 0.007317,
+      "upstream_inference_completions_cost": 0.001215
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

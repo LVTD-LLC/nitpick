@@ -1,0 +1,85 @@
+{
+  "dataset": "e616e849755441da38f18bf3adba2c9583b03803",
+  "cases": [
+    {
+      "id": "cal_dot_com-22345",
+      "source": "cal_dot_com.json",
+      "url": "https://github.com/calcom/cal.com/pull/22345",
+      "split": "fresh",
+      "base": "c9a47dd0cebd121ff73f24e1f8c1829579daf8e3",
+      "head": "da09bc0808e7c6df1bc10e00d5acf764d94c7cc7"
+    },
+    {
+      "id": "cal_dot_com-14943",
+      "source": "cal_dot_com.json",
+      "url": "https://github.com/calcom/cal.com/pull/14943",
+      "split": "fresh",
+      "base": "917c7b0764f4c6bfdca95db2c5f73dbfdbe11757",
+      "head": "c790227e0cda780e6fea9bb03af27948d9e286b9"
+    },
+    {
+      "id": "discourse-9",
+      "source": "discourse.json",
+      "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/9",
+      "split": "fresh",
+      "base": "728845d008f06828630a632e5c7d67e11bf15deb",
+      "head": "ecfa17b5a79dfdc91e7a4d50b42ae78a35d0a293"
+    },
+    {
+      "id": "discourse-7",
+      "source": "discourse.json",
+      "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/7",
+      "split": "fresh",
+      "base": "7554b5e3c458dc79b591d5e874e79ab10cf30c2f",
+      "head": "d38c4d5f7443223c81529c22470293771baf9f38"
+    },
+    {
+      "id": "grafana-94942",
+      "source": "grafana.json",
+      "url": "https://github.com/grafana/grafana/pull/94942",
+      "split": "fresh",
+      "base": "cbe1e7d63f098e306058c0fbcab2f5c30602fa7d",
+      "head": "f3317b329b4eb8fd96f99dd86525bc4a22d20248"
+    },
+    {
+      "id": "grafana-80329",
+      "source": "grafana.json",
+      "url": "https://github.com/grafana/grafana/pull/80329",
+      "split": "fresh",
+      "base": "a886bd3c79a417a70b51509384d1f1ec3e87e96b",
+      "head": "04cfa3bfd469c035ff8b35f9a66867c4e8d5dcf4"
+    },
+    {
+      "id": "keycloak-38446",
+      "source": "keycloak.json",
+      "url": "https://github.com/keycloak/keycloak/pull/38446",
+      "split": "fresh",
+      "base": "85737f52b59aa2e3403c9b8e48acf71ccc5bfae3",
+      "head": "ce2dcc537b4b1f98a335e88cfe8e0b804483252a"
+    },
+    {
+      "id": "keycloak-37038",
+      "source": "keycloak.json",
+      "url": "https://github.com/keycloak/keycloak/pull/37038",
+      "split": "fresh",
+      "base": "7ea067aae9be56cb2622bce6563864817c3dfeaf",
+      "head": "7355f05e6aafe2a7acc6434fb40c686665416606"
+    },
+    {
+      "id": "sentry-2",
+      "source": "sentry.json",
+      "url": "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/2",
+      "split": "fresh",
+      "base": "28e3db2520d4ea28c57b08da57b83917ba7b2e15",
+      "head": "8ab88145113dd23a930e23b9cbbcf8b30e4c0b17"
+    },
+    {
+      "id": "sentry-1",
+      "source": "sentry.json",
+      "url": "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/1",
+      "split": "fresh",
+      "base": "74618671bff8114fcec8fe77c6260c9a2bc2864a",
+      "head": "8ab88145113dd23a930e23b9cbbcf8b30e4c0b17"
+    }
+  ]
+}

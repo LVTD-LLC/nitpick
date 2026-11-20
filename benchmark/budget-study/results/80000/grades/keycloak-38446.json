@@ -1,0 +1,73 @@
+{
+  "case": "keycloak-38446",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "02f4da3f3d3b7e9d73f95e8c7aa65542e5fc7db1392d85e57d25ca61560d5613",
+  "review_sha256": "a6fca0712cc08e064360299da4b110563db67dbca837ea721d58daa448f1956b",
+  "references": [
+    {
+      "comment": "Unsafe raw List deserialization without type safety. Calling Optional.get() directly on the Optional returned by RecoveryAuthnCodesUtils.getCredential(user) without checking isPresent() can lead to a NoSuchElementException if the Optional is empty.",
+      "severity": "Medium",
+      "category": "bug"
+    },
+    {
+      "comment": "After creating the RecoveryAuthnCodesCredentialModel, consider setting its id from the stored credential (e.g., myUser.recoveryCodes.getId()); otherwise getId() will be null and downstream removal by id (e.g., removeStoredCredentialById in the authenticator flow) may not work.",
+      "severity": "Low",
+      "category": "bug"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "Finding 0 and finding 1 both identify the same unsafe Optional.get() call at line 19 of RecoveryAuthnCodeInputLoginBean.java; finding 1 is more precise about the exact line and failure mode."
+    },
+    {
+      "finding": 1,
+      "label": "match",
+      "reference": 0,
+      "reason": "Both identify the same concrete defect: credentialModelOpt.get() called without isPresent() check at line 19 of RecoveryAuthnCodeInputLoginBean.java, risking NoSuchElementException."
+    },
+    {
+      "finding": 2,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The disableCredentialType method in BackwardsCompatibilityUserStorage.java indeed does not handle RecoveryAuthnCodesCredentialModel.TYPE, which is a real gap introduced by this diff, but no reference covers this specific missing behavior."
+    },
+    {
+      "finding": 3,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "Finding 3 and finding 4 both identify the same issue: recovery codes missing from getDisableableCredentialTypesStream. Finding 4 is more detailed; finding 3 is the duplicate."
+    },
+    {
+      "finding": 4,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "Recovery codes are genuinely absent from getDisableableCredentialTypesStream in the new code, a real gap introduced by this diff, but no reference specifically covers this missing behavior."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 18408,
+    "completion_tokens": 331,
+    "total_tokens": 18739,
+    "cost": 0.060189,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.060189,
+      "upstream_inference_prompt_cost": 0.055224,
+      "upstream_inference_completions_cost": 0.004965
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

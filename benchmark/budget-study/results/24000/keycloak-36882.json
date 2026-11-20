@@ -1,0 +1,67 @@
+{
+  "case": {
+    "id": "keycloak-36882",
+    "source": "keycloak.json",
+    "url": "https://github.com/keycloak/keycloak/pull/36882",
+    "split": "dev",
+    "base": "1b28ac610dc16e0de14199f9ca5d2acdf7f3cc16",
+    "head": "62bf98939eda58f0d0a1a41a58aa6d4ecdc24dba"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [],
+    "head": "62bf989",
+    "mode": "range 1b28ac610dc16e0de14199f9ca5d2acdf7f3cc16..62bf98939eda58f0d0a1a41a58aa6d4ecdc24dba",
+    "models": [
+      {
+        "completion_tokens": 83,
+        "cost_usd": 0.006878,
+        "elapsed_ms": 2183,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 16863,
+        "summary": "This change introduces the 'rolling-updates' feature as a preview feature in the Keycloak codebase, including documentation updates, CLI command enhancements, and test coverage. It ensures that the feature must be enabled for certain commands and operator behaviors, with appropriate exit codes and error messages when disabled. The integration appears consistent and well-covered by tests and documentation.",
+        "verdict": "approve"
+      }
+    ],
+    "stats": {
+      "build_ms": 173,
+      "diff_tokens": 3125,
+      "estimated_tokens": 16084,
+      "files_changed": 10,
+      "files_scanned": 9614,
+      "files_tokens": 11530,
+      "snippet_tokens": 1429,
+      "snippets_dropped": 0,
+      "snippets_kept": 3
+    },
+    "total_ms": 2379,
+    "verdict": "approve"
+  }
+}

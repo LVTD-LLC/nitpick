@@ -1,0 +1,94 @@
+{
+  "case": {
+    "id": "grafana-94942",
+    "source": "grafana.json",
+    "url": "https://github.com/grafana/grafana/pull/94942",
+    "split": "fresh",
+    "base": "cbe1e7d63f098e306058c0fbcab2f5c30602fa7d",
+    "head": "f3317b329b4eb8fd96f99dd86525bc4a22d20248"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 2,
+    "findings": [
+      {
+        "body": "The function enableSqlExpressions always returns false regardless of the feature flag state, effectively disabling SQL expressions unconditionally. This means that even if the feature flag is enabled, SQL expressions will not be processed, which is likely unintended behavior.",
+        "category": "bug",
+        "end_line": 199,
+        "file": "pkg/expr/reader.go",
+        "line": 194,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Fix the logic in enableSqlExpressions to correctly return true when the feature flag is enabled. For example:\n\nfunc enableSqlExpressions(h *ExpressionQueryReader) bool {\n    return h.features.IsEnabledGlobally(featuremgmt.FlagSqlExpressions)\n}",
+        "title": "enableSqlExpressions always returns false, disabling SQL expressions"
+      },
+      {
+        "body": "The new sql.DB struct and its methods (TablesList, RunCommands, QueryFramesInto) all return \"not implemented\" errors. This means that any attempt to execute SQL commands will fail at runtime with these errors. Since the SQLCommand.Execute method relies on these methods, SQL queries will not work until these methods are implemented.",
+        "category": "bug",
+        "end_line": 22,
+        "file": "pkg/expr/sql/db.go",
+        "line": 9,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Implement the methods of sql.DB to provide actual SQL execution functionality or remove the SQLCommand support until implemented.",
+        "title": "sql.DB methods return not implemented errors, breaking SQLCommand execution"
+      }
+    ],
+    "head": "f3317b32",
+    "mode": "range cbe1e7d63f098e306058c0fbcab2f5c30602fa7d..f3317b329b4eb8fd96f99dd86525bc4a22d20248",
+    "models": [
+      {
+        "completion_tokens": 345,
+        "cost_usd": 0.0218456,
+        "elapsed_ms": 6899,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 53234,
+        "summary": "The change introduces a stub SQL database interface that always returns 'not implemented' errors, which breaks SQL command execution. Additionally, the feature flag check for enabling SQL expressions is incorrectly implemented to always disable the feature. These issues prevent SQL expressions from functioning as intended.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 347,
+      "diff_tokens": 3329,
+      "estimated_tokens": 34750,
+      "files_changed": 6,
+      "files_scanned": 13066,
+      "files_tokens": 23930,
+      "snippet_tokens": 7491,
+      "snippets_dropped": 0,
+      "snippets_kept": 21
+    },
+    "total_ms": 7259,
+    "verdict": "request_changes"
+  }
+}

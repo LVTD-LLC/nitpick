@@ -1,0 +1,277 @@
+[
+  {
+    "case": "cal_dot_com-11059",
+    "reference_index": 0,
+    "source_checks": [
+      "refreshTokenResponse.data.refresh_token = \"refresh_token\";"
+    ],
+    "original_24000": [
+      false
+    ],
+    "fixed_24000": [
+      true
+    ],
+    "original_80000": [
+      true
+    ],
+    "fixed_80000": [
+      true
+    ]
+  },
+  {
+    "case": "cal_dot_com-11059",
+    "reference_index": 2,
+    "source_checks": [
+      "refreshTokenResponse = schema.safeParse(response)",
+      "return refreshTokenResponse;",
+      "const key = parseRefreshTokenResponse(googleCredentials",
+      "data: { key },"
+    ],
+    "original_24000": [
+      false,
+      false,
+      true,
+      true
+    ],
+    "fixed_24000": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "original_80000": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "fixed_80000": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  {
+    "case": "cal_dot_com-11059",
+    "reference_index": 3,
+    "source_checks": [
+      "await fetch(process.env.CALCOM_CREDENTIAL_SYNC_ENDPOINT",
+      "return response;",
+      "const token = res?.data;",
+      "googleCredentials.access_token = token.access_token;"
+    ],
+    "original_24000": [
+      false,
+      false,
+      true,
+      true
+    ],
+    "fixed_24000": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "original_80000": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "fixed_80000": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  {
+    "case": "discourse-4",
+    "reference_index": 5,
+    "source_checks": [
+      "if @topic_view.posts.present?",
+      "<%- end if %>"
+    ],
+    "original_24000": [
+      true,
+      true
+    ],
+    "fixed_24000": [
+      true,
+      true
+    ],
+    "original_80000": [
+      true,
+      true
+    ],
+    "fixed_80000": [
+      true,
+      true
+    ]
+  },
+  {
+    "case": "discourse-4",
+    "reference_index": 6,
+    "source_checks": [
+      "content = CGI.unescapeHTML(i.content.scrub)"
+    ],
+    "original_24000": [
+      true
+    ],
+    "fixed_24000": [
+      true
+    ],
+    "original_80000": [
+      true
+    ],
+    "fixed_80000": [
+      true
+    ]
+  },
+  {
+    "case": "grafana-79265",
+    "reference_index": 0,
+    "source_checks": [
+      "s.CountDevices(ctx",
+      "count >= s.deviceLimit",
+      "INSERT INTO anon_device",
+      "dbSession.Exec(args...)"
+    ],
+    "original_24000": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "fixed_24000": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "original_80000": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "fixed_80000": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  {
+    "case": "grafana-79265",
+    "reference_index": 4,
+    "source_checks": [
+      "a.localCache.Get(key)",
+      "a.localCache.SetDefault(key, struct{}{})",
+      "a.anonStore.CreateOrUpdateDevice(ctx, device)"
+    ],
+    "original_24000": [
+      true,
+      false,
+      false
+    ],
+    "fixed_24000": [
+      true,
+      false,
+      false
+    ],
+    "original_80000": [
+      true,
+      true,
+      true
+    ],
+    "fixed_80000": [
+      true,
+      true,
+      true
+    ]
+  },
+  {
+    "case": "grafana-76186",
+    "reference_index": 2,
+    "source_checks": [
+      "func (f *TestLogger) FromContext",
+      "return NewTestLogger()",
+      "f.InfoLogs.Calls++"
+    ],
+    "original_24000": [
+      true,
+      true,
+      true
+    ],
+    "fixed_24000": [
+      true,
+      true,
+      true
+    ],
+    "original_80000": [
+      true,
+      true,
+      true
+    ],
+    "fixed_80000": [
+      true,
+      true,
+      true
+    ]
+  },
+  {
+    "case": "sentry-3",
+    "reference_index": 0,
+    "source_checks": [
+      "if client_sample_rate:",
+      "normalized_data[\"sample_rate\"] = float(client_sample_rate)"
+    ],
+    "original_24000": [
+      true,
+      true
+    ],
+    "fixed_24000": [
+      true,
+      true
+    ],
+    "original_80000": [
+      true,
+      true
+    ],
+    "fixed_80000": [
+      true,
+      true
+    ]
+  },
+  {
+    "case": "sentry-3",
+    "reference_index": 1,
+    "source_checks": [
+      "hash(tuple(sorted(snuba_params.project_ids)))",
+      "project_ids: Sequence[int]",
+      "hash(tuple(sorted(project_ids)))"
+    ],
+    "original_24000": [
+      true,
+      true,
+      true
+    ],
+    "fixed_24000": [
+      true,
+      true,
+      true
+    ],
+    "original_80000": [
+      true,
+      true,
+      true
+    ],
+    "fixed_80000": [
+      true,
+      true,
+      true
+    ]
+  }
+]

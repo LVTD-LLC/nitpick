@@ -348,27 +348,12 @@ pub fn build_from_diff(repo: &Repo, mode: &DiffMode, raw_diff: &str, opts: &Opti
     let parsed = diff::parse(raw_diff);
     let parsed: Vec<FileDiff> =
         parsed.into_iter().filter(|f| !glob_matches(&opts.ignore, f.path()) && !search::is_junk(f.path())).collect();
-    // For brand-new text files the full numbered listing below carries the
-    // content, so the diff keeps only the header instead of repeating it.
-    let diff_text: String = parsed
-        .iter()
-        .map(|f| {
-            if f.status == Status::Added && !f.binary && f.hunks.len() == 1 {
-                let header: String =
-                    f.raw.lines().take_while(|l| !l.starts_with("@@")).map(|l| format!("{l}\n")).collect();
-                format!("{header}(new file, {} lines: full content is in <changed_files>)\n", f.added_count())
-            } else {
-                f.raw.clone()
-            }
-        })
-        .collect();
-
     let mut pack = ContextPack {
         repo_root: repo.root.to_string_lossy().to_string(),
         mode_label: mode.label(),
         head: repo.head_short(),
         branch: repo.current_branch(),
-        diff_text,
+        diff_text: String::new(),
         files: Vec::new(),
         snippets: Vec::new(),
         importers: Vec::new(),
@@ -448,7 +433,7 @@ pub fn build_from_diff(repo: &Repo, mode: &DiffMode, raw_diff: &str, opts: &Opti
     pack.stats.files_changed = pack.files.len();
 
     if !opts.with_context {
-        finalize(&mut pack, opts, t0);
+        finalize(&mut pack, &parsed, opts, t0);
         return Ok(pack);
     }
 
@@ -783,15 +768,26 @@ pub fn build_from_diff(repo: &Repo, mode: &DiffMode, raw_diff: &str, opts: &Opti
         deduped.push(o);
     }
     pack.snippets = deduped;
-    finalize(&mut pack, opts, t0);
+    finalize(&mut pack, &parsed, opts, t0);
     Ok(pack)
 }
 
 /// Apply the token budget: diff first, then changed-file listings, then
 /// snippets by score. Shrinks listings before dropping them.
-fn finalize(pack: &mut ContextPack, opts: &Options, t0: Instant) {
+fn finalize(pack: &mut ContextPack, parsed: &[FileDiff], opts: &Options, t0: Instant) {
     let budget = opts.budget_tokens;
-    let diff_tokens = estimate_tokens(&pack.diff_text);
+    // Elide a new-file hunk only while the numbered listing supplies its contents.
+    for (fd, file) in parsed.iter().zip(&pack.files) {
+        if fd.status == Status::Added && fd.hunks.len() == 1 && file.listing.is_some() {
+            let header = fd.raw.split_once("\n@@").map_or(fd.raw.as_str(), |(header, _)| header);
+            pack.diff_text.push_str(header);
+            pack.diff_text
+                .push_str(&format!("\n(new file, {} lines: full content is in <changed_files>)\n", fd.added_count()));
+        } else {
+            pack.diff_text.push_str(&fd.raw);
+        }
+    }
+    let mut diff_tokens = estimate_tokens(&pack.diff_text);
     let mut files_tokens: usize = pack.files.iter().filter_map(|f| f.listing.as_deref()).map(estimate_tokens).sum();
 
     if diff_tokens + files_tokens > budget {
@@ -836,6 +832,12 @@ fn finalize(pack: &mut ContextPack, opts: &Options, t0: Instant) {
             f.listing = None;
             f.listing_note = Some("omitted (over budget); see diff".into());
         }
+        // The raw diff is the minimum payload, even when it exceeds the target.
+        pack.diff_text.clear();
+        for fd in parsed {
+            pack.diff_text.push_str(&fd.raw);
+        }
+        diff_tokens = estimate_tokens(&pack.diff_text);
         files_tokens = 0;
     }
 
@@ -870,6 +872,27 @@ fn finalize(pack: &mut ContextPack, opts: &Options, t0: Instant) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn added_file_contents_survive_budget_and_git_prefix_preferences() {
+        let dir = tempfile::tempdir().unwrap();
+        let repo = Repo { root: dir.path().into(), standalone: false };
+        repo.git(&["init", "-q"]).unwrap();
+        repo.git(&["config", "diff.mnemonicPrefix", "true"]).unwrap();
+        std::fs::write(dir.path().join("new.py"), "answer = 41\nanswer += 1\n").unwrap();
+        let mode = DiffMode::WorkingTreeVs { rev: String::new(), label: "new file".into() };
+        let mut opts = Options { with_context: false, ..Options::default() };
+        let full = build(&repo, &mode, &opts).unwrap();
+        assert_eq!(full.files[0].path, "new.py");
+        assert!(full.files[0].listing.as_ref().unwrap().contains("    2| answer += 1"));
+        assert!(!full.diff_text.contains("+answer = 41"));
+
+        opts.budget_tokens = 1;
+        let tight = build(&repo, &mode, &opts).unwrap();
+        assert!(tight.files[0].listing.is_none());
+        assert!(tight.diff_text.contains("@@ -0,0 +1,2 @@\n+answer = 41\n+answer += 1"));
+        assert_eq!(tight.stats.diff_tokens, estimate_tokens(&tight.diff_text));
+    }
 
     #[test]
     fn windowed_listing_merges_and_elides() {

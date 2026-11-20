@@ -1,0 +1,94 @@
+{
+  "case": {
+    "id": "sentry-95633",
+    "source": "sentry.json",
+    "url": "https://github.com/getsentry/sentry/pull/95633",
+    "split": "dev",
+    "base": "fd358e8a388939959369f08f616e29552cdaf96e",
+    "head": "9966ec5a13e331659c3ea00981f9b11b0faf821f"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 2,
+    "findings": [
+      {
+        "body": "In `OrderedQueueWorker.run` (src/sentry/remote_subscriptions/consumers/queue_consumer.py:127-157), the code attempts to catch `queue.ShutDown` exceptions, but the standard Python `queue` module does not define a `ShutDown` exception. This will cause an unhandled exception if such an exception is raised or the except clause will never be triggered, potentially causing the thread to hang or crash unexpectedly.",
+        "category": "bug",
+        "end_line": 142,
+        "file": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
+        "line": 132,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Remove the except clauses for `queue.ShutDown` or replace them with appropriate exception handling for queue operations, such as handling `queue.Empty` or using a sentinel value to signal shutdown.",
+        "title": "Catching nonexistent `queue.ShutDown` exception in OrderedQueueWorker.run"
+      },
+      {
+        "body": "In `FixedQueuePool.shutdown` (src/sentry/remote_subscriptions/consumers/queue_consumer.py:231-244), the method calls `q.shutdown(immediate=False)` on each queue. However, Python's standard `queue.Queue` does not have a `shutdown` method, which will raise an AttributeError at runtime. This will prevent the worker threads from shutting down properly and may cause the consumer to hang or crash during shutdown.",
+        "category": "bug",
+        "end_line": 239,
+        "file": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
+        "line": 238,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Replace `q.shutdown(immediate=False)` with a sentinel value insertion or use a different mechanism to signal the queue to stop. For example, put a special sentinel object in each queue to unblock workers and allow them to exit.",
+        "title": "Calling nonexistent `shutdown` method on queue.Queue in FixedQueuePool.shutdown"
+      }
+    ],
+    "head": "9966ec5a",
+    "mode": "range fd358e8a388939959369f08f616e29552cdaf96e..9966ec5a13e331659c3ea00981f9b11b0faf821f",
+    "models": [
+      {
+        "completion_tokens": 467,
+        "cost_usd": 0.021322,
+        "elapsed_ms": 10913,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 51437,
+        "summary": "The change adds a new thread-queue-parallel processing mode with a fixed queue pool and worker threads. The implementation has critical bugs related to incorrect use of Python's queue.Queue: calling a nonexistent `shutdown` method and catching a nonexistent `queue.ShutDown` exception. These issues will cause runtime errors and prevent proper shutdown of worker threads.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 750,
+      "diff_tokens": 8481,
+      "estimated_tokens": 53322,
+      "files_changed": 7,
+      "files_scanned": 16973,
+      "files_tokens": 24187,
+      "snippet_tokens": 20654,
+      "snippets_dropped": 0,
+      "snippets_kept": 90
+    },
+    "total_ms": 11688,
+    "verdict": "request_changes"
+  }
+}

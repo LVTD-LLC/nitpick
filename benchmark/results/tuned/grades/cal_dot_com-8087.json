@@ -1,0 +1,97 @@
+{
+  "case": "cal_dot_com-8087",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "359709d6b4a5c4ea2bf37181a7f4e075197635d0debfb3e02d69f3fd8cc56e9a",
+  "review_sha256": "9e19da89f2c839c5c1cc652fd5923f210f25f73b8479b4c6c71bbf2c8d4acd8e",
+  "references": [
+    {
+      "comment": "Consider adding try-catch around the await to handle import failures gracefully",
+      "severity": "Low",
+      "category": "speculative"
+    },
+    {
+      "comment": "The code uses forEach with async callbacks, which causes asynchronous operations (e.g., calendar/video event deletions, payment refunds) to run concurrently without being awaited. This 'fire-and-forget' behavior leads to unhandled promise rejections, race conditions, and incomplete cleanup, as surrounding try-catch blocks cannot properly handle errors from these unawaited promises. Replace forEach with for...of loops or Promise.all() with map() to ensure proper sequential execution and error handling.",
+      "severity": "Critical",
+      "category": "concurrency"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "match",
+      "reference": 1,
+      "reason": "Finding 0 identifies the async forEach in vital/lib/reschedule.ts that causes unawaited promises and broken error handling — exactly the concurrency/fire-and-forget issue described in reference 1."
+    },
+    {
+      "finding": 1,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "Same async forEach defect as finding 0 but in wipemycalother/lib/reschedule.ts; reference 1 already credited to finding 0."
+    },
+    {
+      "finding": 2,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The diff shows getCalendarCredentials still calls getCalendar without await, but getConnectedCalendars then does `await item.calendar` — the promise is stored and awaited later. The code is intentionally lazy/deferred, not broken; the claim that calendar is used as an instance without awaiting is wrong for the actual call sites shown."
+    },
+    {
+      "finding": 3,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "The async forEach in handleCancelBooking.ts (lines 460-470) is the same class of bug as finding 0/reference 1, but finding 4 (bookings.tsx) and finding 0 already consume reference 1. This is a separate file instance but the same mechanism; however it is a real introduced bug — marking duplicate of finding 0 which holds the reference match."
+    },
+    {
+      "finding": 4,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "Same async forEach fire-and-forget pattern in bookings.tsx as findings 0/1/3; same root cause, reference already assigned."
+    },
+    {
+      "finding": 5,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "Observation that appStore entries are now promises and callers must await is accurate but purely descriptive/informational with no concrete defect claimed; advice is subjective."
+    },
+    {
+      "finding": 6,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "Nit-level observation that getCalendar is now correctly async; no defect identified, purely informational."
+    },
+    {
+      "finding": 7,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "Nit-level observation that getVideoAdapters is now correctly async; no defect identified, purely informational."
+    },
+    {
+      "finding": 8,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "Nit-level consistency note about for...of vs forEach; no concrete defect, subjective style advice."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 18308,
+    "completion_tokens": 542,
+    "total_tokens": 18850,
+    "cost": 0.063054,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.063054,
+      "upstream_inference_prompt_cost": 0.054924,
+      "upstream_inference_completions_cost": 0.00813
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

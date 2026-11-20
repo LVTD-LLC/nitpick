@@ -1,0 +1,123 @@
+{
+  "case": "cal_dot_com-10967",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "268a95685ebca233994ea21da264f8d866fe6d2ae1a0d0c2cca2268430b66636",
+  "review_sha256": "c9eb3aee82432d36478af527527f3c9a4aa6fdff2f67f087253d3e828aec583c",
+  "references": [
+    {
+      "comment": "A null reference occurs in GoogleCalendarService.createEvent() and updateEvent() when mainHostDestinationCalendar is destructured from evt.destinationCalendar but evt.destinationCalendar is null or an empty array, causing mainHostDestinationCalendar to be undefined.",
+      "severity": "High",
+      "category": "bug"
+    },
+    {
+      "comment": "The optional chaining on mainHostDestinationCalendar?.integration is redundant since you already check mainHostDestinationCalendar in the ternary condition.",
+      "severity": "Low",
+      "category": "style"
+    },
+    {
+      "comment": "Logic error: when externalCalendarId is provided, you're searching for a calendar where externalId === externalCalendarId, but this will always fail since you're looking for a calendar that matches itself. Should likely find by credentialId or use different logic.",
+      "severity": "High",
+      "category": "bug"
+    },
+    {
+      "comment": "Logic inversion in organization creation: The slug property is now conditionally set when IS_TEAM_BILLING_ENABLED is true, instead of when it's false as originally intended. This change, combined with requestedSlug still being set when IS_TEAM_BILLING_ENABLED is true, results in both properties being set when billing is enabled, and neither when disabled",
+      "severity": "Medium",
+      "category": "bug"
+    },
+    {
+      "comment": "The Calendar interface now requires createEvent(event, credentialId), but some implementations (e.g., Lark/Office365) still declare createEvent(event) only—this breaks the interface contract (also applies to other locations in the PR).",
+      "severity": "Low",
+      "category": "api"
+    },
+    {
+      "comment": "The `credential` may be undefined when passed to `updateEvent` if `reference.credentialId` is set but the credential is not found. This can lead to a runtime error when `updateEvent` is called with an undefined credential, which should be handled to prevent crashes.",
+      "severity": "High",
+      "category": "bug"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "match",
+      "reference": 2,
+      "reason": "Both identify the same logic error in GoogleCalendarService updateEvent/deleteEvent where the fallback uses find(cal => cal.externalId === externalCalendarId) which always fails since externalCalendarId is already known to be truthy in the else branch."
+    },
+    {
+      "finding": 1,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The diff shows LarkCalendarService already has null-safety via `event.destinationCalendar ?? []` and throws meaningful errors when calendarId is missing, so the claimed unsafe access is not introduced by this PR."
+    },
+    {
+      "finding": 2,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The fetched credential from DB in handleCancelBooking lacks appName and other CredentialWithAppName fields (no app include in the findUnique query), which could cause issues when passed to getCalendar expecting a full credential shape."
+    },
+    {
+      "finding": 3,
+      "label": "match",
+      "reference": 0,
+      "reason": "Both identify a null reference issue: evt.destinationCalendar is initialized as null in handleNewBooking, and then evt.destinationCalendar?.push(...teamDestinationCalendars) is called — optional chaining on push means it silently does nothing rather than crashing, but reference 0 covers the broader null/empty array destructuring issue introduced by this PR."
+    },
+    {
+      "finding": 4,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "This is a weaker version of finding 0 — both concern missing fallback when no matching calendar is found in createEvent/updateEvent. Finding 0 is the stronger match to reference 0."
+    },
+    {
+      "finding": 5,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The error handling behavior described (catching errors and returning undefined) is pre-existing code, not introduced by this diff. The diff only reformats the promise chain without changing the error handling logic."
+    },
+    {
+      "finding": 6,
+      "label": "match",
+      "reference": 5,
+      "reason": "Both identify that when reference.credentialId is set but the credential is not found in calendarCredentials and also not in DB, credential remains undefined and is passed to updateEvent, causing a potential runtime error."
+    },
+    {
+      "finding": 7,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The claim about loadUsers masking errors or returning users without credentials is partially valid (organization select was removed) but the evidence is insufficient to confirm a concrete downstream failure introduced by this diff."
+    },
+    {
+      "finding": 8,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "Mutating calEvent.additionalNotes is pre-existing behavior; the diff only changes 'organiser' to 'organizer' spelling, not the mutation pattern itself."
+    },
+    {
+      "finding": 9,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The 'calenderExternalId' typo is pre-existing in the codebase and not introduced by this PR; the diff preserves the same variable name."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 31626,
+    "completion_tokens": 663,
+    "total_tokens": 32289,
+    "cost": 0.104823,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.104823,
+      "upstream_inference_prompt_cost": 0.094878,
+      "upstream_inference_completions_cost": 0.009945
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

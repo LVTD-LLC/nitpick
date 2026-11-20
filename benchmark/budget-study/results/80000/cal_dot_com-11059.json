@@ -1,0 +1,133 @@
+{
+  "case": {
+    "id": "cal_dot_com-11059",
+    "source": "cal_dot_com.json",
+    "url": "https://github.com/calcom/cal.com/pull/11059",
+    "split": "holdout",
+    "base": "bc89fe00ea84d20bedcec782f0701b9711dc8201",
+    "head": "9fde0e906897cc0f4f71793f647dd629faba3317"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 5,
+    "findings": [
+      {
+        "body": "In `packages/app-store/hubspot/lib/CalendarService.ts` at line 173, the `isTokenValid` function has a logic error: it returns true if the token is expired (expiryDate < Date.now()), which is the opposite of the intended behavior. This causes the code to treat expired tokens as valid, potentially leading to failed API calls or stale credentials being used.",
+        "category": "bug",
+        "end_line": 173,
+        "file": "packages/app-store/hubspot/lib/CalendarService.ts",
+        "line": 173,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Change the condition to `token.expiryDate && token.expiryDate > Date.now()` to correctly identify valid tokens.",
+        "title": "Incorrect token validity check in HubspotCalendarService"
+      },
+      {
+        "body": "In `packages/app-store/office365calendar/lib/CalendarService.ts` at line 188, the `isTokenValid` function returns true if the token is expired (expiryDate < current time), which is the opposite of the intended logic. This causes expired tokens to be treated as valid, potentially leading to failed API calls or stale credentials usage.",
+        "category": "bug",
+        "end_line": 188,
+        "file": "packages/app-store/office365calendar/lib/CalendarService.ts",
+        "line": 188,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Change the condition to `expiryDate && expiryDate > Math.round(+new Date() / 1000)` to correctly identify valid tokens.",
+        "title": "Incorrect token validity check in Office365CalendarService"
+      },
+      {
+        "body": "In `packages/app-store/webex/lib/VideoApiAdapter.ts` at line 46, the `isTokenValid` function returns true if the token expiry_date is less than the current time, which means expired tokens are considered valid. This is incorrect and will cause the system to use expired tokens.",
+        "category": "bug",
+        "end_line": 46,
+        "file": "packages/app-store/webex/lib/VideoApiAdapter.ts",
+        "line": 46,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Change the condition to `token.expiry_date > Date.now()` to correctly identify valid tokens.",
+        "title": "Incorrect token validity check in WebexVideoApiAdapter"
+      },
+      {
+        "body": "In `packages/app-store/zohocrm/lib/CalendarService.ts` at line 188, the `isTokenValid` function returns true if the token is expired (expiryDate < Date.now()), which is incorrect. This causes the system to treat expired tokens as valid, leading to potential authentication failures.",
+        "category": "bug",
+        "end_line": 188,
+        "file": "packages/app-store/zohocrm/lib/CalendarService.ts",
+        "line": 188,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Change the condition to `token && token.access_token && token.expiryDate && token.expiryDate > Date.now()` to correctly identify valid tokens.",
+        "title": "Incorrect token validity check in ZohoCrmCalendarService"
+      },
+      {
+        "body": "In `packages/app-store/zoomvideo/lib/VideoApiAdapter.ts` at line 63, the `isTokenValid` function returns true if the token expiry is less than the current time, meaning expired tokens are treated as valid. This is incorrect and will cause usage of expired tokens.",
+        "category": "bug",
+        "end_line": 63,
+        "file": "packages/app-store/zoomvideo/lib/VideoApiAdapter.ts",
+        "line": 63,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Change the condition to `(token.expires_in || token.expiry_date) > Date.now()` to correctly identify valid tokens.",
+        "title": "Incorrect token validity check in ZoomVideoApiAdapter"
+      }
+    ],
+    "head": "9fde0e9",
+    "mode": "range bc89fe00ea84d20bedcec782f0701b9711dc8201..9fde0e906897cc0f4f71793f647dd629faba3317",
+    "models": [
+      {
+        "completion_tokens": 785,
+        "cost_usd": 0.0364852,
+        "elapsed_ms": 19248,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 88073,
+        "summary": "The change introduces a new app credential sync webhook and refactors OAuth token refresh logic across multiple calendar and video integrations. However, several calendar service implementations have a critical bug in their token validity checks where expired tokens are incorrectly treated as valid. This can cause authentication failures and stale token usage. Fixing these inverted conditions is necessary before shipping.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 511,
+      "diff_tokens": 12659,
+      "estimated_tokens": 79972,
+      "files_changed": 40,
+      "files_scanned": 3101,
+      "files_tokens": 59711,
+      "snippet_tokens": 7602,
+      "snippets_dropped": 5,
+      "snippets_kept": 39
+    },
+    "total_ms": 19797,
+    "verdict": "request_changes"
+  }
+}

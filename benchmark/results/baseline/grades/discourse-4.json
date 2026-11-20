@@ -1,0 +1,79 @@
+{
+  "case": "discourse-4",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "67842f9d630149dfd0c7a1645d4200fc6040f5fa8eb438bd3a4f4b5746a1b2a0",
+  "review_sha256": "4c9eee87d1f5fbaa30b58fdacde7cb87f4dd0aa899d9c312c7fd7c267cf6fb97",
+  "references": [
+    {
+      "comment": "The PollFeed job calls open(SiteSetting.feed_polling_url) without validating the URL, allowing an attacker who controls the feed_polling_url site setting to make the server fetch arbitrary internal or external URLs.",
+      "severity": "Critical",
+      "category": "security"
+    },
+    {
+      "comment": "The current origin validation using indexOf is insufficient and can be bypassed. An attacker could use a malicious domain like evil-discourseUrl.com to pass this check.",
+      "severity": "Medium",
+      "category": "security"
+    },
+    {
+      "comment": "postMessage targetOrigin should be the origin (scheme+host+port), not the full referrer URL; using the full URL will cause the message to be dropped and prevent resizing.",
+      "severity": "Medium",
+      "category": "security"
+    },
+    {
+      "comment": "The code sets X-Frame-Options: ALLOWALL which completely disables clickjacking protection. The referer validation can be bypassed (referer headers are easily spoofed), and the fallback to empty string for nil referer masks validation failures.",
+      "severity": "Medium",
+      "category": "security"
+    },
+    {
+      "comment": "The TopicEmbed.import method is susceptible to a NoMethodError if the contents parameter is nil when attempting to append a string, and an XSS vulnerability due to unescaped url interpolation in the generated HTML.",
+      "severity": "Medium",
+      "category": "bug"
+    },
+    {
+      "comment": "The ERB block closes with end if, which is invalid Ruby/ERB and will raise at render; it should just be end to close the if block.",
+      "severity": "Medium",
+      "category": "bug"
+    },
+    {
+      "comment": "Calling `i.content.scrub` assumes that `i.content` is always populated. However, many RSS feeds do not provide a `content` field, leading to a potential nil pointer exception when `i.content` is nil. A fallback to `description` should be implemented to prevent crashes.",
+      "severity": "High",
+      "category": "bug"
+    },
+    {
+      "comment": "An unescaped request header (request.referer) is interpolated into JavaScript without proper escaping, which can lead to XSS vulnerabilities if the referer contains malicious content. This issue can allow attackers to execute arbitrary scripts in the context of the application.",
+      "severity": "Critical",
+      "category": "security"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "match",
+      "reference": 3,
+      "reason": "Both identify the same concrete issues in ensure_embeddable: X-Frame-Options set to ALLOWALL disabling clickjacking protection, referer validation being bypassable/spoofable, and the nil referer falling back to empty string masking validation failures rather than raising a proper error."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 15554,
+    "completion_tokens": 92,
+    "total_tokens": 15646,
+    "cost": 0.048042,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.048042,
+      "upstream_inference_prompt_cost": 0.046662,
+      "upstream_inference_completions_cost": 0.00138
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "case": {
+    "id": "cal_dot_com-11059",
+    "source": "cal_dot_com.json",
+    "url": "https://github.com/calcom/cal.com/pull/11059",
+    "split": "holdout",
+    "base": "bc89fe00ea84d20bedcec782f0701b9711dc8201",
+    "head": "9fde0e906897cc0f4f71793f647dd629faba3317"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 4,
+    "findings": [
+      {
+        "body": "In `packages/app-store/hubspot/lib/CalendarService.ts` at line 173, the `isTokenValid` function has a logic error: it returns true if the token is expired (expiryDate < Date.now()), which is the opposite of the intended behavior. This causes the code to treat expired tokens as valid and vice versa, leading to incorrect token refresh behavior.",
+        "category": "bug",
+        "end_line": 173,
+        "file": "packages/app-store/hubspot/lib/CalendarService.ts",
+        "line": 173,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Change the condition to `token.expiryDate && token.expiryDate > Date.now()` to correctly identify valid tokens.",
+        "title": "Incorrect token validity check in HubspotCalendarService"
+      },
+      {
+        "body": "In `packages/app-store/hubspot/lib/CalendarService.ts` at line 210, the `getToken` method returns `Promise.resolve([])` when the token is valid, which resolves to an empty array instead of the expected token object or string. This breaks the expected contract and may cause runtime errors.",
+        "category": "bug",
+        "end_line": 210,
+        "file": "packages/app-store/hubspot/lib/CalendarService.ts",
+        "line": 210,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Change `Promise.resolve([])` to `Promise.resolve(credentialKey)` or the appropriate token object/string to correctly return the valid token.",
+        "title": "getToken returns empty array instead of token in HubspotCalendarService"
+      },
+      {
+        "body": "In `packages/app-store/zohocrm/lib/CalendarService.ts` at line 188, the `isTokenValid` function returns true if the token is expired (expiryDate < Date.now()), which is incorrect. This causes the system to treat expired tokens as valid, preventing token refresh and causing authentication failures.",
+        "category": "bug",
+        "end_line": 188,
+        "file": "packages/app-store/zohocrm/lib/CalendarService.ts",
+        "line": 188,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Change the condition to `token && token.access_token && token.expiryDate && token.expiryDate > Date.now()` to correctly identify valid tokens.",
+        "title": "Incorrect token validity check in ZohoCrmCalendarService"
+      },
+      {
+        "body": "In `packages/app-store/zohocrm/lib/CalendarService.ts` at line 244, the `getToken` method returns `Promise.resolve()` when the token is valid, which resolves to undefined instead of the expected token string. This breaks the contract of returning a token string, potentially causing runtime errors where a token string is expected.",
+        "category": "bug",
+        "end_line": 244,
+        "file": "packages/app-store/zohocrm/lib/CalendarService.ts",
+        "line": 244,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Change `Promise.resolve()` to `Promise.resolve(credentialKey.access_token)` to return the valid token string.",
+        "title": "getToken returns undefined instead of token string in ZohoCrmCalendarService"
+      }
+    ],
+    "head": "9fde0e9",
+    "mode": "range bc89fe00ea84d20bedcec782f0701b9711dc8201..9fde0e906897cc0f4f71793f647dd629faba3317",
+    "models": [
+      {
+        "completion_tokens": 983,
+        "cost_usd": 0.0360088,
+        "elapsed_ms": 12685,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 86090,
+        "summary": "The change introduces a new app credential webhook and refactors OAuth token refresh logic across multiple calendar and video integrations. However, there are critical bugs in the token validity checks and token return values in Hubspot and Zoho CRM calendar services that cause expired tokens to be treated as valid and incorrect token return types. These issues can lead to authentication failures and runtime errors. Fixing the token validity logic and ensuring consistent token return types is necessary.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 446,
+      "diff_tokens": 12659,
+      "estimated_tokens": 78085,
+      "files_changed": 40,
+      "files_scanned": 3101,
+      "files_tokens": 59711,
+      "snippet_tokens": 5715,
+      "snippets_dropped": 0,
+      "snippets_kept": 35
+    },
+    "total_ms": 13161,
+    "verdict": "request_changes"
+  }
+}

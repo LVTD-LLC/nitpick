@@ -1,0 +1,73 @@
+{
+  "case": "cal_dot_com-8087",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "df415b1791a042c7d6016c8e1c0f447ab1ff25da74ada7ae28041ca537736f7f",
+  "review_sha256": "e09451dc874c7e3dbceb1b082dfae9460d41a7393cb3e74660115ef95e56ab6b",
+  "references": [
+    {
+      "comment": "Consider adding try-catch around the await to handle import failures gracefully",
+      "severity": "Low",
+      "category": "speculative"
+    },
+    {
+      "comment": "The code uses forEach with async callbacks, which causes asynchronous operations (e.g., calendar/video event deletions, payment refunds) to run concurrently without being awaited. This 'fire-and-forget' behavior leads to unhandled promise rejections, race conditions, and incomplete cleanup, as surrounding try-catch blocks cannot properly handle errors from these unawaited promises. Replace forEach with for...of loops or Promise.all() with map() to ensure proper sequential execution and error handling.",
+      "severity": "Critical",
+      "category": "concurrency"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "match",
+      "reference": 1,
+      "reason": "Finding 0 identifies the async forEach in vital/lib/reschedule.ts that does not await promises, exactly matching reference 1's description of forEach with async callbacks causing fire-and-forget behavior, unhandled promise rejections, and race conditions."
+    },
+    {
+      "finding": 1,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "Finding 1 identifies the same async forEach issue in wipemycalother/lib/reschedule.ts, which is the same defect as finding 0 (identical code pattern introduced by the same diff); finding 0 already received the match credit."
+    },
+    {
+      "finding": 2,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "Finding 2 identifies async forEach in handleCancelBooking.ts lines 459-470, which is the same async forEach anti-pattern already matched to reference 1 via finding 0; the diff shows this file still uses forEach async at line ~460 for the recurring event credential loop."
+    },
+    {
+      "finding": 3,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "Finding 3 identifies another async forEach in handleCancelBooking.ts lines 505-510 for video meetings, same async forEach anti-pattern already covered by reference 1 matched to finding 0."
+    },
+    {
+      "finding": 4,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "Finding 4 identifies async forEach in bookings.tsx lines 553-567, same async forEach anti-pattern already covered by reference 1 matched to finding 0."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 15408,
+    "completion_tokens": 349,
+    "total_tokens": 15757,
+    "cost": 0.051459,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.051459,
+      "upstream_inference_prompt_cost": 0.046224,
+      "upstream_inference_completions_cost": 0.005235
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

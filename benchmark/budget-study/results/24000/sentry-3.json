@@ -1,0 +1,120 @@
+{
+  "case": {
+    "id": "sentry-3",
+    "source": "sentry.json",
+    "url": "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/3",
+    "split": "holdout",
+    "base": "83f40559985e1365a43f35ba3febb7ea4fabb5d5",
+    "head": "6ad6fe3899f630ccf922ce7ac681147dc7987435"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "The caching mechanism in `is_errors_query_for_error_upsampled_projects` uses a cache key based on the hash of the sorted project IDs tuple. However, the cache is not invalidated automatically when the allowlist option changes, which can lead to stale cache results and incorrect upsampling behavior. The function `invalidate_upsampling_cache` exists but is not called anywhere in the diff or documented as a hook for option changes. Without proper cache invalidation on allowlist updates, queries may incorrectly apply or skip upsampling, causing inaccurate metrics.",
+        "category": "bug",
+        "end_line": 40,
+        "file": "src/sentry/api/helpers/error_upsampling.py",
+        "line": 13,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Ensure that `invalidate_upsampling_cache` is called whenever the allowlist option `issues.client_error_sampling.project_allowlist` is updated, for example by hooking into option change signals or configuration reloads.",
+        "title": "Upsampling eligibility cache not invalidated on allowlist changes"
+      },
+      {
+        "body": "In `transform_query_columns_for_error_upsampling`, the transformation replaces 'count()' with 'upsampled_count() as count'. This assumes that the alias 'count' is always expected and that the original query uses 'count()' exactly. If the query uses different aliases or variations (e.g., 'count() as total'), this transformation might not apply correctly, potentially causing inconsistent results or query errors.",
+        "category": "correctness",
+        "end_line": 100,
+        "file": "src/sentry/api/helpers/error_upsampling.py",
+        "line": 77,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Consider parsing the query columns more robustly to handle aliases and variations of count(), or ensure that the input columns are normalized before transformation.",
+        "title": "Transformation of count() aggregation assumes fixed alias"
+      },
+      {
+        "body": "The function `_should_apply_sample_weight_transform` checks the dataset and request to decide if sample_weight transformations should be applied. It returns True for the errors dataset, False for transactions, and for discover dataset it checks if the query is error-focused. However, it does not consider other datasets that might contain error events or the possibility of mixed event types in discover queries beyond the simple 'event.type:error' check. This could lead to incorrect application of upsampling transformations in edge cases.",
+        "category": "correctness",
+        "end_line": 127,
+        "file": "src/sentry/api/helpers/error_upsampling.py",
+        "line": 103,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Enhance `_should_apply_sample_weight_transform` to better detect error-focused queries in discover and consider other datasets that may contain error events, or document the limitation clearly.",
+        "title": "Limited dataset and query type detection for sample_weight transform"
+      },
+      {
+        "body": "The new tests in `tests/sentry/api/helpers/test_error_upsampling.py` and `tests/snuba/api/endpoints/test_organization_events_stats.py` cover basic scenarios for error upsampling eligibility and query transformation. However, there are no tests verifying cache behavior, especially cache invalidation and its effect on upsampling eligibility. This is important given the caching logic added to `is_errors_query_for_error_upsampled_projects` to avoid stale results.",
+        "category": "test",
+        "end_line": 101,
+        "file": "tests/sentry/api/helpers/test_error_upsampling.py",
+        "line": 1,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add tests that verify the caching behavior of `is_errors_query_for_error_upsampled_projects`, including cache hits, misses, and invalidation effects.",
+        "title": "Missing tests for upsampling eligibility cache behavior"
+      }
+    ],
+    "head": "6ad6fe38",
+    "mode": "range 83f40559985e1365a43f35ba3febb7ea4fabb5d5..6ad6fe3899f630ccf922ce7ac681147dc7987435",
+    "models": [
+      {
+        "completion_tokens": 782,
+        "cost_usd": 0.0103652,
+        "elapsed_ms": 10935,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 22785,
+        "summary": "The change adds error upsampling support with caching for eligibility checks and query transformations. The main concern is the caching mechanism not being invalidated on allowlist changes, risking stale eligibility results. There are also correctness considerations in dataset detection and query transformation assumptions. Tests cover basic functionality but lack coverage for caching behavior.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 763,
+      "diff_tokens": 5066,
+      "estimated_tokens": 23999,
+      "files_changed": 8,
+      "files_scanned": 16733,
+      "files_tokens": 18556,
+      "snippet_tokens": 377,
+      "snippets_dropped": 151,
+      "snippets_kept": 6
+    },
+    "total_ms": 11715,
+    "verdict": "request_changes"
+  }
+}

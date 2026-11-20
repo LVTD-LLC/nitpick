@@ -216,8 +216,15 @@ impl Repo {
     /// Produce a unified diff for the mode. Untracked files are appended as
     /// synthetic "new file" diffs so they get reviewed too.
     pub fn diff(&self, mode: &DiffMode, paths: &[String], include_untracked: bool) -> Result<String> {
-        let mut args: Vec<String> =
-            vec!["diff".into(), "--no-color".into(), "--no-ext-diff".into(), "-U3".into(), "--find-renames".into()];
+        let mut args: Vec<String> = vec![
+            "diff".into(),
+            "--no-color".into(),
+            "--no-ext-diff".into(),
+            "--src-prefix=a/".into(),
+            "--dst-prefix=b/".into(),
+            "-U3".into(),
+            "--find-renames".into(),
+        ];
         match mode {
             DiffMode::WorkingTreeVs { rev, .. } => {
                 if !rev.is_empty() {
@@ -252,7 +259,18 @@ impl Repo {
                 let o = Command::new("git")
                     .arg("-C")
                     .arg(&self.root)
-                    .args(["diff", "--no-color", "--no-ext-diff", "-U3", "--no-index", "--", "/dev/null", &file])
+                    .args([
+                        "diff",
+                        "--no-color",
+                        "--no-ext-diff",
+                        "--src-prefix=a/",
+                        "--dst-prefix=b/",
+                        "-U3",
+                        "--no-index",
+                        "--",
+                        "/dev/null",
+                        &file,
+                    ])
                     .output()?;
                 out.push_str(&String::from_utf8_lossy(&o.stdout));
             }

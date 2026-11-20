@@ -1,0 +1,59 @@
+{
+  "case": "keycloak-37634",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "f90e82685d06a749b506bd99657c6abdf0e376454f71780b4088e66c556c5d09",
+  "review_sha256": "a8a2033ee942a3980890333d6bfaab10c6333d51cdc917eae0703d1e0bab02ae",
+  "references": [
+    {
+      "comment": "In AccessTokenContext constructor, the fourth Objects.requireNonNull validates grantType twice instead of validating rawTokenId, allowing null rawTokenId values to pass validation.",
+      "severity": "Critical",
+      "category": "bug"
+    },
+    {
+      "comment": "In isAccessTokenId, the substring for the grant shortcut and the equality check look inverted: the grant shortcut occupies indices 4–5 (substring(4,6)), and a match should return true (combined with UUID check), not false.",
+      "severity": "High",
+      "category": "bug"
+    },
+    {
+      "comment": "Javadoc mentions \"usually like 3-letters shortcut\" but some implementations use 2-letter shortcuts (\"ac\", \"cc\", \"rt\", \"te\", \"pc\", \"ci\", \"ro\"). Consider updating documentation to reflect actual usage pattern.",
+      "severity": "Low",
+      "category": "doc_defect"
+    },
+    {
+      "comment": " Catching generic RuntimeException is too broad. The implementation throws IllegalArgumentException specifically - catch that instead for more precise testing.",
+      "severity": "Low",
+      "category": "bug"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "match",
+      "reference": 1,
+      "reason": "Both identify the same concrete bug in isAccessTokenId: the equality check returns false when the grant shortcut matches (inverted logic), causing valid token IDs to fail the matcher. Reference 1 also notes the substring indices may be off (4-5 vs 3-5), making it the stronger diagnosis of the same defect."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 23197,
+    "completion_tokens": 101,
+    "total_tokens": 23298,
+    "cost": 0.071106,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.071106,
+      "upstream_inference_prompt_cost": 0.069591,
+      "upstream_inference_completions_cost": 0.001515
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

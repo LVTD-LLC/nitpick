@@ -1,0 +1,133 @@
+{
+  "case": {
+    "id": "sentry-67876",
+    "source": "sentry.json",
+    "url": "https://github.com/getsentry/sentry/pull/67876",
+    "split": "holdout",
+    "base": "f3b740199ef0b8057c2c68a377fd3b4d42346deb",
+    "head": "bb75657fc8f13923c1d7983f422290908a1e7310"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [
+      {
+        "body": "In OAuthLoginView.dispatch, the OAuth flow is implemented manually. The code verifies the 'state' parameter matches the pipeline signature to prevent CSRF attacks. It exchanges the code for an access token and fetches the authenticated user's login. Then it binds 'github_authenticated_user' to the pipeline state. This is used later in GitHubInstallation.dispatch to verify the authenticated user matches the installation sender login. This is a good security check to prevent unauthorized installation. The code handles errors by rendering an error page. This is correct and secure.",
+        "category": "security",
+        "end_line": 439,
+        "file": "src/sentry/integrations/github/integration.py",
+        "line": 389,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "OAuthLoginView correctly verifies OAuth state and user identity"
+      },
+      {
+        "body": "In GitHubInstallation.dispatch, the check for 'installation_id' uses pipeline.fetch_state(\"installation_id\") as a fallback, but later the code assumes 'installation_id' is always present. If 'installation_id' is None, it redirects to the app URL. This is correct behavior. However, the code binds 'installation_id' to the pipeline state unconditionally after fetching it from GET or pipeline state. This is fine, but the initial fetch from pipeline state may be None, so the binding is safe. No issue here.",
+        "category": "correctness",
+        "end_line": 454,
+        "file": "src/sentry/integrations/github/integration.py",
+        "line": 448,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Safe handling of installation_id in GitHubInstallation.dispatch"
+      },
+      {
+        "body": "In GitHubInstallation.dispatch, when an Integration exists with the installation_id but no OrganizationIntegration exists, the code fetches the Integration and verifies that the authenticated GitHub user matches the 'sender' login in the integration metadata. If they do not match, it returns an error. This prevents a user from installing an integration on behalf of another user. This is a good security measure and is correctly implemented.",
+        "category": "security",
+        "end_line": 506,
+        "file": "src/sentry/integrations/github/integration.py",
+        "line": 493,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Verify authenticated GitHub user matches installation sender login"
+      },
+      {
+        "body": "In pipeline_advancer.py, the code adds a special case for GitHub installations that may be initiated directly from GitHub without a pipeline. If the provider_id is 'github', setup_action is 'install', and no pipeline exists, it redirects to the integration installation org picker with the installation_id. This is a necessary fix to handle GitHub app installations correctly. The code correctly fetches the installation_id from the request GET parameters and redirects accordingly.",
+        "category": "correctness",
+        "end_line": 48,
+        "file": "src/sentry/web/frontend/pipeline_advancer.py",
+        "line": 29,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Handle GitHub app direct installation without pipeline in PipelineAdvancerView"
+      },
+      {
+        "body": "The tests in tests/sentry/integrations/github/test_integration.py have been extended to cover the new OAuthLoginView and the user identity verification in GitHubInstallation. They test the OAuth flow, error cases, user mismatch, and installation not found scenarios. This is good coverage for the new logic and security checks added in the integration.py changes.",
+        "category": "test",
+        "end_line": 455,
+        "file": "tests/sentry/integrations/github/test_integration.py",
+        "line": 389,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Add tests for OAuthLoginView and GitHubInstallation user verification logic"
+      }
+    ],
+    "head": "bb75657",
+    "mode": "range f3b740199ef0b8057c2c68a377fd3b4d42346deb..bb75657fc8f13923c1d7983f422290908a1e7310",
+    "models": [
+      {
+        "completion_tokens": 811,
+        "cost_usd": 0.0050152,
+        "elapsed_ms": 18284,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 23022,
+        "summary": "This change adds an OAuth login step to the GitHub integration installation pipeline to verify the identity of the user installing the GitHub app. It improves security by ensuring the authenticated GitHub user matches the installation sender. The pipeline advancer is updated to handle direct GitHub app installations without a pipeline. Tests are added to cover the new OAuth flow and user verification. Overall, the changes are correct and improve security and robustness.",
+        "verdict": "approve"
+      }
+    ],
+    "stats": {
+      "build_ms": 939,
+      "diff_tokens": 6031,
+      "estimated_tokens": 23981,
+      "files_changed": 3,
+      "files_scanned": 13270,
+      "files_tokens": 14885,
+      "snippet_tokens": 3065,
+      "snippets_dropped": 40,
+      "snippets_kept": 27
+    },
+    "total_ms": 19238,
+    "verdict": "comment"
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "case": "keycloak-1",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "cbf8479b3b29496887429cbe82a9552b3bf48f95a6c34ed3e5b9e4dbcd6cd0e2",
+  "review_sha256": "86af97f21e784fa38914b63b846dba6fb0f5a2ad6ed2cd53e179b8f77351b584",
+  "references": [
+    {
+      "comment": "In UsernameForm.authenticate(), isConditionalPasskeysEnabled() is called without passing the required UserModel parameter.",
+      "severity": "Medium",
+      "category": "api"
+    },
+    {
+      "comment": "With isConditionalPasskeysEnabled(UserModel user) requiring user != null, authenticate(...) will not call webauthnAuth.fillContextForm(context) on the initial login page where context.getUser() is still null, so conditional passkey UI will not be set up for first-time passkey login. Consider whether this should also be enabled when no user has been selected yet so ID-less passkey authentication on the initial login form continues to work.",
+      "severity": "Medium",
+      "category": "speculative"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "match",
+      "reference": 0,
+      "reason": "Finding 0 and reference 0 both identify the same concrete bug: isConditionalPasskeysEnabled() is called without the required UserModel argument in UsernameForm.java line 47."
+    },
+    {
+      "finding": 1,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The test sets null for ResidentKey/UserVerification policies and then calls checkWebAuthnConfiguration expecting YES/REQUIRED constants. Whether null resolves to those defaults depends on realm configuration; this may be intentional behavior relying on defaults, making it uncertain whether this is a real defect."
+    },
+    {
+      "finding": 2,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "This is the same pattern as finding 1 (null policy values with non-null constant checks) but in a different test file. Finding 1 already covers this issue pattern."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 16380,
+    "completion_tokens": 205,
+    "total_tokens": 16585,
+    "cost": 0.052215,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.052215,
+      "upstream_inference_prompt_cost": 0.04914,
+      "upstream_inference_completions_cost": 0.003075
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

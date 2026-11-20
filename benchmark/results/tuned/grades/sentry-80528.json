@@ -1,0 +1,20 @@
+{
+  "case": "sentry-80528",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "c3b37140c48ef1f012d27e4412a1a5963c643b38f43610c711c612370cf5407d",
+  "review_sha256": "3d56c6ce7078c11f3aee6f0d0da10c368c79a8235129992bee9a14b6abe4e1cc",
+  "references": [
+    {
+      "comment": "The function modifies the config variable to include display values but then returns the original monitor.config instead of the modified version.",
+      "severity": "High",
+      "category": "bug"
+    },
+    {
+      "comment": "The code fetches MonitorCheckIn objects by ID when the required data already exists in previous_checkins. This creates an unnecessary database query.",
+      "severity": "Low",
+      "category": "perf"
+    }
+  ],
+  "rows": [],
+  "usage": {}
+}

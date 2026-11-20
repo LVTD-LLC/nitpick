@@ -1,0 +1,165 @@
+{
+  "dataset": "e616e849755441da38f18bf3adba2c9583b03803",
+  "cases": [
+    {
+      "id": "cal_dot_com-8087",
+      "source": "cal_dot_com.json",
+      "url": "https://github.com/calcom/cal.com/pull/8087",
+      "split": "dev",
+      "base": "ba9688a04a8398c9a8332ee7061bfae2f2efd524",
+      "head": "820d7fa87e0c824c5dee8082a33efadb1a2566f7"
+    },
+    {
+      "id": "cal_dot_com-10967",
+      "source": "cal_dot_com.json",
+      "url": "https://github.com/calcom/cal.com/pull/10967",
+      "split": "dev",
+      "base": "a308075bc39b77ed7059b0cae9d443d669a7bf98",
+      "head": "de628295646d0848226618108a52f2f1e5d04ac0"
+    },
+    {
+      "id": "cal_dot_com-11059",
+      "source": "cal_dot_com.json",
+      "url": "https://github.com/calcom/cal.com/pull/11059",
+      "split": "holdout",
+      "base": "bc89fe00ea84d20bedcec782f0701b9711dc8201",
+      "head": "9fde0e906897cc0f4f71793f647dd629faba3317"
+    },
+    {
+      "id": "cal_dot_com-8330",
+      "source": "cal_dot_com.json",
+      "url": "https://github.com/calcom/cal.com/pull/8330",
+      "split": "holdout",
+      "base": "93cb21f55a2a40d9116c014741f5679fbeff5fd9",
+      "head": "ee38fd295fd294b9fc787eba482bde24bbfea69b"
+    },
+    {
+      "id": "discourse-6",
+      "source": "discourse.json",
+      "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/6",
+      "split": "dev",
+      "base": "7a5fbae060bd0d3e29f3a4b5c6f2bfd8b2914dc7",
+      "head": "267d8be1f556ed59639ced396c885bb44586da19"
+    },
+    {
+      "id": "discourse-5",
+      "source": "discourse.json",
+      "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/5",
+      "split": "dev",
+      "base": "98fa098e6fade3097a11fe7f99a98a4e6ffb4728",
+      "head": "5b229316ee4c661836ed1161139692a3e8527444"
+    },
+    {
+      "id": "discourse-3",
+      "source": "discourse.json",
+      "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/3",
+      "split": "holdout",
+      "base": "e25638dab0d4b98f99c8fe8976ccaae8f4fb9db3",
+      "head": "5f8a130277dbddc95d133cd2832be639baf89213"
+    },
+    {
+      "id": "discourse-4",
+      "source": "discourse.json",
+      "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/4",
+      "split": "holdout",
+      "base": "62db063e1e1abe691313ab42682a68f796d63769",
+      "head": "4f8aed295a29954023b2849c060ef4fb299d1b5d"
+    },
+    {
+      "id": "grafana-90939",
+      "source": "grafana.json",
+      "url": "https://github.com/grafana/grafana/pull/90939",
+      "split": "dev",
+      "base": "cca9dee702ac4338ddc38aa56257273b8143e32e",
+      "head": "b1613e320acff00623e6efc59f00ee68c7684a97"
+    },
+    {
+      "id": "grafana-107534",
+      "source": "grafana.json",
+      "url": "https://github.com/grafana/grafana/pull/107534",
+      "split": "dev",
+      "base": "d9a8253640464014aa3662c91131278990cfb828",
+      "head": "1cab4143d443c33079566f6ca36931eb8468159f"
+    },
+    {
+      "id": "grafana-79265",
+      "source": "grafana.json",
+      "url": "https://github.com/grafana/grafana/pull/79265",
+      "split": "holdout",
+      "base": "7ddcd0c9611882858701f4f876fb8e449fe73980",
+      "head": "bbd8c507cdf56f6b884373809e0b24abd4a2353d"
+    },
+    {
+      "id": "grafana-76186",
+      "source": "grafana.json",
+      "url": "https://github.com/grafana/grafana/pull/76186",
+      "split": "holdout",
+      "base": "58ba11ecbd60863e2bfc6e32f0399ed4feb3927a",
+      "head": "303cdc2caf256aa5df660611120c2e3f7392365d"
+    },
+    {
+      "id": "keycloak-37634",
+      "source": "keycloak.json",
+      "url": "https://github.com/keycloak/keycloak/pull/37634",
+      "split": "dev",
+      "base": "c22f76867f595f0f7c327376a66a08dca01949e8",
+      "head": "daffb05b5ad091d3ec09933c3c99c2b54f448696"
+    },
+    {
+      "id": "keycloak-36882",
+      "source": "keycloak.json",
+      "url": "https://github.com/keycloak/keycloak/pull/36882",
+      "split": "dev",
+      "base": "1b28ac610dc16e0de14199f9ca5d2acdf7f3cc16",
+      "head": "62bf98939eda58f0d0a1a41a58aa6d4ecdc24dba"
+    },
+    {
+      "id": "keycloak-1",
+      "source": "keycloak.json",
+      "url": "https://github.com/ai-code-review-evaluation/keycloak-greptile/pull/1",
+      "split": "holdout",
+      "base": "30f804af450dec523909a52f2a4b97302d27f5cc",
+      "head": "3214b188de808fdb0fff335556b686f1b0a63218"
+    },
+    {
+      "id": "keycloak-37429",
+      "source": "keycloak.json",
+      "url": "https://github.com/keycloak/keycloak/pull/37429",
+      "split": "holdout",
+      "base": "f3c8e8f3487112f2c99aa78400430cce2d30be39",
+      "head": "02f48f776f43734d1ac8914d3ad6a7115acdcb33"
+    },
+    {
+      "id": "sentry-95633",
+      "source": "sentry.json",
+      "url": "https://github.com/getsentry/sentry/pull/95633",
+      "split": "dev",
+      "base": "fd358e8a388939959369f08f616e29552cdaf96e",
+      "head": "9966ec5a13e331659c3ea00981f9b11b0faf821f"
+    },
+    {
+      "id": "sentry-80528",
+      "source": "sentry.json",
+      "url": "https://github.com/getsentry/sentry/pull/80528",
+      "split": "dev",
+      "base": "0cfc28e76ddc986d2d89dd9b9f63ee916a18a5f9",
+      "head": "dcdcadb771128e79259cc9eff9c70c38fc597976"
+    },
+    {
+      "id": "sentry-67876",
+      "source": "sentry.json",
+      "url": "https://github.com/getsentry/sentry/pull/67876",
+      "split": "holdout",
+      "base": "f3b740199ef0b8057c2c68a377fd3b4d42346deb",
+      "head": "bb75657fc8f13923c1d7983f422290908a1e7310"
+    },
+    {
+      "id": "sentry-3",
+      "source": "sentry.json",
+      "url": "https://github.com/ai-code-review-evaluation/sentry-greptile/pull/3",
+      "split": "holdout",
+      "base": "83f40559985e1365a43f35ba3febb7ea4fabb5d5",
+      "head": "6ad6fe3899f630ccf922ce7ac681147dc7987435"
+    }
+  ]
+}

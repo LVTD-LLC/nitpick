@@ -1,0 +1,133 @@
+{
+  "case": {
+    "id": "cal_dot_com-8330",
+    "source": "cal_dot_com.json",
+    "url": "https://github.com/calcom/cal.com/pull/8330",
+    "split": "holdout",
+    "base": "93cb21f55a2a40d9116c014741f5679fbeff5fd9",
+    "head": "ee38fd295fd294b9fc787eba482bde24bbfea69b"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 3,
+    "findings": [
+      {
+        "body": "In `checkIfIsAvailable` function (packages/trpc/server/routers/viewer/slots.ts lines 114-115), the equality check `dayjs(date.start).add(utcOffset, \"minutes\") === dayjs(date.end).add(utcOffset, \"minutes\")` compares two Dayjs objects with `===`, which compares references, not values. This will always be false unless they are the same object, causing incorrect behavior in date override logic.",
+        "category": "bug",
+        "end_line": 115,
+        "file": "packages/trpc/server/routers/viewer/slots.ts",
+        "line": 114,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Use `.isSame()` method to compare Dayjs objects by value: `dayjs(date.start).add(utcOffset, \"minutes\").isSame(dayjs(date.end).add(utcOffset, \"minutes\"))`.",
+        "title": "Incorrect Dayjs equality check in date override logic"
+      },
+      {
+        "body": "In `checkIfIsAvailable` function (packages/trpc/server/routers/viewer/slots.ts lines 139-147), the logic checking if a slot is outside working hours is incorrect. It calculates `start` and `end` as the same value (slotStartTime hour and minute), so the condition `start < workingHour.startTime || end > workingHour.endTime` will always be false or incorrect. This means slots outside working hours might be incorrectly considered available.",
+        "category": "bug",
+        "end_line": 147,
+        "file": "packages/trpc/server/routers/viewer/slots.ts",
+        "line": 141,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Change line 142 to calculate `end` as `slotStartTime.hour() * 60 + slotStartTime.minute() + eventLength` to represent the slot end time in minutes, or use `slotStartTime.add(eventLength, 'minutes')` to get the correct end time for comparison.",
+        "title": "Incorrect working hours check in checkIfIsAvailable function"
+      },
+      {
+        "body": "In `getSchedule` function (packages/trpc/server/routers/viewer/slots.ts lines 579-586), the code finds `userSchedule` by matching userId to slotUserId, but does not handle the case where `userSchedule` is undefined before accessing `userSchedule.timeZone`. This can cause runtime errors if a slotUserId is not found in userAvailability.",
+        "category": "bug",
+        "end_line": 586,
+        "file": "packages/trpc/server/routers/viewer/slots.ts",
+        "line": 579,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Add a check for `userSchedule` existence before accessing `userSchedule.timeZone`, or filter out slotUserIds without matching userSchedule earlier.",
+        "title": "Possible undefined userSchedule causing runtime error in getSchedule"
+      },
+      {
+        "body": "In `getSlots` function (packages/lib/slots.ts lines 141-142), the `dateOverrides` objects are expected to have a `timeZone` property (added in types), but the code does not validate or handle missing `timeZone` values. This can cause runtime errors when accessing `override.timeZone` in line 212.",
+        "category": "bug",
+        "end_line": 212,
+        "file": "packages/lib/slots.ts",
+        "line": 212,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add validation or defaulting for `override.timeZone` before using it, e.g., `const organizerUtcOffset = dayjs(override.start.toString()).tz(override.timeZone || organizerTimeZone).utcOffset();`.",
+        "title": "Potential missing timeZone in dateOverrides causing runtime error"
+      },
+      {
+        "body": "In `checkIfIsAvailable` function (packages/trpc/server/routers/viewer/slots.ts lines 106-127), the `dateOverrides.find` callback uses side effects to set `dateOverrideExist` and returns true to break the find early. This is confusing and error-prone. Also, the logic inside the callback is complex and mixes side effects with predicate logic, which can cause maintenance issues and bugs.",
+        "category": "style",
+        "end_line": 127,
+        "file": "packages/trpc/server/routers/viewer/slots.ts",
+        "line": 106,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Refactor the date override check into a separate function that clearly returns a boolean without side effects, and use `.some()` instead of `.find()` if only presence is needed.",
+        "title": "Confusing side effects in dateOverrides.find callback"
+      }
+    ],
+    "head": "ee38fd2",
+    "mode": "range 93cb21f55a2a40d9116c014741f5679fbeff5fd9..ee38fd295fd294b9fc787eba482bde24bbfea69b",
+    "models": [
+      {
+        "completion_tokens": 965,
+        "cost_usd": 0.0103512,
+        "elapsed_ms": 9038,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 22018,
+        "summary": "The change adds timezone-aware handling of date overrides and working hours in scheduling logic, improving correctness for multi-timezone scenarios. However, there are critical bugs in time range calculations and Dayjs comparisons that can cause incorrect availability results or runtime errors. Some code clarity and defensive checks are also needed to prevent errors with missing data.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 161,
+      "diff_tokens": 2759,
+      "estimated_tokens": 19113,
+      "files_changed": 4,
+      "files_scanned": 2097,
+      "files_tokens": 10640,
+      "snippet_tokens": 5714,
+      "snippets_dropped": 0,
+      "snippets_kept": 32
+    },
+    "total_ms": 9214,
+    "verdict": "request_changes"
+  }
+}

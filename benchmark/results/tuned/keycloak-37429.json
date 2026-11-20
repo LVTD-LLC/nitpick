@@ -1,0 +1,96 @@
+{
+  "case": {
+    "id": "keycloak-37429",
+    "source": "keycloak.json",
+    "url": "https://github.com/keycloak/keycloak/pull/37429",
+    "split": "holdout",
+    "base": "f3c8e8f3487112f2c99aa78400430cce2d30be39",
+    "head": "02f48f776f43734d1ac8914d3ad6a7115acdcb33"
+  },
+  "run": {
+    "binary_sha256": "8b97b718e90fccf7856ec511cf093789d43c5c7ef48c94178a03d1b851d9054d",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json",
+      "--focus",
+      "Review each changed hunk before drafting findings. For each altered decision, trace a concrete input through the old and new behavior. Check boundary values, failure paths, and the contracts imposed by surrounding callers and tests. Verify suspected failures against the actual types, guards, and versions shown. Drop claims that the code contradicts, observations of correct behavior, and guesses that lack a failing scenario. Group repeated instances of one root cause into a single actionable finding, citing one changed line and mentioning other affected sites in its body."
+    ],
+    "manifest_sha256": "26246a93170b7398145befec9af48b220dd4b5160ed7e7688dc6482c4b924ed1"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "The change modifies the message format for 'error-invalid-multivalued-size' in multiple properties files to use a more complex ICU MessageFormat choice pattern for pluralization of the word 'value(s)'. This is a correct improvement for localization. However, the pattern uses '{2,choice,0#values|1#value|1<values}' which is incorrect because the 'choice' format expects numeric ranges and the keys must be in ascending order without duplicates. Here, '1' is repeated twice with different outputs, which is invalid and may cause runtime formatting errors or unexpected output. The correct pattern should use distinct numeric ranges, for example: '0#values|1#value|1<values' is invalid because '1' appears twice; it should be '0#values|1#value|2<values'. This issue appears in multiple files, including 'js/apps/account-ui/maven-resources/theme/keycloak.v3/account/messages/messages_en.properties' line 187, 'js/apps/admin-ui/maven-resources/theme/keycloak.v2/admin/messages/messages_en.properties' line 3136, 'themes/src/main/resources-community/theme/base/login/messages/messages_lt.properties' line 499, and others.",
+        "category": "bug",
+        "end_line": 187,
+        "file": "js/apps/account-ui/maven-resources/theme/keycloak.v3/account/messages/messages_en.properties",
+        "line": 187,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Fix the ICU MessageFormat choice pattern to use distinct numeric ranges without duplicates, e.g. '{2,choice,0#values|1#value|2<values}' instead of '{2,choice,0#values|1#value|1<values}'.",
+        "title": "Invalid ICU MessageFormat choice pattern with duplicate keys in pluralization"
+      },
+      {
+        "body": "The new VerifyMessageProperties.java class adds HTML sanitization checks for message properties files to prevent illegal HTML tags or altered anchor tags in translations. This is a security improvement to prevent injection of unsafe HTML in localized messages. The implementation uses OWASP Java HTML Sanitizer and Apache Commons Text for unescaping. The tests added cover duplicate keys, illegal HTML tags, no HTML allowed, and changed anchors. This is a positive addition with no detected issues.",
+        "category": "security",
+        "end_line": 129,
+        "file": "misc/theme-verifier/src/main/java/org/keycloak/themeverifier/VerifyMessageProperties.java",
+        "line": 48,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Add HTML sanitization checks for message properties to prevent unsafe HTML injection"
+      }
+    ],
+    "head": "02f48f7",
+    "mode": "range f3c8e8f3487112f2c99aa78400430cce2d30be39..02f48f776f43734d1ac8914d3ad6a7115acdcb33",
+    "models": [
+      {
+        "completion_tokens": 578,
+        "cost_usd": 0.0107224,
+        "elapsed_ms": 5566,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 24494,
+        "summary": "The change improves localization pluralization patterns and adds HTML sanitization checks for message properties. However, the ICU MessageFormat choice patterns for pluralization contain duplicate keys, which is invalid and may cause formatting errors. The HTML sanitization additions are positive and well-tested.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 224,
+      "diff_tokens": 24994,
+      "estimated_tokens": 24994,
+      "files_changed": 48,
+      "files_scanned": 9707,
+      "files_tokens": 0,
+      "snippet_tokens": 0,
+      "snippets_dropped": 3,
+      "snippets_kept": 0
+    },
+    "total_ms": 5820,
+    "verdict": "request_changes"
+  }
+}

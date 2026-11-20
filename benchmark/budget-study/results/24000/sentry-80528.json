@@ -1,0 +1,67 @@
+{
+  "case": {
+    "id": "sentry-80528",
+    "source": "sentry.json",
+    "url": "https://github.com/getsentry/sentry/pull/80528",
+    "split": "dev",
+    "base": "0cfc28e76ddc986d2d89dd9b9f63ee916a18a5f9",
+    "head": "dcdcadb771128e79259cc9eff9c70c38fc597976"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [],
+    "head": "dcdcadb7",
+    "mode": "range 0cfc28e76ddc986d2d89dd9b9f63ee916a18a5f9..dcdcadb771128e79259cc9eff9c70c38fc597976",
+    "models": [
+      {
+        "completion_tokens": 138,
+        "cost_usd": 0.0070752,
+        "elapsed_ms": 3149,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 17136,
+        "summary": "This change refactors the monitor failure marking logic by extracting the incident threshold handling into a new module and function (`try_incident_threshold` in `incidents.py`). The `mark_failed` function now delegates incident creation and issue occurrence logic to this new function, improving modularity and maintainability. The new `incident_occurrence.py` module encapsulates the creation of issue occurrences and related helper functions. The `SimpleCheckIn` TypedDict is moved to `types.py` for better type sharing. The overall behavior appears preserved with no regressions or bugs introduced. The change is well-structured and covered by existing tests.",
+        "verdict": "approve"
+      }
+    ],
+    "stats": {
+      "build_ms": 235,
+      "diff_tokens": 3430,
+      "estimated_tokens": 15961,
+      "files_changed": 4,
+      "files_scanned": 15071,
+      "files_tokens": 5995,
+      "snippet_tokens": 6536,
+      "snippets_dropped": 0,
+      "snippets_kept": 26
+    },
+    "total_ms": 3400,
+    "verdict": "approve"
+  }
+}

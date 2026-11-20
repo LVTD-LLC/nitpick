@@ -1,0 +1,120 @@
+{
+  "case": {
+    "id": "cal_dot_com-8330",
+    "source": "cal_dot_com.json",
+    "url": "https://github.com/calcom/cal.com/pull/8330",
+    "split": "holdout",
+    "base": "93cb21f55a2a40d9116c014741f5679fbeff5fd9",
+    "head": "ee38fd295fd294b9fc787eba482bde24bbfea69b"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 2,
+    "findings": [
+      {
+        "body": "In `checkIfIsAvailable` function, the comparison `dayjs(date.start).add(utcOffset, \"minutes\") === dayjs(date.end).add(utcOffset, \"minutes\")` (line 114) compares two Dayjs objects with `===`, which compares references, not values. This will always be false unless they are the same object, causing incorrect behavior when start and end are equal.",
+        "category": "bug",
+        "end_line": 115,
+        "file": "packages/trpc/server/routers/viewer/slots.ts",
+        "line": 114,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Use `.isSame()` method for Dayjs objects: `dayjs(date.start).add(utcOffset, \"minutes\").isSame(dayjs(date.end).add(utcOffset, \"minutes\"))`.",
+        "title": "Incorrect Dayjs equality check in date override logic"
+      },
+      {
+        "body": "In `checkIfIsAvailable` function (packages/trpc/server/routers/viewer/slots.ts lines 139-147), the logic to check if a slot is outside working hours is incorrect. It calculates `start` and `end` as the same value (slotStartTime hour and minute), so the condition `start < workingHour.startTime || end > workingHour.endTime` will always be false or incorrect. This means slots outside working hours might be incorrectly considered available.",
+        "category": "bug",
+        "end_line": 147,
+        "file": "packages/trpc/server/routers/viewer/slots.ts",
+        "line": 141,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Change line 142 to calculate `end` as slotStartTime hour * 60 + slotStartTime minute + eventLength, i.e., `const end = slotStartTime.hour() * 60 + slotStartTime.minute() + eventLength;` to correctly represent the slot end time in minutes.",
+        "title": "Incorrect working hours check in checkIfIsAvailable"
+      },
+      {
+        "body": "In `getSlots` function (packages/lib/slots.ts lines 210-245), the override time calculation adjusts override start and end times by the difference between invitee and organizer UTC offsets. This logic assumes that the invitee's timezone is the context for the slots, but it may cause incorrect slot times if the override's timeZone is missing or inconsistent, or if the offsets are not correctly applied for DST transitions.",
+        "category": "bug",
+        "end_line": 225,
+        "file": "packages/lib/slots.ts",
+        "line": 212,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add validation to ensure `override.timeZone` is defined and consistent. Consider using Dayjs `.tz()` with explicit timezone parsing and verify DST handling. Add unit tests for overrides crossing DST boundaries.",
+        "title": "Potential incorrect timezone offset handling in dateOverrides processing"
+      },
+      {
+        "body": "In `getSchedule` function (packages/trpc/server/routers/viewer/slots.ts lines 106-130), the logic to check if a slot is within a date override uses a `.find()` with a side effect (`dateOverrideExist = true`) and returns `true` to break the find. This is confusing and error-prone. Also, the logic returns `false` if the slot is not within the date override, but the conditions are complex and may not cover all edge cases correctly.",
+        "category": "bug",
+        "end_line": 130,
+        "file": "packages/trpc/server/routers/viewer/slots.ts",
+        "line": 106,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Refactor the date override check to a clear function that returns a boolean indicating if the slot is within any override. Avoid side effects inside `.find()`. Add unit tests for edge cases of date overrides.",
+        "title": "Confusing and potentially incorrect date override slot inclusion logic"
+      }
+    ],
+    "head": "ee38fd2",
+    "mode": "range 93cb21f55a2a40d9116c014741f5679fbeff5fd9..ee38fd295fd294b9fc787eba482bde24bbfea69b",
+    "models": [
+      {
+        "completion_tokens": 1025,
+        "cost_usd": 0.0104228,
+        "elapsed_ms": 13388,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 21957,
+        "summary": "The change adds timezone-aware handling of date overrides and working hours in scheduling slots. However, there are multiple bugs in the availability checking logic, including incorrect time range calculations, improper Dayjs comparisons, confusing date override checks, and inverted logic in working hours filtering. These issues can cause incorrect slot availability results, especially around timezone boundaries and date overrides. Fixing these bugs is critical to ensure correct scheduling behavior.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 205,
+      "diff_tokens": 2759,
+      "estimated_tokens": 19086,
+      "files_changed": 4,
+      "files_scanned": 2097,
+      "files_tokens": 10640,
+      "snippet_tokens": 5687,
+      "snippets_dropped": 0,
+      "snippets_kept": 31
+    },
+    "total_ms": 13611,
+    "verdict": "request_changes"
+  }
+}

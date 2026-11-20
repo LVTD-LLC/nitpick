@@ -1,0 +1,133 @@
+{
+  "case": {
+    "id": "cal_dot_com-8330",
+    "source": "cal_dot_com.json",
+    "url": "https://github.com/calcom/cal.com/pull/8330",
+    "split": "holdout",
+    "base": "93cb21f55a2a40d9116c014741f5679fbeff5fd9",
+    "head": "ee38fd295fd294b9fc787eba482bde24bbfea69b"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 3,
+    "findings": [
+      {
+        "body": "In `checkIfIsAvailable` function, the date override check uses `dayjs(date.start).add(utcOffset, \"minutes\") === dayjs(date.end).add(utcOffset, \"minutes\")` (line 114) which compares two Dayjs objects by reference, always returning false. This breaks the logic for date overrides where start and end are equal, potentially causing incorrect availability results.",
+        "category": "bug",
+        "end_line": 115,
+        "file": "packages/trpc/server/routers/viewer/slots.ts",
+        "line": 114,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Use `.isSame()` method to compare Dayjs objects: `dayjs(date.start).add(utcOffset, \"minutes\").isSame(dayjs(date.end).add(utcOffset, \"minutes\"))`.",
+        "title": "Incorrect Dayjs equality check for date override start and end"
+      },
+      {
+        "body": "In `checkIfIsAvailable` function (packages/trpc/server/routers/viewer/slots.ts lines 139-147), the logic checking if a slot is outside working hours is incorrect. It calculates `start` and `end` as the same value (slotStartTime hour and minute), so the condition `start < workingHour.startTime || end > workingHour.endTime` will always be false or incorrect. This means slots outside working hours might be incorrectly considered available.",
+        "category": "bug",
+        "end_line": 147,
+        "file": "packages/trpc/server/routers/viewer/slots.ts",
+        "line": 141,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Change line 142 to calculate `end` as `slotStartTime.hour() * 60 + slotStartTime.minute() + eventLength` to represent the slot end time in minutes since midnight, or use `slotStartTime` plus eventLength to check against working hours properly.",
+        "title": "Incorrect working hours check in checkIfIsAvailable"
+      },
+      {
+        "body": "In `getSchedule` function (packages/trpc/server/routers/viewer/slots.ts lines 579-586), when filtering availableTimeSlots for selectedSlots, the code finds `userSchedule` by matching userId but does not handle the case where `userSchedule` is undefined before accessing `userSchedule.timeZone`. This can cause runtime errors if a userId is not found in `userAvailability`.",
+        "category": "bug",
+        "end_line": 586,
+        "file": "packages/trpc/server/routers/viewer/slots.ts",
+        "line": 579,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Add a check for `userSchedule` existence before accessing `userSchedule.timeZone`. For example, `organizerTimeZone: userSchedule ? userSchedule.timeZone : undefined` or skip the slot if userSchedule is missing.",
+        "title": "Potential runtime error accessing undefined userSchedule.timeZone"
+      },
+      {
+        "body": "In `getSlots` function (packages/lib/slots.ts lines 210-245), the override time adjustment logic uses `dayjs(override.start.toString())` and `dayjs(override.start).utc()` inconsistently, which may cause subtle timezone parsing issues. Also, the offset calculation and addition might be error-prone if the timeZone property is missing or invalid in overrides.",
+        "category": "bug",
+        "end_line": 225,
+        "file": "packages/lib/slots.ts",
+        "line": 212,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Ensure consistent use of Dayjs objects without unnecessary `.toString()`. Validate that `override.timeZone` exists before using it. Consider simplifying offset calculation by using Dayjs timezone-aware methods directly without manual offset arithmetic.",
+        "title": "Inconsistent and potentially error-prone timezone handling in dateOverrides processing"
+      },
+      {
+        "body": "The new test added in `apps/web/test/lib/getSchedule.test.ts` (lines 788-804) tests schedule with date override in a different timezone but does not test edge cases such as date overrides spanning midnight or partial overlaps. This may miss regressions in complex timezone scenarios.",
+        "category": "test",
+        "end_line": 804,
+        "file": "apps/web/test/lib/getSchedule.test.ts",
+        "line": 788,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Add tests covering date overrides that span midnight, partial overlaps, and different organizer and invitee timezones to ensure robust timezone handling.",
+        "title": "Insufficient test coverage for complex date override timezone scenarios"
+      }
+    ],
+    "head": "ee38fd2",
+    "mode": "range 93cb21f55a2a40d9116c014741f5679fbeff5fd9..ee38fd295fd294b9fc787eba482bde24bbfea69b",
+    "models": [
+      {
+        "completion_tokens": 951,
+        "cost_usd": 0.0037764,
+        "elapsed_ms": 11873,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 21957,
+        "summary": "The change adds timezone-aware handling of date overrides and working hours in scheduling slots, improving correctness for multi-timezone scenarios. However, there are critical bugs in availability checks, including incorrect working hours boundary checks and improper Dayjs object comparisons, which can cause incorrect slot availability results or runtime errors. Some timezone handling code is inconsistent and error-prone. Test coverage for complex timezone edge cases could be improved.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 165,
+      "diff_tokens": 2759,
+      "estimated_tokens": 19086,
+      "files_changed": 4,
+      "files_scanned": 2097,
+      "files_tokens": 10640,
+      "snippet_tokens": 5687,
+      "snippets_dropped": 0,
+      "snippets_kept": 31
+    },
+    "total_ms": 12047,
+    "verdict": "request_changes"
+  }
+}

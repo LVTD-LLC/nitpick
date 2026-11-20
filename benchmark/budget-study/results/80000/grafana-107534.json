@@ -1,0 +1,120 @@
+{
+  "case": {
+    "id": "grafana-107534",
+    "source": "grafana.json",
+    "url": "https://github.com/grafana/grafana/pull/107534",
+    "split": "dev",
+    "base": "d9a8253640464014aa3662c91131278990cfb828",
+    "head": "1cab4143d443c33079566f6ca36931eb8468159f"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [
+      {
+        "body": "In `public/app/plugins/datasource/loki/shardQuerySplitting.ts` at line 281, the function `groupHasPendingRequests` mutates the `cycle` property of the group by setting it to `nextCycle`. This side effect during a predicate check is unexpected and can lead to confusing behavior or bugs in the iteration logic that relies on this function. Predicate functions should not mutate their inputs.",
+        "category": "bug",
+        "end_line": 289,
+        "file": "public/app/plugins/datasource/loki/shardQuerySplitting.ts",
+        "line": 281,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Refactor `groupHasPendingRequests` to avoid mutating `group.cycle`. Instead, update `cycle` explicitly in the calling code after the check.",
+        "title": "Predicate function `groupHasPendingRequests` mutates input group cycle property"
+      },
+      {
+        "body": "In `public/app/plugins/datasource/loki/querySplitting.ts` at lines 296-299, the `runSplitQuery` function now applies template variable interpolation to each query target before further processing. This is a behavior change that could affect downstream consumers expecting raw queries. However, the tests added verify this behavior and it aligns with the intended functionality to interpolate variables before splitting queries.",
+        "category": "api",
+        "end_line": 299,
+        "file": "public/app/plugins/datasource/loki/querySplitting.ts",
+        "line": 296,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "`runSplitQuery` now applies template variables to queries before splitting"
+      },
+      {
+        "body": "In `public/app/plugins/datasource/loki/shardQuerySplitting.ts` at lines 48-55, the `runShardSplitQuery` function was changed to apply template variables to queries before passing them to `splitQueriesByStreamShard`. This aligns with the change in `runSplitQuery` and is consistent. The tests verify that `applyTemplateVariables` is called the expected number of times. This change is safe and improves consistency.",
+        "category": "api",
+        "end_line": 52,
+        "file": "public/app/plugins/datasource/loki/shardQuerySplitting.ts",
+        "line": 48,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "`runShardSplitQuery` applies template variables to queries before splitting"
+      },
+      {
+        "body": "In `public/app/plugins/datasource/loki/shardQuerySplitting.ts` at lines 68-210, the `runNextRequest` function calls `runSplitQuery` with options `{ skipPartialUpdates: true, disableRetry: true }`. This disables retry and partial updates for the inner split queries. This is a deliberate design choice to avoid nested retries and partial updates, which is reasonable. The tests confirm this behavior. No issues found here.",
+        "category": "other",
+        "end_line": 210,
+        "file": "public/app/plugins/datasource/loki/shardQuerySplitting.ts",
+        "line": 163,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Inner calls to `runSplitQuery` disable retry and partial updates as intended"
+      }
+    ],
+    "head": "1cab4143",
+    "mode": "range d9a8253640464014aa3662c91131278990cfb828..1cab4143d443c33079566f6ca36931eb8468159f",
+    "models": [
+      {
+        "completion_tokens": 697,
+        "cost_usd": 0.0061248,
+        "elapsed_ms": 9416,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 23948,
+        "summary": "The change introduces interpolation of template variables before query splitting in both `runSplitQuery` and `runShardSplitQuery`, improving consistency and correctness. Tests were added to verify this behavior. The main concern is a medium-severity issue where a predicate function mutates its input, which should be refactored to avoid side effects. Other changes are low severity and align with intended functionality.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 286,
+      "diff_tokens": 2060,
+      "estimated_tokens": 22079,
+      "files_changed": 4,
+      "files_scanned": 15111,
+      "files_tokens": 13106,
+      "snippet_tokens": 6913,
+      "snippets_dropped": 0,
+      "snippets_kept": 18
+    },
+    "total_ms": 9714,
+    "verdict": "comment"
+  }
+}

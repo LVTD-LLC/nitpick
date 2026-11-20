@@ -1,0 +1,185 @@
+{
+  "case": {
+    "id": "cal_dot_com-10967",
+    "source": "cal_dot_com.json",
+    "url": "https://github.com/calcom/cal.com/pull/10967",
+    "split": "dev",
+    "base": "a308075bc39b77ed7059b0cae9d443d669a7bf98",
+    "head": "de628295646d0848226618108a52f2f1e5d04ac0"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 3,
+    "findings": [
+      {
+        "body": "In packages/app-store/googlecalendar/lib/CalendarService.ts, the code attempts to find a calendar in calEventRaw.destinationCalendar matching the credentialId to select the calendar for event insertion. However, if calEventRaw.destinationCalendar is undefined or empty, the destructuring assignment to mainHostDestinationCalendar will assign undefined, and the subsequent usage of mainHostDestinationCalendar.externalId will cause a runtime error. The code should safely handle the case when destinationCalendar is undefined or empty before accessing properties.",
+        "category": "bug",
+        "end_line": 109,
+        "file": "packages/app-store/googlecalendar/lib/CalendarService.ts",
+        "line": 101,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Add a check to ensure calEventRaw.destinationCalendar is defined and has length > 0 before destructuring. For example:\nconst [mainHostDestinationCalendar] = calEventRaw.destinationCalendar ?? [];",
+        "title": "Potential runtime error accessing externalId of undefined destinationCalendar entry"
+      },
+      {
+        "body": "In packages/app-store/googlecalendar/lib/CalendarService.ts, in updateEvent and deleteEvent methods, the code attempts to find a calendar in event.destinationCalendar matching externalCalendarId. However, if externalCalendarId is undefined or null, the find call will be passed undefined, and the code attempts to access externalId property of the found calendar. This can cause runtime errors if event.destinationCalendar is undefined or empty. Also, the fallback logic is inconsistent and may cause unexpected behavior.",
+        "category": "bug",
+        "end_line": 258,
+        "file": "packages/app-store/googlecalendar/lib/CalendarService.ts",
+        "line": 249,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Add safe checks for event.destinationCalendar before accessing properties. Use optional chaining and default empty array when destructuring. Also, clarify fallback logic for calendarId selection when externalCalendarId is not provided.",
+        "title": "Unsafe access and inconsistent fallback for destinationCalendar in updateEvent and deleteEvent"
+      },
+      {
+        "body": "In packages/app-store/larkcalendar/lib/CalendarService.ts and packages/app-store/office365calendar/lib/CalendarService.ts, the code changes to destructure the first element of event.destinationCalendar array to mainHostDestinationCalendar and then access externalId. However, if event.destinationCalendar is undefined or empty, mainHostDestinationCalendar will be undefined, and accessing externalId will cause runtime errors.",
+        "category": "bug",
+        "end_line": 130,
+        "file": "packages/app-store/larkcalendar/lib/CalendarService.ts",
+        "line": 126,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Add safe checks or default empty array when destructuring event.destinationCalendar. For example:\nconst [mainHostDestinationCalendar] = event.destinationCalendar ?? [];",
+        "title": "Unsafe access of externalId on possibly undefined destinationCalendar entry"
+      },
+      {
+        "body": "In multiple places, e.g., apps/web/pages/api/cron/bookingReminder.ts and packages/features/ee/payments/api/webhook.ts, the code changes destinationCalendar from a single object or null to an array containing that object or empty array. This is a breaking change in the data structure that may affect consumers expecting a single object or null.",
+        "category": "api",
+        "end_line": 110,
+        "file": "apps/web/pages/api/cron/bookingReminder.ts",
+        "line": 105,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Ensure all consumers of destinationCalendar are updated to handle the array type. Consider adding migration or backward compatibility layers if needed.",
+        "title": "Changed destinationCalendar from object to array in API responses"
+      },
+      {
+        "body": "In packages/core/EventManager.ts, the method createAllCalendarEvents was changed to handle event.destinationCalendar as an array. However, when destinationCalendar entries lack a credentialId, the code falls back to creating events for all calendarCredentials matching the integration type. This fallback can cause duplicate events if multiple destinationCalendar entries share the same integration type, leading to multiple events created for the same calendar type.",
+        "category": "bug",
+        "end_line": 344,
+        "file": "packages/core/EventManager.ts",
+        "line": 335,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add logic to avoid duplicate event creation when multiple destinationCalendar entries share the same integration type without credentialId. Possibly track which credentials have been used to create events and skip duplicates.",
+        "title": "Potential duplicate event creation for destinationCalendars without credentialId"
+      },
+      {
+        "body": "In packages/features/bookings/lib/handleCancelBooking.ts, the code attempts to find calendar credentials by credentialId in bookingToDelete.user.credentials. If not found, it fetches from the database. However, the fetched credential is assigned directly to calendarCredential without mapping to the expected CredentialWithAppName type, which may cause type or runtime errors when used later.",
+        "category": "bug",
+        "end_line": 433,
+        "file": "packages/features/bookings/lib/handleCancelBooking.ts",
+        "line": 419,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Map the fetched credential from the database to the expected CredentialWithAppName type before assigning to calendarCredential, similar to the pattern used in packages/core/EventManager.ts.",
+        "title": "Assigning raw DB credential to calendarCredential without mapping"
+      },
+      {
+        "body": "In packages/features/bookings/lib/handleNewBooking.ts, the loadUsers function was modified to handle dynamicUserList and eventType.hosts with additional error handling. However, the function may throw errors if dynamicUserList is undefined or empty, or if eventType.hosts is not an array, which could cause unhandled exceptions upstream.",
+        "category": "bug",
+        "end_line": 740,
+        "file": "packages/features/bookings/lib/handleNewBooking.ts",
+        "line": 715,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Ensure that callers of loadUsers handle exceptions properly. Consider adding validation or default values for dynamicUserList and eventType.hosts before usage.",
+        "title": "Potential unhandled exceptions in loadUsers function"
+      },
+      {
+        "body": "In packages/core/CalendarManager.ts, the createEvent function signature changed to accept an optional externalId parameter, but the call sites in the codebase may not have been updated accordingly, potentially causing type errors or runtime issues if externalId is required for correct calendar selection.",
+        "category": "api",
+        "end_line": 240,
+        "file": "packages/core/CalendarManager.ts",
+        "line": 225,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Verify all call sites of createEvent pass the new externalId parameter when needed. Update call sites or provide default values to maintain compatibility.",
+        "title": "Changed createEvent signature requires externalId parameter"
+      },
+      {
+        "body": "In packages/core/EventManager.ts, in the updateBooking method, the code changed calendarReference from a single PartialReference to an array of PartialReference. However, in the catch block, if an error occurs, the code returns a Promise resolving to an array of EventResult objects mapped from calendarReference. If calendarReference is undefined, it returns an empty array. This is correct, but the previous code returned a single-element array with a default object. This change in behavior might affect callers expecting a single result.",
+        "category": "api",
+        "end_line": 600,
+        "file": "packages/core/EventManager.ts",
+        "line": 594,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Verify that callers of updateBooking handle the new array return type correctly. If backward compatibility is needed, consider returning a single-element array or adjusting callers.",
+        "title": "Changed return type in error case for updateBooking from single to array of EventResult"
+      }
+    ],
+    "head": "de62829",
+    "mode": "range a308075bc39b77ed7059b0cae9d443d669a7bf98..de628295646d0848226618108a52f2f1e5d04ac0",
+    "models": [
+      {
+        "completion_tokens": 1704,
+        "cost_usd": 0.0141672,
+        "elapsed_ms": 31441,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 28602,
+        "summary": "The change refactors calendar event handling to support multiple destinationCalendars as arrays instead of single objects, updating many call sites and calendar service implementations accordingly. The overall approach improves flexibility but introduces several risks of runtime errors due to unsafe access of possibly undefined array elements and inconsistent fallback logic. There are also potential API breaking changes due to the changed type of destinationCalendar. Some error handling and credential fetching logic require better type mapping and validation. Careful review and testing are needed to ensure no regressions or runtime crashes occur.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 484,
+      "diff_tokens": 15250,
+      "estimated_tokens": 23991,
+      "files_changed": 22,
+      "files_scanned": 2987,
+      "files_tokens": 0,
+      "snippet_tokens": 8741,
+      "snippets_dropped": 25,
+      "snippets_kept": 79
+    },
+    "total_ms": 31959,
+    "verdict": "request_changes"
+  }
+}

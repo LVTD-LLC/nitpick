@@ -1,0 +1,108 @@
+{
+  "case": "cal_dot_com-11059",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "e6c10b19fee20bc57601e24c6841287f2340b2cf266613835d2d73aaddea0e3f",
+  "review_sha256": "91c1fd4ebcdab839d188adc3c8ba3a402497d26f4a1fae7de4bbc96b95051fc1",
+  "references": [
+    {
+      "comment": "The parseRefreshTokenResponse function incorrectly sets refresh_token to the hardcoded string 'refresh_token' when it's missing from the OAuth refresh token response. This invalidates the token, breaking subsequent token refreshes and causing authentication failures.",
+      "severity": "High",
+      "category": "bug"
+    },
+    {
+      "comment": "The Zod schema in parseRefreshTokenResponse uses computed property keys [z.string().toString()] and [z.string().optional().toString()] in minimumTokenResponseSchema, which is invalid Zod syntax and will throw a runtime error.",
+      "severity": "High",
+      "category": "bug"
+    },
+    {
+      "comment": "parseRefreshTokenResponse returns a Zod safeParse result ({ success, data, error }), not the credential key object. Persisting that as key stores the wrapper instead of the token payload; we should store the parsed data or use schema parse.",
+      "severity": "High",
+      "category": "data"
+    },
+    {
+      "comment": "When APP_CREDENTIAL_SHARING_ENABLED and CALCOM_CREDENTIAL_SYNC_ENDPOINT are set, the refreshFunction helper returns the fetch Response, but several callers (for example GoogleCalendarService.refreshAccessToken expecting res.data, and HubspotCalendarService.refreshAccessToken expecting a HubspotToken) assume it returns the integration-specific token object. That mismatch will cause runtime errors in the sync-enabled path unless the return type or those call sites are adjusted.",
+      "severity": "High",
+      "category": "api"
+    },
+    {
+      "comment": "When the sync endpoint path is used, res is a fetch Response and has no .data; res?.data will be undefined and token.access_token will throw at runtime. This relies on a consistent return shape from refreshOAuthTokens, which isn’t guaranteed currently.",
+      "severity": "High",
+      "category": "bug"
+    },
+    {
+      "comment": "The `refreshOAuthTokens` function is passed `credentialId` instead of `userId`, which breaks the credential sync functionality by causing incorrect user lookups. This issue can lead to failures in syncing user credentials, impacting user experience.",
+      "severity": "High",
+      "category": "bug"
+    },
+    {
+      "comment": "The Salesforce integration checks `response.statusText` instead of `response.ok` when handling OAuth token refresh responses. This can lead to unreliable behavior, as a successful response may not be correctly identified, resulting in the use of stale credentials and potential authentication failures.",
+      "severity": "High",
+      "category": "bug"
+    },
+    {
+      "comment": "The `jsforce.Connection` is created using stale `credentialKey.access_token` and `credentialKey.instance_url` after a token refresh, which can lead to authentication failures and incorrect data access. Ensure that the connection is established using the refreshed token values instead.",
+      "severity": "High",
+      "category": "bug"
+    },
+    {
+      "comment": "The `appCredentialWebhookRequestBodySchema.parse` function can throw on invalid payloads, resulting in 500 Internal Server Errors instead of the expected 400 Bad Request responses. This can lead to confusion for clients and hinder proper error handling.",
+      "severity": "Medium",
+      "category": "api"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "match",
+      "reference": 8,
+      "reason": "Both identify that the webhook handler can throw an unhandled error (missing env key causing decryption failure / Zod parse throwing) resulting in a 500 instead of a proper error response. Reference 8 specifically calls out appCredentialWebhookRequestBodySchema.parse throwing on invalid payloads giving 500s, and finding 0 identifies the missing env var validation leading to the same unhandled 500 path."
+    },
+    {
+      "finding": 1,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The Prisma credential table uses appId as a string slug (varchar), not a numeric ID. Using appMetadata.slug as appId is correct per the schema. The claim of a type mismatch is wrong."
+    },
+    {
+      "finding": 2,
+      "label": "match",
+      "reference": 3,
+      "reason": "Both identify that refreshOAuthTokens returns a raw fetch Response object when the sync path is taken, while callers (GoogleCalendarService, HubspotCalendarService, etc.) expect the integration-specific token object, causing runtime errors."
+    },
+    {
+      "finding": 3,
+      "label": "match",
+      "reference": 6,
+      "reason": "Both identify that the Salesforce integration checks response.statusText instead of response.ok/status code for success detection, which is unreliable."
+    },
+    {
+      "finding": 4,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The diff shows the redirectUri was changed FROM the dynamic appConfig.slug to the hardcoded 'zoho-bigin' string. Since appConfig.slug IS 'zoho-bigin' (per config.json), this is functionally identical and not a bug introduced by the PR. The change is cosmetic/intentional."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 25905,
+    "completion_tokens": 394,
+    "total_tokens": 26299,
+    "cost": 0.083625,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.083625,
+      "upstream_inference_prompt_cost": 0.077715,
+      "upstream_inference_completions_cost": 0.00591
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

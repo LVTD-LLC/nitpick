@@ -1,0 +1,107 @@
+{
+  "case": {
+    "id": "discourse-3",
+    "source": "discourse.json",
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/3",
+    "split": "holdout",
+    "base": "e25638dab0d4b98f99c8fe8976ccaae8f4fb9db3",
+    "head": "5f8a130277dbddc95d133cd2832be639baf89213"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "The new BlockedEmail model tracks blocked emails and increments match_count and updates last_match_at when an email is checked. However, the method BlockedEmail.should_block? uses a query with where(email: email).first which is case-sensitive by default in many databases. This could cause blocked emails with different case (e.g., 'Spam@domain.com' vs 'spam@domain.com') to not be matched and thus bypass blocking. Email matching should be case-insensitive to avoid this gap.",
+        "category": "bug",
+        "end_line": 18,
+        "file": "app/models/blocked_email.rb",
+        "line": 11,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Change the query in BlockedEmail.should_block? to use case-insensitive matching, e.g., where('lower(email) = ?', email.downcase).first.",
+        "title": "BlockedEmail.should_block? uses case-sensitive email matching"
+      },
+      {
+        "body": "In the JavaScript create_account_controller.js, the rejectedEmails array is used to track emails rejected by the server during account creation. However, the check for rejectedEmails.contains(email) uses a case-sensitive comparison. Email addresses are generally case-insensitive, so this could cause the client to allow emails that differ only in case from rejected ones, bypassing the client-side validation.",
+        "category": "bug",
+        "end_line": 73,
+        "file": "app/assets/javascripts/discourse/controllers/create_account_controller.js",
+        "line": 69,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Normalize emails to lowercase before adding to rejectedEmails and before checking contains, e.g., use email.toLowerCase() consistently.",
+        "title": "Client-side rejectedEmails check is case-sensitive"
+      },
+      {
+        "body": "The new EmailValidator class uses SiteSetting.email_domains_whitelist and email_domains_blacklist to validate emails. It also calls BlockedEmail.should_block? to check if the email is blocked. However, the email_in_restriction_setting? method uses a regex built from the setting string by escaping dots but does not properly handle multiple domains separated by commas or other delimiters. This could cause incorrect matching of domains and allow disallowed emails or block allowed ones.",
+        "category": "bug",
+        "end_line": 21,
+        "file": "lib/validators/email_validator.rb",
+        "line": 18,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Parse the setting string into an array of domains and build a regex that matches any of them properly, e.g., splitting on commas and joining with '|'. Alternatively, use a more robust domain matching method.",
+        "title": "EmailValidator domain restriction regex may not handle multiple domains correctly"
+      }
+    ],
+    "head": "5f8a130",
+    "mode": "range e25638dab0d4b98f99c8fe8976ccaae8f4fb9db3..5f8a130277dbddc95d133cd2832be639baf89213",
+    "models": [
+      {
+        "completion_tokens": 589,
+        "cost_usd": 0.0032664,
+        "elapsed_ms": 9050,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 14930,
+        "summary": "The change adds a blocked email feature with server and client-side validation. The main issues are case-sensitive email matching in blocked email checks both server-side and client-side, and a potentially incorrect regex for domain restrictions in the email validator. These could allow blocked emails to bypass validation. Fixing case-insensitivity and improving domain matching regex are recommended.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 113,
+      "diff_tokens": 1876,
+      "estimated_tokens": 13561,
+      "files_changed": 10,
+      "files_scanned": 1898,
+      "files_tokens": 9865,
+      "snippet_tokens": 1820,
+      "snippets_dropped": 0,
+      "snippets_kept": 7
+    },
+    "total_ms": 9173,
+    "verdict": "request_changes"
+  }
+}

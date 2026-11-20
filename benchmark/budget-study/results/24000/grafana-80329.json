@@ -1,0 +1,107 @@
+{
+  "case": {
+    "id": "grafana-80329",
+    "source": "grafana.json",
+    "url": "https://github.com/grafana/grafana/pull/80329",
+    "split": "fresh",
+    "base": "a886bd3c79a417a70b51509384d1f1ec3e87e96b",
+    "head": "04cfa3bfd469c035ff8b35f9a66867c4e8d5dcf4"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [
+      {
+        "body": "In pkg/services/annotations/annotationsimpl/xorm_store.go at lines 598-630, the deleteByIDs method constructs a SQL DELETE statement with IDs directly embedded in the query string if the batch size exceeds SQLite's parameter limit. This approach can lead to SQL injection if IDs are not properly sanitized, although here IDs come from internal fetchIDs method. However, the code uses fmt.Sprintf to build the SQL string with IDs directly, which is generally unsafe. The safer approach is to always use parameterized queries. Since SQLite has a parameter limit, the code tries to workaround it by embedding IDs directly, but this is risky and should be documented or mitigated further.",
+        "category": "security",
+        "end_line": 630,
+        "file": "pkg/services/annotations/annotationsimpl/xorm_store.go",
+        "line": 608,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Consider splitting the batch into smaller chunks below the SQLite parameter limit and use parameterized queries for each chunk instead of embedding IDs directly in the SQL string.",
+        "title": "Potential SQL injection risk by embedding IDs directly in DELETE query for SQLite with large batch size"
+      },
+      {
+        "body": "In pkg/services/cleanup/cleanup.go, the Run method's ticker interval was changed from 10 minutes to 1 minute (line 77). This increases the frequency of cleanup jobs by 10x, which may cause higher load on the system. There is no indication that this change was benchmarked or that the system can handle this increased frequency. This could lead to performance degradation or contention, especially if cleanup jobs are expensive or long-running.",
+        "category": "performance",
+        "end_line": 77,
+        "file": "pkg/services/cleanup/cleanup.go",
+        "line": 77,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Evaluate the impact of increasing cleanup frequency to 1 minute and consider making the interval configurable or reverting to 10 minutes if performance issues arise.",
+        "title": "Increased cleanup job frequency from 10 minutes to 1 minute may cause performance issues"
+      },
+      {
+        "body": "In pkg/services/annotations/annotationsimpl/cleanup_test.go, the test TestIntegrationAnnotationCleanUp creates a large number of annotations (40003) with a batch size of 32767 to test behavior when batch size exceeds SQLITE_MAX_VARIABLE_NUMBER. However, the test does not verify that no SQL injection or query errors occur due to the large batch size and direct embedding of IDs in the SQL statement. This test should explicitly check for errors related to SQL execution or parameter limits to ensure the new logic handles large batch sizes correctly.",
+        "category": "test",
+        "end_line": 111,
+        "file": "pkg/services/annotations/annotationsimpl/cleanup_test.go",
+        "line": 98,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Add explicit assertions that no SQL errors occur and that all expected annotations are cleaned up correctly when batch size exceeds SQLITE_MAX_VARIABLE_NUMBER.",
+        "title": "Test does not explicitly verify handling of large batch size exceeding SQLite parameter limit"
+      }
+    ],
+    "head": "04cfa3b",
+    "mode": "range a886bd3c79a417a70b51509384d1f1ec3e87e96b..04cfa3bfd469c035ff8b35f9a66867c4e8d5dcf4",
+    "models": [
+      {
+        "completion_tokens": 681,
+        "cost_usd": 0.00996,
+        "elapsed_ms": 8563,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 22176,
+        "summary": "The change improves annotation cleanup by batching deletes to avoid deadlocks and handles large batch sizes exceeding SQLite parameter limits by embedding IDs directly in SQL. Integration tests were added for these scenarios. The cleanup service now runs every minute instead of every 10 minutes. There is a potential SQL injection risk due to direct embedding of IDs in SQL for large batches on SQLite, and the increased cleanup frequency may impact performance. Tests could better verify large batch handling.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 400,
+      "diff_tokens": 4751,
+      "estimated_tokens": 18674,
+      "files_changed": 3,
+      "files_scanned": 11494,
+      "files_tokens": 9935,
+      "snippet_tokens": 3988,
+      "snippets_dropped": 0,
+      "snippets_kept": 29
+    },
+    "total_ms": 8973,
+    "verdict": "comment"
+  }
+}

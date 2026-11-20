@@ -1,0 +1,202 @@
+[
+  {
+    "case": "cal_dot_com-22345",
+    "note": "Both reviews are empty.",
+    "24000": {
+      "report_sha256": "83e1b38110d8ff837c1e8f9fb2e3c6ad25258e8cf83427d8c2d82c26ebf8c15e",
+      "pairs": []
+    },
+    "80000": {
+      "report_sha256": "bb7d03fafbef53f11578ead34fef7294a3e1e873afc54c19872be87e71d8a939",
+      "pairs": []
+    }
+  },
+  {
+    "case": "cal_dot_com-14943",
+    "note": "Both identify deletion of non-SMS reminders. Neither identifies the stale read during increment.",
+    "24000": {
+      "report_sha256": "7f290fa8f6a58c4ce7b66fa13d575d44868c1947af1401cd9be3a54c28c892be",
+      "pairs": [
+        [
+          0,
+          1
+        ]
+      ]
+    },
+    "80000": {
+      "report_sha256": "a76ba436ededab1688990c422392c21d32b68e9b7921e066414f89f599e61552",
+      "pairs": [
+        [
+          0,
+          1
+        ]
+      ]
+    }
+  },
+  {
+    "case": "discourse-9",
+    "note": "Fallback configuration and method availability differ from the two lazy-loading defects.",
+    "24000": {
+      "report_sha256": "69edcc3d6a173ead8caa5d77b4c366f9ec57ce63a033013967450b5767617941",
+      "pairs": []
+    },
+    "80000": {
+      "report_sha256": "6801f3e5b50d21c3079e18bd2a4669bd95f2e9e0882a6603347443ba32faa9d2",
+      "pairs": []
+    }
+  },
+  {
+    "case": "discourse-7",
+    "note": "Both reviews are empty. The reference set includes two descriptions of the same selector change.",
+    "80000": {
+      "report_sha256": "e552effe43c7d012dbce16000ee6d51e8ee6ad72d0f3225236328acc1e6961d1",
+      "pairs": []
+    },
+    "24000": {
+      "report_sha256": "a50f69b1f4b33eaddde7cbbc85e1540db84f453413e5421193bbb36595322088",
+      "pairs": []
+    }
+  },
+  {
+    "case": "grafana-94942",
+    "note": "Both identify unconditional disablement and the unimplemented database methods. Repeated consequences earn credit once.",
+    "80000": {
+      "report_sha256": "c7a4b389d856610771e07cc6e0227ced03c4fd6532c2c81f83f831245aa3467f",
+      "pairs": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          1
+        ]
+      ]
+    },
+    "24000": {
+      "report_sha256": "801d04e4c7fe6d12b45c53e9f010ed96522c5a747256809026db13630438bd7d",
+      "pairs": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          1
+        ]
+      ]
+    }
+  },
+  {
+    "case": "grafana-80329",
+    "note": "Both flag cleanup frequency. One also flags logging routine progress as errors.",
+    "80000": {
+      "report_sha256": "29de1881f59986c015195b62631f0cd98ae569e5adb9559251a69446d9829f3a",
+      "pairs": [
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          0
+        ]
+      ]
+    },
+    "24000": {
+      "report_sha256": "cbdd7514e97209929b7cf4beb32865719ab567371503a87ae30c808454b2c01c",
+      "pairs": [
+        [
+          1,
+          1
+        ]
+      ]
+    }
+  },
+  {
+    "case": "keycloak-38446",
+    "note": "Both identify the unchecked optional. Repetition earns credit once. Neither diagnoses the missing credential ID.",
+    "24000": {
+      "report_sha256": "766f8e90f83069d153912d12f710e77f0837d9b9c715a085cb56fd1c0ebddff2",
+      "pairs": [
+        [
+          0,
+          0
+        ]
+      ]
+    },
+    "80000": {
+      "report_sha256": "a6fca0712cc08e064360299da4b110563db67dbca837ea721d58daa448f1956b",
+      "pairs": [
+        [
+          1,
+          0
+        ]
+      ]
+    }
+  },
+  {
+    "case": "keycloak-37038",
+    "note": "The name/ID concern attributes the issue to resolveGroup. The reference diagnoses the resource ID passed by getGroupIdsWithViewPermission. Neither finding identifies the incorrect scope fallback.",
+    "24000": {
+      "report_sha256": "79f3682e576191baf718177358c7fbe81ef74967d2b57ab60a0ba11565c4d702",
+      "pairs": []
+    },
+    "80000": {
+      "report_sha256": "cebfc2d9f4f7b893f71c6e2ffc02556c3bb3e9c841b1d4164f8e0ac38954a670",
+      "pairs": []
+    }
+  },
+  {
+    "case": "sentry-2",
+    "note": "Both identify the unguarded membership dereference. One also diagnoses floor/ceil raising TypeError on nonnumeric keys. Treating negative query slices as ordinary reverse indexing misses the ORM failure.",
+    "24000": {
+      "report_sha256": "509d620e05c8f2b2e9f71b0e83996898f8f9e431b3389d4aa304906b408cef31",
+      "pairs": [
+        [
+          3,
+          3
+        ],
+        [
+          4,
+          2
+        ]
+      ]
+    },
+    "80000": {
+      "report_sha256": "5d4e77157c8529daf9bf6c5433c188cb2b30985f71601651d6f62e4c350e3b52",
+      "pairs": [
+        [
+          0,
+          3
+        ]
+      ]
+    }
+  },
+  {
+    "case": "sentry-1",
+    "note": "Both diagnose the missing membership check. Only one identifies that Django rejects negative queryset slice indices. A claim that Django supports them describes a different outcome.",
+    "24000": {
+      "report_sha256": "bc4a3f8ea1154a92c8fac6733bb631f84c25af531428945d819bbddd9d4f7f73",
+      "pairs": [
+        [
+          0,
+          1
+        ]
+      ]
+    },
+    "80000": {
+      "report_sha256": "548773f36f16315a5e282c5d7bbf4baa04c574c14adb28a6c43eb59b58abf835",
+      "pairs": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          1
+        ]
+      ]
+    }
+  }
+]

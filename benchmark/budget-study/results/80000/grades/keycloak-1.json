@@ -1,0 +1,67 @@
+{
+  "case": "keycloak-1",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "435caf8edb61f4c079b4b9335967143bb75434002b2244e22cf655be34d82468",
+  "review_sha256": "8c392968abf7ee8b2d3a1e12127179ac0bdb47dd6640462178460d7b22ad85a1",
+  "references": [
+    {
+      "comment": "In UsernameForm.authenticate(), isConditionalPasskeysEnabled() is called without passing the required UserModel parameter.",
+      "severity": "Medium",
+      "category": "api"
+    },
+    {
+      "comment": "With isConditionalPasskeysEnabled(UserModel user) requiring user != null, authenticate(...) will not call webauthnAuth.fillContextForm(context) on the initial login page where context.getUser() is still null, so conditional passkey UI will not be set up for first-time passkey login. Consider whether this should also be enabled when no user has been selected yet so ID-less passkey authentication on the initial login form continues to work.",
+      "severity": "Medium",
+      "category": "speculative"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "match",
+      "reference": 0,
+      "reason": "Finding 0 and reference 0 both identify the same concrete bug: isConditionalPasskeysEnabled() is called without the required UserModel argument in UsernameForm.java line 47, which would cause a compilation error."
+    },
+    {
+      "finding": 1,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The action() method in UsernamePasswordForm.java returns early when validateForm() returns false, but this is the standard pattern in Keycloak authenticators — validateForm/validateUserAndPassword internally calls context.failureChallenge() or context.challenge() before returning false, so no additional failure handling is needed."
+    },
+    {
+      "finding": 2,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The test in PasskeysUsernameFormTest.java sets the policy to YES/REQUIRED and then checks for YES/REQUIRED — there is no mismatch. The finding incorrectly claims null values are set; the actual code sets Constants.WEBAUTHN_POLICY_OPTION_YES and Constants.WEBAUTHN_POLICY_OPTION_REQUIRED."
+    },
+    {
+      "finding": 3,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "Changing USER_SET_BEFORE_USERNAME_PASSWORD_AUTH from protected to public is intentional here (it is now referenced from AuthenticatorUtils in a different package), making the visibility change necessary. Whether this constitutes an undesirable API exposure is subjective and context-dependent."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 17343,
+    "completion_tokens": 345,
+    "total_tokens": 17688,
+    "cost": 0.057204,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.057204,
+      "upstream_inference_prompt_cost": 0.052029,
+      "upstream_inference_completions_cost": 0.005175
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

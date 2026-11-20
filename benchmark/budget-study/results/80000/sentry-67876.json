@@ -1,0 +1,120 @@
+{
+  "case": {
+    "id": "sentry-67876",
+    "source": "sentry.json",
+    "url": "https://github.com/getsentry/sentry/pull/67876",
+    "split": "holdout",
+    "base": "f3b740199ef0b8057c2c68a377fd3b4d42346deb",
+    "head": "bb75657fc8f13923c1d7983f422290908a1e7310"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "In `GitHubInstallation.dispatch`, the check for `integration.metadata['sender']['login']` assumes that `metadata` and `sender` keys exist and are dicts. If `metadata` or `sender` is missing or malformed, this will raise a KeyError or TypeError, causing a 500 error instead of a graceful error response.",
+        "category": "bug",
+        "end_line": 504,
+        "file": "src/sentry/integrations/github/integration.py",
+        "line": 503,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Add defensive checks to ensure `metadata` and `sender` keys exist and are dicts before accessing `login`. Return error if missing.",
+        "title": "Unsafe access to integration.metadata['sender']['login'] without validation"
+      },
+      {
+        "body": "In `GitHubInstallation.dispatch`, the code fetches `installation_id` from `request.GET` or pipeline state, but does not validate that `installation_id` is a valid string or non-empty. If `installation_id` is empty string, it proceeds and binds it to pipeline state, which may cause unexpected behavior downstream when querying Integration objects with an empty external_id.",
+        "category": "bug",
+        "end_line": 450,
+        "file": "src/sentry/integrations/github/integration.py",
+        "line": 449,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add validation to ensure `installation_id` is a non-empty string before binding to pipeline state and proceeding.",
+        "title": "Potential empty installation_id accepted in GitHubInstallation.dispatch"
+      },
+      {
+        "body": "In `pipeline_advancer.py`, the redirect URL for GitHub installation without a pipeline includes `installation_id` as a positional argument in the URL reverse call. If `installation_id` is None, this will cause an error or invalid URL. The code does not validate that `installation_id` is present before redirecting.",
+        "category": "bug",
+        "end_line": 47,
+        "file": "src/sentry/web/frontend/pipeline_advancer.py",
+        "line": 47,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add validation to ensure `installation_id` is present before redirecting, or handle missing case gracefully.",
+        "title": "Missing validation for installation_id in pipeline_advancer redirect for GitHub install"
+      },
+      {
+        "body": "In `OAuthLoginView.dispatch`, the code uses `safe_urlopen` and `safe_urlread` to exchange the OAuth code for an access token, then parses the response body with `parse_qsl`. If the response body is not a valid query string, `parse_qsl` will return an empty dict, and the code returns an error. However, the exception handling is broad and silent, swallowing all exceptions without logging, which may make debugging difficult.",
+        "category": "error_handling",
+        "end_line": 429,
+        "file": "src/sentry/integrations/github/integration.py",
+        "line": 428,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Log exceptions caught during token exchange to aid debugging.",
+        "title": "Silent exception swallowing during OAuth token exchange"
+      }
+    ],
+    "head": "bb75657",
+    "mode": "range f3b740199ef0b8057c2c68a377fd3b4d42346deb..bb75657fc8f13923c1d7983f422290908a1e7310",
+    "models": [
+      {
+        "completion_tokens": 660,
+        "cost_usd": 0.0208384,
+        "elapsed_ms": 10324,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 49456,
+        "summary": "The change adds OAuth login step and improves GitHub integration installation flow with user verification. Overall well-structured, but has some robustness issues: missing validation of installation_id presence and format, unsafe dictionary access without checks, and silent exception swallowing during OAuth token exchange. These issues can cause errors or make debugging harder.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 759,
+      "diff_tokens": 6031,
+      "estimated_tokens": 49340,
+      "files_changed": 3,
+      "files_scanned": 13270,
+      "files_tokens": 14885,
+      "snippet_tokens": 28424,
+      "snippets_dropped": 0,
+      "snippets_kept": 89
+    },
+    "total_ms": 11111,
+    "verdict": "request_changes"
+  }
+}

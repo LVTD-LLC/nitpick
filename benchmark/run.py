@@ -88,7 +88,7 @@ def checkout(case):
     return repo
 
 
-def review(case, binary, flags, output, fingerprint):
+def review(case, binary, flags, output, fingerprint, *, debug_dir=None):
     path = output / (case["id"] + ".json")
     if path.exists():
         saved = json.loads(path.read_text())
@@ -107,6 +107,8 @@ def review(case, binary, flags, output, fingerprint):
         NITPICK_API_KEY=os.environ.get("NITPICK_OPENROUTER_API_KEY")
         or os.environ["OPENROUTER_API_KEY"],
     )
+    if debug_dir is not None:
+        env["NITPICK_DEBUG_DIR"] = str(debug_dir.resolve())
     rev = case["base"] + ".." + case["head"]
     cmd = [str(binary), *flags, "--range", rev]
     proc = subprocess.run(

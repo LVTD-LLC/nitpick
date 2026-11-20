@@ -1,0 +1,120 @@
+{
+  "case": {
+    "id": "grafana-80329",
+    "source": "grafana.json",
+    "url": "https://github.com/grafana/grafana/pull/80329",
+    "split": "fresh",
+    "base": "a886bd3c79a417a70b51509384d1f1ec3e87e96b",
+    "head": "04cfa3bfd469c035ff8b35f9a66867c4e8d5dcf4"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [
+      {
+        "body": "In pkg/services/annotations/annotationsimpl/cleanup_test.go, the test TestIntegrationAnnotationCleanUp creates a large number of annotations (40003) with a batch size of 32767 to test SQLite's max variable number handling. However, the test does not verify that no SQL injection or query errors occur due to the large batch size and direct ID embedding workaround in deleteByIDs. This test should explicitly check for errors related to SQL execution and confirm that all expected annotations are deleted correctly.",
+        "category": "test",
+        "end_line": 111,
+        "file": "pkg/services/annotations/annotationsimpl/cleanup_test.go",
+        "line": 98,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add explicit assertions to verify no SQL errors occur and that the correct number of annotations remain after cleanup with large batch sizes.",
+        "title": "Missing explicit error and correctness checks for large batch size cleanup test"
+      },
+      {
+        "body": "In pkg/services/annotations/annotationsimpl/xorm_store.go at lines 598-630, the deleteByIDs method constructs a SQL DELETE statement with IDs directly embedded in the query string if the batch size exceeds SQLite's parameter limit. This approach can lead to SQL injection if IDs are not properly sanitized, although here IDs come from internal fetchIDs method. However, the code uses fmt.Sprintf to build the SQL string with IDs directly, which is generally unsafe. The safer approach is to always use parameterized queries. Since SQLite limits parameters to 999, the code tries to workaround by embedding IDs directly, but this is risky and should be documented or mitigated further.",
+        "category": "security",
+        "end_line": 630,
+        "file": "pkg/services/annotations/annotationsimpl/xorm_store.go",
+        "line": 608,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Consider splitting the batch into smaller chunks of <=999 IDs and use parameterized queries instead of embedding IDs directly in the SQL string.",
+        "title": "Potential SQL injection risk by embedding IDs directly in DELETE query for SQLite with large batch size"
+      },
+      {
+        "body": "In pkg/services/cleanup/cleanup.go, the Run method's ticker interval was changed from 10 minutes to 1 minute (line 77). This increases the frequency of cleanup jobs significantly, which may cause higher load on the system. There is no indication that this change is configurable or that the system can handle this increased frequency. This could lead to performance degradation or contention, especially if cleanup jobs are expensive or long-running.",
+        "category": "performance",
+        "end_line": 77,
+        "file": "pkg/services/cleanup/cleanup.go",
+        "line": 77,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Make the cleanup ticker interval configurable via settings or environment variables, and document the impact of increasing frequency.",
+        "title": "Cleanup job ticker interval reduced from 10 minutes to 1 minute without configurability"
+      },
+      {
+        "body": "In pkg/services/annotations/annotationsimpl/xorm_store.go, the CleanAnnotations method logs errors and IDs at error level (lines 534, 537, 554, 557, 576, 579) even when there is no error (err is nil). This misuse of error-level logging can clutter logs and confuse operators, as these are informational messages about cleanup progress, not errors.",
+        "category": "style",
+        "end_line": 579,
+        "file": "pkg/services/annotations/annotationsimpl/xorm_store.go",
+        "line": 534,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Change log level from Error to Debug or Info for these cleanup progress messages.",
+        "title": "Misuse of error-level logging for informational cleanup messages"
+      }
+    ],
+    "head": "04cfa3b",
+    "mode": "range a886bd3c79a417a70b51509384d1f1ec3e87e96b..04cfa3bfd469c035ff8b35f9a66867c4e8d5dcf4",
+    "models": [
+      {
+        "completion_tokens": 798,
+        "cost_usd": 0.004438,
+        "elapsed_ms": 20376,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 20863,
+        "summary": "The change improves annotation cleanup by batching deletes to avoid deadlocks and adds integration tests for large batch sizes. However, it introduces potential SQL injection risk by embedding IDs directly in SQL for large batches on SQLite, lacks explicit error checks in large batch tests, reduces cleanup job interval without configurability, and misuses error-level logging for informational messages. These issues should be addressed to improve security, test robustness, performance configurability, and logging clarity.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 325,
+      "diff_tokens": 4751,
+      "estimated_tokens": 17792,
+      "files_changed": 3,
+      "files_scanned": 11494,
+      "files_tokens": 9935,
+      "snippet_tokens": 3106,
+      "snippets_dropped": 0,
+      "snippets_kept": 22
+    },
+    "total_ms": 20711,
+    "verdict": "comment"
+  }
+}

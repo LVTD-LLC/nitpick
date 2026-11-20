@@ -1,0 +1,20 @@
+{
+  "case": "cal_dot_com-22345",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "2b6492bc1876cdf7716aae3f5c675810bce049dbbf89e200832014cb1f4f1fc2",
+  "review_sha256": "83e1b38110d8ff837c1e8f9fb2e3c6ad25258e8cf83427d8c2d82c26ebf8c15e",
+  "references": [
+    {
+      "comment": "In getBaseConditions(), the else if (filterConditions) and final else branches are unreachable. This is because getAuthorizationConditions() always returns a non-null Prisma.Sql object, making authConditions always truthy, which means only the first two if/else if conditions are ever evaluated.",
+      "severity": "Low",
+      "category": "bug"
+    },
+    {
+      "comment": "Fetching userIdsFromOrg only when teamsFromOrg.length > 0 can exclude org-level members for orgs without child teams; consider deriving from teamIds (which includes orgId) or removing the guard so org-only orgs still include member user bookings.",
+      "severity": "Medium",
+      "category": "speculative"
+    }
+  ],
+  "rows": [],
+  "usage": {}
+}

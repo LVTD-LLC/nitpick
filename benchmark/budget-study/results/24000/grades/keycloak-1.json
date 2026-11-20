@@ -1,0 +1,67 @@
+{
+  "case": "keycloak-1",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "c6c41998b5ea5b6c23cf4d82d3a003cf1711ab28b9f08cce23ecf43849b54f81",
+  "review_sha256": "392a0ed98be7770e9bd7283d58f3038f3db73da4efcb63b7a4d843e537beaf56",
+  "references": [
+    {
+      "comment": "In UsernameForm.authenticate(), isConditionalPasskeysEnabled() is called without passing the required UserModel parameter.",
+      "severity": "Medium",
+      "category": "api"
+    },
+    {
+      "comment": "With isConditionalPasskeysEnabled(UserModel user) requiring user != null, authenticate(...) will not call webauthnAuth.fillContextForm(context) on the initial login page where context.getUser() is still null, so conditional passkey UI will not be set up for first-time passkey login. Consider whether this should also be enabled when no user has been selected yet so ID-less passkey authentication on the initial login form continues to work.",
+      "severity": "Medium",
+      "category": "speculative"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "match",
+      "reference": 0,
+      "reason": "Finding 0 identifies that isConditionalPasskeysEnabled() is called without a UserModel parameter in UsernameForm.authenticate(), which matches reference 0's diagnosis that the method is called without the required UserModel parameter."
+    },
+    {
+      "finding": 1,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The visibility change of USER_SET_BEFORE_USERNAME_PASSWORD_AUTH from protected to public is intentional to support its use in AuthenticatorUtils.setupReauthenticationInUsernamePasswordFormError. This is a design/API decision rather than a bug, and the advice is subjective."
+    },
+    {
+      "finding": 2,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The observation that shouldShowWebAuthnAuthenticators always returns false in WebAuthnConditionalUIAuthenticator is accurate and intentional per the code comments, but the finding itself notes no issue. This is informational/nit with no concrete defect claim."
+    },
+    {
+      "finding": 3,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "This is a positive observation about test coverage with no defect claim. Cannot be classified as false_positive or supported_extra as it identifies no issue."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 16956,
+    "completion_tokens": 279,
+    "total_tokens": 17235,
+    "cost": 0.055053,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.055053,
+      "upstream_inference_prompt_cost": 0.050868,
+      "upstream_inference_completions_cost": 0.004185
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

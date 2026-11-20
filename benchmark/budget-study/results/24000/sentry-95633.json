@@ -1,0 +1,159 @@
+{
+  "case": {
+    "id": "sentry-95633",
+    "source": "sentry.json",
+    "url": "https://github.com/getsentry/sentry/pull/95633",
+    "split": "dev",
+    "base": "fd358e8a388939959369f08f616e29552cdaf96e",
+    "head": "9966ec5a13e331659c3ea00981f9b11b0faf821f"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 3,
+    "findings": [
+      {
+        "body": "In `OrderedQueueWorker.run`, the code catches `queue.ShutDown` exceptions, but the standard Python `queue.Queue` does not raise a `ShutDown` exception. This will cause the thread to never exit on shutdown properly, potentially causing the application to hang during shutdown.",
+        "category": "bug",
+        "end_line": 143,
+        "file": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
+        "line": 137,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Replace `except queue.ShutDown` with a proper shutdown mechanism, such as checking a shutdown flag and using `queue.get(timeout=...)` to allow thread exit, or use a sentinel value to signal shutdown.",
+        "title": "Incorrect exception handling for queue shutdown in OrderedQueueWorker.run"
+      },
+      {
+        "body": "In `FixedQueuePool.shutdown`, the code calls `q.shutdown(immediate=False)` on each queue, but the standard Python `queue.Queue` does not have a `shutdown` method. This will raise an AttributeError during shutdown, preventing graceful shutdown of the queue pool.",
+        "category": "bug",
+        "end_line": 196,
+        "file": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
+        "line": 193,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Remove calls to `q.shutdown()` or implement a custom queue class that supports shutdown. Alternatively, use a sentinel value to signal workers to exit.",
+        "title": "Calling nonexistent `shutdown` method on standard queue.Queue in FixedQueuePool.shutdown"
+      },
+      {
+        "body": "In `SimpleQueueProcessingStrategy.submit`, if `message.value` is not an instance of `BrokerValue`, the code will raise an AssertionError due to `assert isinstance(message.value, BrokerValue)`. This may cause the consumer to crash if unexpected message types are received.",
+        "category": "bug",
+        "end_line": 277,
+        "file": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
+        "line": 269,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Add proper handling or filtering for messages where `message.value` is not a `BrokerValue` to avoid assertion failures.",
+        "title": "AssertionError if message.value is not BrokerValue in SimpleQueueProcessingStrategy.submit"
+      },
+      {
+        "body": "The `OffsetTracker` uses a dictionary of locks per partition but does not protect the creation of these locks with a global lock, which may cause race conditions when multiple threads access `_get_partition_lock` concurrently for the same partition.",
+        "category": "concurrency",
+        "end_line": 89,
+        "file": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
+        "line": 81,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Protect the creation of new locks in `_get_partition_lock` with a global lock to avoid race conditions.",
+        "title": "Potential race condition in OffsetTracker._get_partition_lock when creating locks"
+      },
+      {
+        "body": "The `OrderedQueueWorker.run` method swallows all exceptions except logging them, but does not handle the case where the `result_processor` raises an exception that should cause the worker to stop or retry. This may cause silent failures in processing results.",
+        "category": "error_handling",
+        "end_line": 142,
+        "file": "src/sentry/remote_subscriptions/consumers/queue_consumer.py",
+        "line": 134,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Consider adding retry logic or a mechanism to escalate persistent failures instead of silently logging and continuing.",
+        "title": "Silent failure on exceptions in OrderedQueueWorker.run"
+      },
+      {
+        "body": "In `SimpleQueueProcessingStrategy._commit_loop`, the commit function is called with offsets as-is, but Kafka offset commits expect the next offset to read, i.e., offset + 1. The code in `ResultsStrategyFactory.create_thread_queue_parallel_worker` adds +1 before calling commit, but this is not consistent and may cause confusion or errors if commit_function is used elsewhere without adjustment.",
+        "category": "api",
+        "end_line": 292,
+        "file": "src/sentry/remote_subscriptions/consumers/result_consumer.py",
+        "line": 260,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Document clearly that commit_function expects offsets to be the next offset to read, or unify the offset adjustment logic in one place to avoid confusion.",
+        "title": "Inconsistent offset adjustment before committing offsets"
+      },
+      {
+        "body": "In `ResultsStrategyFactory.shutdown`, the `queue_pool` is shutdown and then set to None, but in `terminate` it is only shutdown without setting to None. This inconsistency may cause unexpected behavior if `terminate` is called after `shutdown` or vice versa.",
+        "category": "correctness",
+        "end_line": 176,
+        "file": "src/sentry/remote_subscriptions/consumers/result_consumer.py",
+        "line": 168,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Make `terminate` and `shutdown` consistent in handling `queue_pool` attribute, either both set to None or neither.",
+        "title": "Inconsistent handling of queue_pool attribute in shutdown and terminate methods"
+      }
+    ],
+    "head": "9966ec5a",
+    "mode": "range fd358e8a388939959369f08f616e29552cdaf96e..9966ec5a13e331659c3ea00981f9b11b0faf821f",
+    "models": [
+      {
+        "completion_tokens": 1074,
+        "cost_usd": 0.010802,
+        "elapsed_ms": 25185,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 22709,
+        "summary": "The change adds a new thread-queue-parallel processing strategy with a fixed queue pool and offset tracking. The implementation has several concurrency and shutdown handling issues, including incorrect exception handling for queue shutdown, calling nonexistent methods on standard queues, potential race conditions in lock creation, and assertion errors on unexpected message types. Tests are comprehensive and cover many scenarios, but the shutdown and error handling bugs need fixing before shipping.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 778,
+      "diff_tokens": 16934,
+      "estimated_tokens": 23986,
+      "files_changed": 7,
+      "files_scanned": 16973,
+      "files_tokens": 0,
+      "snippet_tokens": 7052,
+      "snippets_dropped": 25,
+      "snippets_kept": 55
+    },
+    "total_ms": 25978,
+    "verdict": "request_changes"
+  }
+}

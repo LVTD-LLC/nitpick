@@ -1,0 +1,78 @@
+{
+  "case": "sentry-67876",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "775e555ff366e7270e93c06c17f9be8a7a47e9407ee0226565256df8eac70a0a",
+  "review_sha256": "17b9b1b22d3dc51408bc13a3bc90e2c74e95181d43edc8937cd729ded69a5c85",
+  "references": [
+    {
+      "comment": "Null reference if github_authenticated_user state is missing",
+      "severity": "Medium",
+      "category": "bug"
+    },
+    {
+      "comment": "OAuth state uses pipeline.signature (static) instead of a per-request random value",
+      "severity": "Medium",
+      "category": "security"
+    },
+    {
+      "comment": "The code attempts to access integration.metadata[sender][login] without checking for the existence of the sender key. This causes a KeyError for integrations where the sender metadata was not set during creation",
+      "severity": "High",
+      "category": "bug"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "Finding claims the OAuth state verification is 'correct and secure', but reference 1 identifies that pipeline.signature is a static value rather than a per-request random nonce, making it a security weakness. The finding's positive assessment is contradicted by the actual code behavior."
+    },
+    {
+      "finding": 1,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "Finding observes safe handling of installation_id fallback logic, which is a reasonable observation but provides no actionable insight about a defect. The analysis is superficially correct but adds no value."
+    },
+    {
+      "finding": 2,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "Finding claims the sender login check is 'correctly implemented', but reference 2 identifies that integration.metadata['sender']['login'] is accessed without checking if 'sender' key exists, which causes a KeyError for integrations created without sender metadata. The finding misses this concrete bug."
+    },
+    {
+      "finding": 3,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The observation about pipeline_advancer.py handling GitHub direct installations is accurate as a description of the code change, but it is purely descriptive with no defect identified or missed."
+    },
+    {
+      "finding": 4,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "Observation that tests cover new logic is accurate but purely descriptive. No defect is identified or missed."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 12808,
+    "completion_tokens": 824,
+    "total_tokens": 13632,
+    "cost": 0.050784,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.050784,
+      "upstream_inference_prompt_cost": 0.038424,
+      "upstream_inference_completions_cost": 0.01236
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

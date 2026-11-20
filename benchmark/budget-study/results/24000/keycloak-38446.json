@@ -1,0 +1,133 @@
+{
+  "case": {
+    "id": "keycloak-38446",
+    "source": "keycloak.json",
+    "url": "https://github.com/keycloak/keycloak/pull/38446",
+    "split": "fresh",
+    "base": "85737f52b59aa2e3403c9b8e48acf71ccc5bfae3",
+    "head": "ce2dcc537b4b1f98a335e88cfe8e0b804483252a"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 2,
+    "findings": [
+      {
+        "body": "In RecoveryAuthnCodeInputLoginBean.java at line 15, the code calls get() on an Optional without checking if it is present. If the Optional is empty, this will throw NoSuchElementException and cause a runtime failure.",
+        "category": "bug",
+        "end_line": 15,
+        "file": "services/src/main/java/org/keycloak/forms/login/freemarker/model/RecoveryAuthnCodeInputLoginBean.java",
+        "line": 15,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Check if the Optional is present before calling get(), or use orElseThrow with a clear exception message.",
+        "title": "Unsafe Optional.get() call without presence check"
+      },
+      {
+        "body": "In BackwardsCompatibilityUserStorage.java at line 189, the method updateCredential returns true immediately after setting the recoveryCodes field, but the return statement is outside the else-if block, causing it to always return true even if the credential type is unsupported. This breaks the contract of updateCredential and may cause incorrect behavior.",
+        "category": "bug",
+        "end_line": 189,
+        "file": "testsuite/integration-arquillian/servers/auth-server/services/testsuite-providers/src/main/java/org/keycloak/testsuite/federation/BackwardsCompatibilityUserStorage.java",
+        "line": 189,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Move the return true statement inside the else-if block for RecoveryAuthnCodesCredentialModel.TYPE, and add a return false at the end of the method for unsupported types.",
+        "title": "Incorrect return value in updateCredential for RecoveryAuthnCodesCredentialModel.TYPE"
+      },
+      {
+        "body": "In BackwardsCompatibilityUserStorage.java at lines 213-230, the getCredentials method returns a stream of credentials including recovery codes and OTP. However, if deserialization of recovery codes fails, it logs an error but continues. This may cause silent failures and missing credentials in the stream.",
+        "category": "error_handling",
+        "end_line": 230,
+        "file": "testsuite/integration-arquillian/servers/auth-server/services/testsuite-providers/src/main/java/org/keycloak/testsuite/federation/BackwardsCompatibilityUserStorage.java",
+        "line": 213,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Consider propagating the exception or handling it to avoid silent failures, or at least document this behavior clearly.",
+        "title": "Silent failure on deserialization error in getCredentials"
+      },
+      {
+        "body": "In CredentialHelper.java at lines 109-126, the method createRecoveryCodesCredential serializes generatedCodes to JSON and stores it in a UserCredentialModel with empty user label. The user label is set to empty string, which may cause issues if user label is expected to be non-empty or meaningful elsewhere.",
+        "category": "correctness",
+        "end_line": 126,
+        "file": "server-spi-private/src/main/java/org/keycloak/utils/CredentialHelper.java",
+        "line": 109,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Set a meaningful user label or document why it is empty string.",
+        "title": "Empty user label in UserCredentialModel for recovery codes"
+      },
+      {
+        "body": "In BackwardsCompatibilityUserStorage.java at lines 283-323, the isValid method handles validation of recovery codes by deserializing stored credential data and checking if input matches any code. If deserialization fails, it logs a warning and returns false. This is acceptable but may cause login failures if data is corrupted.",
+        "category": "error_handling",
+        "end_line": 323,
+        "file": "testsuite/integration-arquillian/servers/auth-server/services/testsuite-providers/src/main/java/org/keycloak/testsuite/federation/BackwardsCompatibilityUserStorage.java",
+        "line": 283,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Consider adding metrics or alerts for deserialization failures to detect data corruption early.",
+        "title": "Silent failure on deserialization error during recovery codes validation"
+      }
+    ],
+    "head": "ce2dcc5",
+    "mode": "range 85737f52b59aa2e3403c9b8e48acf71ccc5bfae3..ce2dcc537b4b1f98a335e88cfe8e0b804483252a",
+    "models": [
+      {
+        "completion_tokens": 831,
+        "cost_usd": 0.0034904,
+        "elapsed_ms": 10779,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 11450,
+        "summary": "The change adds support for recovery authentication codes including storage, validation, and UI integration. The implementation is mostly correct but has a critical unsafe Optional.get() usage that can cause runtime exceptions, and a bug in updateCredential's return logic that can cause incorrect behavior. Some error handling could be improved to avoid silent failures. Overall, the change is functional but requires fixes for robustness.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 133,
+      "diff_tokens": 10116,
+      "estimated_tokens": 12466,
+      "files_changed": 8,
+      "files_scanned": 9754,
+      "files_tokens": 0,
+      "snippet_tokens": 2350,
+      "snippets_dropped": 0,
+      "snippets_kept": 4
+    },
+    "total_ms": 10923,
+    "verdict": "request_changes"
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "case": {
+    "id": "keycloak-1",
+    "source": "keycloak.json",
+    "url": "https://github.com/ai-code-review-evaluation/keycloak-greptile/pull/1",
+    "split": "holdout",
+    "base": "30f804af450dec523909a52f2a4b97302d27f5cc",
+    "head": "3214b188de808fdb0fff335556b686f1b0a63218"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "In UsernamePasswordForm.java, the method isConditionalPasskeysEnabled() is called without arguments in UsernameForm.java (line 47). However, the method requires a UserModel argument. This will cause a compilation error or runtime failure due to missing argument.",
+        "category": "bug",
+        "end_line": 47,
+        "file": "services/src/main/java/org/keycloak/authentication/authenticators/browser/UsernameForm.java",
+        "line": 47,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Change the call to isConditionalPasskeysEnabled() to pass the user from context, e.g., isConditionalPasskeysEnabled(context.getUser()).",
+        "title": "Incorrect call to isConditionalPasskeysEnabled() without required UserModel argument in UsernameForm.java"
+      },
+      {
+        "body": "In UsernamePasswordForm.java, the action() method (lines 54-69) calls validateForm() and if it returns false, simply returns without calling context.failure() or context.challenge(). This may cause the authentication flow to hang or behave unexpectedly if validation fails without proper failure handling.",
+        "category": "error_handling",
+        "end_line": 69,
+        "file": "services/src/main/java/org/keycloak/authentication/authenticators/browser/UsernamePasswordForm.java",
+        "line": 54,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add explicit failure handling or challenge response when validateForm() returns false to avoid silent failures.",
+        "title": "Missing failure handling after validateForm() returns false in UsernamePasswordForm.action()"
+      },
+      {
+        "body": "In PasskeysUsernameFormTest.java, the test webauthnLoginWithDiscoverableKey() (lines 83-119) sets WebAuthnPolicyRequireResidentKey and UserVerificationRequirement to null (lines 89-90), but then calls checkWebAuthnConfiguration() with constants indicating YES and REQUIRED (line 94). This mismatch may cause inconsistent test behavior or false positives.",
+        "category": "test",
+        "end_line": 119,
+        "file": "testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/webauthn/passwordless/PasskeysUsernameFormTest.java",
+        "line": 83,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Align the parameters passed to checkWebAuthnConfiguration() with the actual policy settings used in the test, or clarify why nulls are used but constants checked.",
+        "title": "Mismatch between WebAuthn policy settings and checkWebAuthnConfiguration call in PasskeysUsernameFormTest.java"
+      },
+      {
+        "body": "In AbstractUsernameFormAuthenticator.java, the constant USER_SET_BEFORE_USERNAME_PASSWORD_AUTH was changed from protected to public (line 58). This is a backward-compatible change but may expose internal details unnecessarily. Verify if this visibility change is intentional and safe.",
+        "category": "api",
+        "end_line": 58,
+        "file": "services/src/main/java/org/keycloak/authentication/authenticators/browser/AbstractUsernameFormAuthenticator.java",
+        "line": 58,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Confirm that USER_SET_BEFORE_USERNAME_PASSWORD_AUTH should be public; if not, revert to protected or package-private.",
+        "title": "Changed visibility of USER_SET_BEFORE_USERNAME_PASSWORD_AUTH constant to public"
+      }
+    ],
+    "head": "3214b18",
+    "mode": "range 30f804af450dec523909a52f2a4b97302d27f5cc..3214b188de808fdb0fff335556b686f1b0a63218",
+    "models": [
+      {
+        "completion_tokens": 679,
+        "cost_usd": 0.0165668,
+        "elapsed_ms": 45300,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 38701,
+        "summary": "The change introduces a critical bug in UsernameForm.java where a method is called without required arguments, causing compilation or runtime errors. There are also test inconsistencies and minor API visibility changes. Additionally, error handling in UsernamePasswordForm.action() may be incomplete. These issues should be addressed before merging.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 203,
+      "diff_tokens": 10807,
+      "estimated_tokens": 45765,
+      "files_changed": 9,
+      "files_scanned": 9956,
+      "files_tokens": 34241,
+      "snippet_tokens": 717,
+      "snippets_dropped": 0,
+      "snippets_kept": 2
+    },
+    "total_ms": 45522,
+    "verdict": "request_changes"
+  }
+}

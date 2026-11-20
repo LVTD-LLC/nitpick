@@ -1,0 +1,133 @@
+{
+  "case": "cal_dot_com-8087",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "97e289a4ca178923372b417d03bd3e2774e4208f501e95d212c572f1b191a8da",
+  "review_sha256": "e25ccb63f80fdfddeea1882436656a7aabc9d76f3d048f846dbf8447d97b62d5",
+  "references": [
+    {
+      "comment": "Consider adding try-catch around the await to handle import failures gracefully",
+      "severity": "Low",
+      "category": "speculative"
+    },
+    {
+      "comment": "The code uses forEach with async callbacks, which causes asynchronous operations (e.g., calendar/video event deletions, payment refunds) to run concurrently without being awaited. This 'fire-and-forget' behavior leads to unhandled promise rejections, race conditions, and incomplete cleanup, as surrounding try-catch blocks cannot properly handle errors from these unawaited promises. Replace forEach with for...of loops or Promise.all() with map() to ensure proper sequential execution and error handling.",
+      "severity": "Critical",
+      "category": "concurrency"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "match",
+      "reference": 1,
+      "reason": "Finding 0 identifies the async forEach in vital/lib/reschedule.ts not awaiting deletions, which is exactly the 'fire-and-forget' concurrency issue described in reference 1."
+    },
+    {
+      "finding": 1,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "Finding 1 covers the same async forEach / try-catch error-handling failure in vital/lib/reschedule.ts already matched by finding 0 to reference 1; same defect, same location."
+    },
+    {
+      "finding": 2,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "Finding 2 correctly identifies that getCalendarCredentials calls getCalendar (now async) without awaiting, storing a Promise in the calendar field. The diff confirms getCalendar is now async but getCalendarCredentials is not updated to await it, which is a concrete bug introduced by this PR."
+    },
+    {
+      "finding": 3,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "Finding 3 identifies an async forEach in handleCancelBooking.ts (lines 460-470) for recurring-event credential iteration that is not awaited. The diff shows this forEach with async callback was introduced/left in place, a concrete fire-and-forget issue not covered by the matched reference."
+    },
+    {
+      "finding": 4,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "Finding 4 identifies the async forEach in bookings.tsx (line 553) not awaiting deletions. The diff confirms this pattern was introduced in this PR and is a concrete concurrency bug."
+    },
+    {
+      "finding": 5,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "Finding 5 covers the same async forEach error-handling issue in bookings.tsx already identified by finding 4; same defect, same location."
+    },
+    {
+      "finding": 6,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "Finding 6 notes the appStore contract change from sync to async. While accurate, whether existing callers are all updated is a broad architectural concern; the diff shows most callers were updated, making this largely subjective/speculative."
+    },
+    {
+      "finding": 7,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "Finding 7 describes the same getCalendarCredentials/getCalendar Promise inconsistency already covered by finding 2."
+    },
+    {
+      "finding": 8,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "Finding 8 again describes the inconsistency between getCalendarCredentials (not awaiting) and getCachedResults (awaiting), which is the same concrete bug as finding 2."
+    },
+    {
+      "finding": 9,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "Finding 9 describes the same async forEach issue in handleCancelBooking.ts already identified by finding 3."
+    },
+    {
+      "finding": 10,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "Finding 10 claims EventManager.ts correctly awaits getCalendar before deleteEvent as a positive observation. This is not a defect finding; it is a correct code pattern and thus not a valid issue."
+    },
+    {
+      "finding": 11,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "Finding 11 is a positive observation that getVideoAdapters is correctly updated to async. Not a defect."
+    },
+    {
+      "finding": 12,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "Finding 12 is a positive observation that getCalendar calls are correctly awaited. Not a defect."
+    },
+    {
+      "finding": 13,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "Finding 13 is a positive observation that appStore is correctly awaited for paymentApp. Not a defect."
+    },
+    {
+      "finding": 14,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "Finding 14 is a positive observation that appStore entries are correctly awaited in payment files. Not a defect."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 23455,
+    "completion_tokens": 852,
+    "total_tokens": 24307,
+    "cost": 0.083145,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.083145,
+      "upstream_inference_prompt_cost": 0.070365,
+      "upstream_inference_completions_cost": 0.01278
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

@@ -1,0 +1,238 @@
+{
+  "case": "keycloak-37429",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "38585f1f512c43634681ccf9d365662b9f47839944ae70c4ec8341d6ba0729f2",
+  "review_sha256": "1845d495914db8a146fc5ad4c464f29e81d670f18b6bc09f153e6262ffc7787b",
+  "references": [
+    {
+      "comment": "The translation is in Italian instead of Lithuanian. This should be translated to Lithuanian to match the file's locale (messages_lt.properties).",
+      "severity": "Medium",
+      "category": "doc_defect"
+    },
+    {
+      "comment": "The totpStep1 value uses Traditional Chinese terms in the Simplified Chinese file (zh_CN), which is likely incorrect for this locale. Please verify the locale‑appropriate translation.",
+      "severity": "Medium",
+      "category": "doc_defect"
+    },
+    {
+      "comment": "The anchor sanitization logic has a potential issue where it consumes English matcher groups without proper validation. If the translated text has more anchor tags than the English text, this could lead to incorrect validation results.",
+      "severity": "Low",
+      "category": "security"
+    },
+    {
+      "comment": "The method name 'santizeAnchors' should be 'sanitizeAnchors' (missing 'i').",
+      "severity": "Low",
+      "category": "style"
+    },
+    {
+      "comment": "Field HTML_TAGS should be declared as 'private static final' following Java naming conventions for constants",
+      "severity": "Low",
+      "category": "style"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The finding correctly identifies that a missing English file causes a RuntimeException, but this is a deliberate design choice (fail-fast) and no reference specifically diagnoses this as a concrete failure mode."
+    },
+    {
+      "finding": 1,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The finding raises valid concerns about false positives/negatives in the sanitization logic, but no reference specifically diagnoses this concrete failure."
+    },
+    {
+      "finding": 2,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms href=LT\"{0}\" was changed to href=\"{0}\" in messages_lt.properties email file, a concrete pre-existing bug fixed by this PR."
+    },
+    {
+      "finding": 3,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms malformed HTML in Norwegian email messages was fixed (e.g., <b> tags in plain text body, missing closing tags in HTML body)."
+    },
+    {
+      "finding": 4,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms <br/> changed to <br /> in Turkish email messages, a concrete fix introduced by this PR."
+    },
+    {
+      "finding": 5,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms <br/> changed to <br /> in Ukrainian login messages, a concrete fix introduced by this PR."
+    },
+    {
+      "finding": 6,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms <br/> to <br /> changes in Catalan login messages, a concrete fix."
+    },
+    {
+      "finding": 7,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms <br/> to <br /> changes in Czech login messages, a concrete fix."
+    },
+    {
+      "finding": 8,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms <br/> to <br /> changes in German login messages, a concrete fix."
+    },
+    {
+      "finding": 9,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms <br/> to <br /> changes in Greek login messages, a concrete fix."
+    },
+    {
+      "finding": 10,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms <br/> to <br /> changes in Spanish login messages, a concrete fix."
+    },
+    {
+      "finding": 11,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms <br/> to <br /> changes in Persian login messages, a concrete fix."
+    },
+    {
+      "finding": 12,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms <br/> to <br /> changes in Finnish login messages, a concrete fix."
+    },
+    {
+      "finding": 13,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms <br/> to <br /> changes in French login messages, a concrete fix."
+    },
+    {
+      "finding": 14,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms <br/> to <br /> changes in Croatian login messages, a concrete fix."
+    },
+    {
+      "finding": 15,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms <br/> to <br /> changes in Georgian login messages, a concrete fix."
+    },
+    {
+      "finding": 16,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms <br/> to <br /> changes in Korean login messages, a concrete fix."
+    },
+    {
+      "finding": 17,
+      "label": "match",
+      "reference": 0,
+      "reason": "The finding identifies that messages_lt.properties loginTotpStep1 was changed to Italian text ('Installa una delle seguenti applicazioni sul tuo cellulare:') instead of Lithuanian, which matches reference 0 exactly."
+    },
+    {
+      "finding": 18,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "Duplicate of finding 17 - both identify the same Italian text appearing in Lithuanian login messages_lt.properties."
+    },
+    {
+      "finding": 19,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms loginTotpStep1 in Norwegian login messages was changed from a link-containing string to plain text, a concrete change."
+    },
+    {
+      "finding": 20,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms <br/> to <br /> changes in Turkish login messages, a concrete fix."
+    },
+    {
+      "finding": 21,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms <br/> to <br /> changes in Ukrainian login messages, a concrete fix."
+    },
+    {
+      "finding": 22,
+      "label": "match",
+      "reference": 1,
+      "reason": "The finding identifies that messages_zh_CN.properties totpStep1 uses Traditional Chinese terms ('在您的手機上安裝以下應用程式之一') in the Simplified Chinese file, matching reference 1 which flags incorrect locale-appropriate translation in zh_CN."
+    },
+    {
+      "finding": 23,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms <br/> to <br /> changes in Traditional Chinese (zh_TW) login messages, a concrete fix."
+    },
+    {
+      "finding": 24,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The test resource files changedAnchor_de.properties, illegalHtmlTag_en.properties, noHtml_de.properties, noHtml_en.properties all lack a newline at end of file as shown by ' No newline at end of file' in the diff."
+    },
+    {
+      "finding": 25,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms totpStep1 in Finnish account messages was changed from anchor-tag links to plain text, removing clickable links."
+    },
+    {
+      "finding": 26,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms the missing closing </p> tag fix in messages_da.properties email file."
+    },
+    {
+      "finding": 27,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms the missing closing </p> tag fix in messages_nl.properties email file (</p< changed to </p>)."
+    },
+    {
+      "finding": 28,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff confirms error-invalid-multivalued-size was updated to use ICU choice format for pluralization in messages_en.properties."
+    },
+    {
+      "finding": 29,
+      "label": "match",
+      "reference": 3,
+      "reason": "The finding identifies the method name 'santizeAnchors' as a typo (should be 'sanitizeAnchors'), which matches reference 3 exactly."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 167602,
+    "completion_tokens": 1413,
+    "total_tokens": 169015,
+    "cost": 0.524001,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.524001,
+      "upstream_inference_prompt_cost": 0.502806,
+      "upstream_inference_completions_cost": 0.021195
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

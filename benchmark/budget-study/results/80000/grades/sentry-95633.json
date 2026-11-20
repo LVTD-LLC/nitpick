@@ -1,0 +1,55 @@
+{
+  "case": "sentry-95633",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "1ad38f932b4c25a481cf4690a8b4668d28785801755a6176a4a687ad6683245f",
+  "review_sha256": "738f0d017a55f7c8dbe94d46a588c1810de689ed2e4be09bc6db5053e937581c",
+  "references": [
+    {
+      "comment": "The magic number 50 for max_wait is used repeatedly throughout the tests. Consider extracting this as a named constant to improve maintainability.",
+      "severity": "Low",
+      "category": "style"
+    },
+    {
+      "comment": "The test test_thread_queue_parallel_error_handling has a docstring that doesn't match the test implementation.",
+      "severity": "Low",
+      "category": "doc_defect"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "queue.ShutDown does not exist in Python's standard library queue module (it was added in Python 3.13 and may not be available in the Python version used by this project). The except clause catching queue.ShutDown inside the try block wrapping result_processor is also structurally wrong since ShutDown would only be raised by queue operations, not by the result_processor call. This is a concrete bug introduced by this diff."
+    },
+    {
+      "finding": 1,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "queue.Queue has no shutdown() method in Python versions prior to 3.13. Calling q.shutdown(immediate=False) will raise AttributeError at runtime, preventing proper worker shutdown. The except Exception clause will swallow the error but workers will remain blocked on queue.get() indefinitely since no sentinel value is enqueued. This is a concrete bug introduced by this diff."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 20827,
+    "completion_tokens": 224,
+    "total_tokens": 21051,
+    "cost": 0.065841,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.065841,
+      "upstream_inference_prompt_cost": 0.062481,
+      "upstream_inference_completions_cost": 0.00336
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

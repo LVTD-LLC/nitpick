@@ -1,0 +1,67 @@
+{
+  "case": {
+    "id": "discourse-7",
+    "source": "discourse.json",
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/7",
+    "split": "fresh",
+    "base": "7554b5e3c458dc79b591d5e874e79ab10cf30c2f",
+    "head": "d38c4d5f7443223c81529c22470293771baf9f38"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [],
+    "head": "d38c4d5",
+    "mode": "range 7554b5e3c458dc79b591d5e874e79ab10cf30c2f..d38c4d5f7443223c81529c22470293771baf9f38",
+    "models": [
+      {
+        "completion_tokens": 117,
+        "cost_usd": 0.034214,
+        "elapsed_ms": 9209,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 85067,
+        "summary": "This change refactors numerous SCSS files to replace direct uses of `scale-color` with the `dark-light-choose` function combining `scale-color($primary, ...)` and `scale-color($secondary, ...)`. This likely improves theming support for light and dark modes by dynamically choosing colors based on the theme. The changes are consistent and do not introduce any logic or functional regressions, as they only affect styling. No tests or code behavior are impacted. Overall, this is a safe and beneficial styling improvement.",
+        "verdict": "approve"
+      }
+    ],
+    "stats": {
+      "build_ms": 225,
+      "diff_tokens": 12441,
+      "estimated_tokens": 64891,
+      "files_changed": 32,
+      "files_scanned": 3883,
+      "files_tokens": 51896,
+      "snippet_tokens": 554,
+      "snippets_dropped": 1,
+      "snippets_kept": 4
+    },
+    "total_ms": 9446,
+    "verdict": "approve"
+  }
+}

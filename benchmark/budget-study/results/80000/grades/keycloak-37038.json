@@ -1,0 +1,121 @@
+{
+  "case": "keycloak-37038",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "98dd74cff642ccc128781b1734ce5db984b0e72a3e382765b8f42f64c53a5a9f",
+  "review_sha256": "cebfc2d9f4f7b893f71c6e2ffc02556c3bb3e9c841b1d4164f8e0ac38954a670",
+  "references": [
+    {
+      "comment": "In GroupPermissionsV2.canManage(), the permission fallback checks for both VIEW and MANAGE scopes (hasPermission(null, AdminPermissionsSchema.VIEW, AdminPermissionsSchema.MANAGE)), but canManage() should only grant access for MANAGE scope, not VIEW. This means users with only VIEW permission on groups can pass the canManage() check, granting them write access they should not have. The canView() method correctly checks both VIEW and MANAGE, but canManage() should only check MANAGE.",
+      "severity": "High",
+      "category": "bug"
+    },
+    {
+      "comment": "In getGroupIdsWithViewPermission, hasPermission is called with groupResource.getId() and the same groupResource.getId() is added to granted, but hasPermission resolves resources by name (treating the argument as a group id) and the GroupPermissionEvaluator contract says this method returns group IDs that are later used as UserModel.GROUPS and in getUsersCount group filters. This mismatch means per-group VIEW_MEMBERS/MANAGE_MEMBERS permissions may not yield the expected group IDs for filtering and counts, and evaluation may effectively only look at the type-level 'all-groups' resource; consider revisiting whether this should operate on the underlying group ids (resource names) instead so it aligns with the JPA queries and the interface contract.",
+      "severity": "High",
+      "category": "api"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The finding notes a behavioral change when getGroupIdsWithViewPermission returns non-empty even when canView() is true. However, getGroupIdsWithViewPermission() returns empty set when canView() is true, so the concern about unconditional setting is partially mitigated. The actual impact depends on edge cases not fully visible here; insufficient evidence to confirm or deny a concrete bug."
+    },
+    {
+      "finding": 1,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The finding itself concludes 'No issue found here' — it is not a bug report but an observation that the change is correct. Not a real finding."
+    },
+    {
+      "finding": 2,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The finding itself concludes 'No issue here' and describes a correct fix. Not a real finding."
+    },
+    {
+      "finding": 3,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The finding itself concludes 'No issue found here'. Not a real finding."
+    },
+    {
+      "finding": 4,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The finding itself concludes 'No issue found here'. Not a real finding."
+    },
+    {
+      "finding": 5,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The finding itself concludes 'No issue found here'. Not a real finding."
+    },
+    {
+      "finding": 6,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The finding itself concludes 'No issue found here'. Not a real finding."
+    },
+    {
+      "finding": 7,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The finding itself concludes 'No issue found here'. Not a real finding."
+    },
+    {
+      "finding": 8,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The finding itself concludes 'No issue found here'. Not a real finding."
+    },
+    {
+      "finding": 9,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The finding itself concludes 'No issue found here'. Not a real finding."
+    },
+    {
+      "finding": 10,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The finding itself concludes 'No issue found here'. Not a real finding."
+    },
+    {
+      "finding": 11,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The finding itself concludes 'No issue found here' and describes a positive improvement. Not a real finding."
+    },
+    {
+      "finding": 12,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "Redundant null initialization is a pre-existing style nit unrelated to this PR's logic changes; the diff does remove it, making this a non-issue after the change."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 37903,
+    "completion_tokens": 581,
+    "total_tokens": 38484,
+    "cost": 0.122424,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.122424,
+      "upstream_inference_prompt_cost": 0.113709,
+      "upstream_inference_completions_cost": 0.008715
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

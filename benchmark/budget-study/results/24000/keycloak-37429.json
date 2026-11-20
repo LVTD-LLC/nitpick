@@ -1,0 +1,458 @@
+{
+  "case": {
+    "id": "keycloak-37429",
+    "source": "keycloak.json",
+    "url": "https://github.com/keycloak/keycloak/pull/37429",
+    "split": "holdout",
+    "base": "f3c8e8f3487112f2c99aa78400430cce2d30be39",
+    "head": "02f48f776f43734d1ac8914d3ad6a7115acdcb33"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 0,
+    "findings": [
+      {
+        "body": "The new HTML sanitization logic in VerifyMessageProperties.java reads the English source file by replacing 'resources-community' with 'resources' and replacing locale suffixes with '_en.properties'. This assumes that the English source file is always present and located in a parallel directory structure. If the English file is missing or the path does not exist, this will throw a RuntimeException and fail the verification process. This could cause build failures or block theme verification if English files are missing or renamed.",
+        "category": "error_handling",
+        "end_line": 129,
+        "file": "misc/theme-verifier/src/main/java/org/keycloak/themeverifier/VerifyMessageProperties.java",
+        "line": 70,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add a check for the existence of the English file before attempting to open it, and handle the case where it is missing gracefully, e.g., by skipping HTML verification or reporting a clear error.",
+        "title": "VerifyMessageProperties fails if English source file is missing"
+      },
+      {
+        "body": "The HTML sanitization logic in VerifyMessageProperties.java allows only certain HTML tags (br, p, strong, b) and checks that anchor tags in translations match those in the English source. However, the sanitization removes or escapes other HTML tags, but the code then unescapes HTML entities and removes \"<!-- -->\" comments, which may cause false positives or negatives in the comparison. Also, the sanitization does not consider self-closing tags or attributes beyond anchors, which might cause legitimate HTML to be flagged as illegal.",
+        "category": "correctness",
+        "end_line": 129,
+        "file": "misc/theme-verifier/src/main/java/org/keycloak/themeverifier/VerifyMessageProperties.java",
+        "line": 70,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Improve the sanitization and comparison logic to handle self-closing tags, attributes, and HTML entities more robustly, or document the limitations clearly.",
+        "title": "HTML sanitization and comparison may cause false positives or negatives"
+      },
+      {
+        "body": "The message properties changes fix some malformed href attributes in Lithuanian email messages (e.g., href=LT\"{0}\" changed to href=\"{0}\") which would cause broken links in emails.",
+        "category": "bug",
+        "end_line": 1,
+        "file": "themes/src/main/resources-community/theme/base/email/messages/messages_lt.properties",
+        "line": 1,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Correct href attributes to proper syntax href=\"{0}\" to ensure links work correctly in emails.",
+        "title": "Malformed href attribute in Lithuanian email messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in Norwegian email messages (e.g., missing closing tags, malformed anchor tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 27,
+        "file": "themes/src/main/resources-community/theme/base/email/messages/messages_no.properties",
+        "line": 27,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in Norwegian email messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in Turkish email messages (e.g., extra spaces in tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 27,
+        "file": "themes/src/main/resources-community/theme/base/email/messages/messages_tr.properties",
+        "line": 27,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in Turkish email messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in Ukrainian email messages (e.g., extra spaces in tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 27,
+        "file": "themes/src/main/resources-community/theme/base/email/messages/messages_uk.properties",
+        "line": 27,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in Ukrainian email messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in multiple login message locales (e.g., missing closing tags, malformed anchor tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 463,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_ca.properties",
+        "line": 463,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in login messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in multiple login message locales (e.g., missing closing tags, malformed anchor tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 463,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_cs.properties",
+        "line": 463,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in login messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in multiple login message locales (e.g., missing closing tags, malformed anchor tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 463,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_de.properties",
+        "line": 463,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in login messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in multiple login message locales (e.g., missing closing tags, malformed anchor tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 463,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_el.properties",
+        "line": 463,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in login messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in multiple login message locales (e.g., missing closing tags, malformed anchor tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 463,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_es.properties",
+        "line": 463,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in login messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in multiple login message locales (e.g., missing closing tags, malformed anchor tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 463,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_fa.properties",
+        "line": 463,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in login messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in multiple login message locales (e.g., missing closing tags, malformed anchor tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 463,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_fi.properties",
+        "line": 463,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in login messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in multiple login message locales (e.g., missing closing tags, malformed anchor tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 463,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_fr.properties",
+        "line": 463,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in login messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in multiple login message locales (e.g., missing closing tags, malformed anchor tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 476,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_hr.properties",
+        "line": 476,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in login messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in multiple login message locales (e.g., missing closing tags, malformed anchor tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 448,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_ka.properties",
+        "line": 448,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in login messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in multiple login message locales (e.g., missing closing tags, malformed anchor tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 477,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_ko.properties",
+        "line": 477,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in login messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in Lithuanian login messages (e.g., missing closing tags, malformed anchor tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 27,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_lt.properties",
+        "line": 27,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in Lithuanian login messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in multiple login message locales (e.g., missing closing tags, malformed anchor tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 68,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_lt.properties",
+        "line": 68,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in login messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in multiple login message locales (e.g., missing closing tags, malformed anchor tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 68,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_no.properties",
+        "line": 68,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in login messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in multiple login message locales (e.g., missing closing tags, malformed anchor tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 466,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_tr.properties",
+        "line": 466,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in login messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in multiple login message locales (e.g., missing closing tags, malformed anchor tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 456,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_uk.properties",
+        "line": 456,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in login messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in multiple login message locales (e.g., missing closing tags, malformed anchor tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 463,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_zh_CN.properties",
+        "line": 463,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in login messages"
+      },
+      {
+        "body": "The message properties changes fix some malformed HTML tags in multiple login message locales (e.g., missing closing tags, malformed anchor tags) which would cause broken rendering in UI.",
+        "category": "bug",
+        "end_line": 470,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_zh_TW.properties",
+        "line": 470,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Fix malformed HTML tags and attributes to ensure proper rendering in UI.",
+        "title": "Malformed HTML tags in login messages"
+      },
+      {
+        "body": "The new tests added in misc/theme-verifier/src/test/java/org/keycloak/themeverifier/VerifyMessagePropertiesTest.java rely on test resource files that contain HTML tags and anchor tags. However, the test resource files added (e.g., changedAnchor_de.properties) do not have a newline at the end of file, which can cause issues with some file readers or tools expecting newline-terminated files.",
+        "category": "style",
+        "end_line": 17,
+        "file": "misc/theme-verifier/src/test/resources/changedAnchor_de.properties",
+        "line": 17,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Add a newline at the end of all new test resource files to conform to POSIX standards and avoid potential issues.",
+        "title": "Test resource files missing newline at end of file"
+      },
+      {
+        "body": "The message properties changes replace some HTML anchor tags with plain text instructions in multiple locales for TOTP setup steps. This removes clickable links from the instructions, which may reduce usability for users who expect to click the links directly from the UI.",
+        "category": "other",
+        "end_line": 138,
+        "file": "themes/src/main/resources-community/theme/base/account/messages/messages_fi.properties",
+        "line": 138,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Consider keeping the anchor tags or providing alternative clickable links to improve user experience.",
+        "title": "TOTP setup instructions changed from links to plain text in multiple locales"
+      },
+      {
+        "body": "Multiple email message properties files had malformed HTML tags fixed (e.g., missing closing tags, incorrect tag syntax). These fixes improve the correctness of the HTML email templates and prevent rendering issues in email clients.",
+        "category": "correctness",
+        "end_line": 6,
+        "file": "themes/src/main/resources-community/theme/base/email/messages/messages_da.properties",
+        "line": 6,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Fixed malformed HTML tags in email message properties"
+      },
+      {
+        "body": "The message properties changes fix some malformed or missing closing tags in HTML email templates (e.g., missing closing </p> tags) in multiple locales, improving HTML correctness and email rendering.",
+        "category": "correctness",
+        "end_line": 6,
+        "file": "themes/src/main/resources-community/theme/base/email/messages/messages_nl.properties",
+        "line": 6,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Fixed missing closing </p> tag in email message properties"
+      },
+      {
+        "body": "The message properties changes fix the error-invalid-multivalued-size message to use ICU MessageFormat plural choice syntax for the last parameter in multiple locales. This improves the pluralization and localization of the message.",
+        "category": "other",
+        "end_line": 484,
+        "file": "themes/src/main/resources/theme/base/login/messages/messages_en.properties",
+        "line": 484,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": null,
+        "title": "Improve pluralization in error-invalid-multivalued-size message"
+      },
+      {
+        "body": "The message properties changes replace all occurrences of '<br/>' with '<br />' in multiple locales for WebAuthn error messages. This is a stylistic change to conform to XHTML standards and does not affect functionality.",
+        "category": "style",
+        "end_line": 463,
+        "file": "themes/src/main/resources-community/theme/base/login/messages/messages_ar.properties",
+        "line": 463,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "nit",
+        "suggestion": null,
+        "title": "Standardize <br/> tags to <br /> in WebAuthn error messages"
+      }
+    ],
+    "head": "02f48f7",
+    "mode": "range f3c8e8f3487112f2c99aa78400430cce2d30be39..02f48f776f43734d1ac8914d3ad6a7115acdcb33",
+    "models": [
+      {
+        "completion_tokens": 3223,
+        "cost_usd": 0.0152496,
+        "elapsed_ms": 77027,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 25232,
+        "summary": "The change adds HTML sanitization verification for message properties and fixes multiple malformed HTML tags and attributes in message properties files across many locales. It also improves pluralization in some messages. The main concerns are the brittle English file lookup in the verifier and potential false positives in HTML sanitization. Test resource files missing newlines is a minor style issue. The removal of clickable links in TOTP instructions may reduce usability.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 270,
+      "diff_tokens": 26044,
+      "estimated_tokens": 26044,
+      "files_changed": 48,
+      "files_scanned": 9707,
+      "files_tokens": 0,
+      "snippet_tokens": 0,
+      "snippets_dropped": 3,
+      "snippets_kept": 0
+    },
+    "total_ms": 77321,
+    "verdict": "comment"
+  }
+}

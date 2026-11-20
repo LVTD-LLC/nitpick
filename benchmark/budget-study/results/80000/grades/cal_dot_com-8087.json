@@ -1,0 +1,97 @@
+{
+  "case": "cal_dot_com-8087",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "d4178c770e115b6962e62f29dd13bb8ca8d2c10018d2dd4da76bed51e98b0aa5",
+  "review_sha256": "49a59389d6d1d8b4418e911f756cec1f9dbd03dc97f361bf370b8cfce749e50f",
+  "references": [
+    {
+      "comment": "Consider adding try-catch around the await to handle import failures gracefully",
+      "severity": "Low",
+      "category": "speculative"
+    },
+    {
+      "comment": "The code uses forEach with async callbacks, which causes asynchronous operations (e.g., calendar/video event deletions, payment refunds) to run concurrently without being awaited. This 'fire-and-forget' behavior leads to unhandled promise rejections, race conditions, and incomplete cleanup, as surrounding try-catch blocks cannot properly handle errors from these unawaited promises. Replace forEach with for...of loops or Promise.all() with map() to ensure proper sequential execution and error handling.",
+      "severity": "Critical",
+      "category": "concurrency"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The finding correctly identifies the breaking API change from static to dynamic imports. Reference 0 is about try-catch around await for import failures, which is a different concern. The finding is a valid architectural observation but is more of a design note than a concrete bug introduced by the diff."
+    },
+    {
+      "finding": 1,
+      "label": "match",
+      "reference": 1,
+      "reason": "Both identify the same concrete defect: async callbacks inside forEach in vital/lib/reschedule.ts (and wipemycalother) cause promises to be unawaited, leading to fire-and-forget behavior, unhandled rejections, and broken error handling. Reference 1 explicitly calls this out as critical."
+    },
+    {
+      "finding": 2,
+      "label": "supported_extra",
+      "reference": null,
+      "reason": "The diff shows getCalendarCredentials calls getCalendar (now async) without await, storing a Promise instead of a Calendar instance. The calendar field in the returned objects is a Promise, and getConnectedCalendars later does `await item.calendar` to compensate, but this is an inconsistency introduced by the diff that can cause issues in other consumers of getCalendarCredentials."
+    },
+    {
+      "finding": 3,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "This finding covers the forEach+async issue in handleCancelBooking.ts lines 460-470, which is the same class of defect as finding 1 (already matched to reference 1). The specific forEach at lines 460-470 in handleCancelBooking.ts is a distinct location but the same mechanism and failure mode already credited to finding 1."
+    },
+    {
+      "finding": 4,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "This is the same forEach+async issue already matched in finding 1 (reference 1), just in a different file (bookings.tsx). Same defect class, already credited."
+    },
+    {
+      "finding": 5,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "Observational note that getCalendar is now async and call sites must await it. This is correct but largely a restatement of the diff's intent rather than identifying a concrete bug. No specific missed call site is identified."
+    },
+    {
+      "finding": 6,
+      "label": "duplicate",
+      "reference": null,
+      "reason": "This is the same issue as finding 2 (getCalendarCredentials not awaiting getCalendar), just framed as an inconsistency observation rather than a bug. Same root defect."
+    },
+    {
+      "finding": 7,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "This finding claims EventManager.ts properly awaits getCalendar, which is correct per the diff. It identifies no bug and is purely an affirmative observation, not a finding of any defect."
+    },
+    {
+      "finding": 8,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "This finding affirms that videoClient.ts correctly handles async dynamic imports. It identifies no bug and is purely an affirmative observation, not a finding of any defect."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 18109,
+    "completion_tokens": 663,
+    "total_tokens": 18772,
+    "cost": 0.064272,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.064272,
+      "upstream_inference_prompt_cost": 0.054327,
+      "upstream_inference_completions_cost": 0.009945
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "case": {
+    "id": "discourse-4",
+    "source": "discourse.json",
+    "url": "https://github.com/ai-code-review-evaluation/discourse-graphite/pull/4",
+    "split": "holdout",
+    "base": "62db063e1e1abe691313ab42682a68f796d63769",
+    "head": "4f8aed295a29954023b2849c060ef4fb299d1b5d"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 2,
+    "findings": [
+      {
+        "body": "In app/assets/javascripts/embed.js line 17, the code checks if the event origin is contained within the discourseUrl string using indexOf. This is a weak check because it allows any origin that is a substring of discourseUrl, which could be exploited by malicious sites with similar origins. This can lead to security issues such as cross-site scripting or clickjacking.",
+        "category": "security",
+        "end_line": 17,
+        "file": "app/assets/javascripts/embed.js",
+        "line": 17,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Replace the origin check with a strict equality check, e.g., `if (e.origin !== discourseUrl) return;` or use a whitelist of allowed origins.",
+        "title": "Weak origin check in postMessage event handler"
+      },
+      {
+        "body": "In app/models/topic_embed.rb line 13, the code appends an HTML snippet with the original URL to the contents string without escaping the URL. If the URL contains malicious content or HTML, this could lead to cross-site scripting (XSS) vulnerabilities when rendered.",
+        "category": "security",
+        "end_line": 13,
+        "file": "app/models/topic_embed.rb",
+        "line": 13,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Escape the URL before embedding it in the HTML snippet, e.g., use Rails helpers like `h(url)` or sanitize the URL.",
+        "title": "Potential XSS vulnerability by embedding unescaped URL in HTML"
+      },
+      {
+        "body": "In app/controllers/embed_controller.rb line 26, the code compares the host of the HTTP referer to the configured embeddable_host setting. However, the referer header can be missing or manipulated, and the code raises an InvalidAccess error if the referer is missing or invalid. This strict referer check may cause legitimate requests to fail if the referer is not set by the client or is different due to proxies or redirects. This could lead to denial of service for embedding clients that do not send a referer header.",
+        "category": "security",
+        "end_line": 26,
+        "file": "app/controllers/embed_controller.rb",
+        "line": 26,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Consider relaxing the referer check or allowing a configurable list of allowed origins. Alternatively, use an API key or token-based authentication for embedding requests.",
+        "title": "Strict referer host check may block legitimate embedding requests"
+      },
+      {
+        "body": "In app/models/topic_embed.rb line 48, the code uses `open(url).read` to fetch remote content without any timeout or error handling. This can cause the job to hang indefinitely if the remote server is slow or unresponsive, leading to resource exhaustion or denial of service.",
+        "category": "performance",
+        "end_line": 48,
+        "file": "app/models/topic_embed.rb",
+        "line": 48,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Use open-uri with explicit open/read timeouts and rescue network errors to avoid hanging the job.",
+        "title": "No timeout or error handling when fetching remote content"
+      },
+      {
+        "body": "In app/models/topic_embed.rb line 56-76, the method `absolutize_urls` converts relative URLs to absolute URLs by prefixing with the scheme and host. However, it only handles URLs starting with a single slash and does not handle URLs starting with multiple slashes (protocol-relative URLs) or other relative URL forms. This may cause incorrect URL rewriting and broken links or images in the imported content.",
+        "category": "correctness",
+        "end_line": 76,
+        "file": "app/models/topic_embed.rb",
+        "line": 56,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "low",
+        "suggestion": "Enhance URL rewriting to handle protocol-relative URLs (starting with //) and other relative URL forms correctly.",
+        "title": "Incomplete handling of relative URLs in absolutize_urls method"
+      }
+    ],
+    "head": "4f8aed2",
+    "mode": "range 62db063e1e1abe691313ab42682a68f796d63769..4f8aed295a29954023b2849c060ef4fb299d1b5d",
+    "models": [
+      {
+        "completion_tokens": 822,
+        "cost_usd": 0.0157288,
+        "elapsed_ms": 14759,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 36034,
+        "summary": "This change adds embedding support with new models, controllers, jobs, and frontend assets. It introduces feed importing and raw HTML cooking for posts. Overall, the implementation is solid and well-tested. However, there are some security concerns with origin and referer validation, potential XSS risk from unescaped URLs, and missing network error handling when fetching remote content. Also, URL rewriting could be more robust.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 129,
+      "diff_tokens": 3552,
+      "estimated_tokens": 31872,
+      "files_changed": 27,
+      "files_scanned": 2371,
+      "files_tokens": 26707,
+      "snippet_tokens": 1613,
+      "snippets_dropped": 0,
+      "snippets_kept": 4
+    },
+    "total_ms": 14900,
+    "verdict": "request_changes"
+  }
+}

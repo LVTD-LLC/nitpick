@@ -1,0 +1,120 @@
+{
+  "case": {
+    "id": "cal_dot_com-14943",
+    "source": "cal_dot_com.json",
+    "url": "https://github.com/calcom/cal.com/pull/14943",
+    "split": "fresh",
+    "base": "917c7b0764f4c6bfdca95db2c5f73dbfdbe11757",
+    "head": "c790227e0cda780e6fea9bb03af27948d9e286b9"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "24000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 1,
+    "findings": [
+      {
+        "body": "The deletion query deletes reminders where retryCount > 1 regardless of method or scheduledDate. This means reminders with retryCount > 1 but scheduledDate in the future or method not SMS will be deleted prematurely, potentially losing reminders that should still be retried or sent.",
+        "category": "bug",
+        "end_line": 45,
+        "file": "packages/features/ee/workflows/api/scheduleSMSReminders.ts",
+        "line": 28,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Change the deleteMany filter to only delete reminders with method SMS and scheduledDate <= now OR retryCount > 1 and method SMS, e.g., use AND inside each OR clause to avoid deleting unrelated reminders.",
+        "title": "Deletion query deletes reminders with retryCount > 1 regardless of method or date"
+      },
+      {
+        "body": "The retryCount field is added to the Prisma schema and migration, but there are no tests added or updated to cover the retry logic and retryCount increments. This risks regressions or undetected bugs in retry behavior.",
+        "category": "test",
+        "end_line": 45,
+        "file": "packages/features/ee/workflows/api/scheduleSMSReminders.ts",
+        "line": 21,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add tests to verify retryCount increments on failure, that reminders are deleted after exceeding retryCount threshold, and that reminders with retryCount below threshold are retried.",
+        "title": "Missing tests for retryCount and retry logic"
+      },
+      {
+        "body": "The deletion query deletes reminders with retryCount > 1, but the retryCount is incremented starting from 0 and increments by 1 on failure. This means reminders with retryCount 1 are not deleted, but those with retryCount 2 or more are deleted. This may cause reminders to be deleted too early or too late depending on intended retry policy.",
+        "category": "bug",
+        "end_line": 45,
+        "file": "packages/features/ee/workflows/api/scheduleSMSReminders.ts",
+        "line": 39,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Clarify and align retryCount threshold for deletion with retry policy. Possibly change 'gt: 1' to 'gte: MAX_RETRY_COUNT' where MAX_RETRY_COUNT is a defined constant.",
+        "title": "Inconsistent retryCount threshold for deletion"
+      },
+      {
+        "body": "The retryCount increment happens on any failure or when scheduledSMS is falsy, but there is no upper limit or cap on retryCount. This can cause reminders to be retried indefinitely, potentially causing resource waste or infinite loops.",
+        "category": "bug",
+        "end_line": 198,
+        "file": "packages/features/ee/workflows/api/scheduleSMSReminders.ts",
+        "line": 163,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Add a maximum retry count limit (e.g., 3 or 5) and skip or mark reminders as failed after exceeding this limit.",
+        "title": "No maximum retry count limit, causing infinite retries"
+      }
+    ],
+    "head": "c790227",
+    "mode": "range 917c7b0764f4c6bfdca95db2c5f73dbfdbe11757..c790227e0cda780e6fea9bb03af27948d9e286b9",
+    "models": [
+      {
+        "completion_tokens": 669,
+        "cost_usd": 0.0049236,
+        "elapsed_ms": 11919,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 9633,
+        "summary": "This change adds retryCount tracking and retry logic for scheduling SMS reminders, including schema migration and retryCount increments on failure. However, the deletion query deletes reminders with retryCount > 1 regardless of method or scheduledDate, risking premature deletion of reminders. There is no maximum retry count limit, risking infinite retries. The retryCount threshold for deletion may be inconsistent with intended retry policy. Also, no tests were added to cover the new retry logic.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 385,
+      "diff_tokens": 874,
+      "estimated_tokens": 7316,
+      "files_changed": 3,
+      "files_scanned": 4420,
+      "files_tokens": 3594,
+      "snippet_tokens": 2848,
+      "snippets_dropped": 0,
+      "snippets_kept": 17
+    },
+    "total_ms": 12315,
+    "verdict": "request_changes"
+  }
+}

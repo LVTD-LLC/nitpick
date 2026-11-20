@@ -1,0 +1,107 @@
+{
+  "case": {
+    "id": "grafana-79265",
+    "source": "grafana.json",
+    "url": "https://github.com/grafana/grafana/pull/79265",
+    "split": "holdout",
+    "base": "7ddcd0c9611882858701f4f876fb8e449fe73980",
+    "head": "bbd8c507cdf56f6b884373809e0b24abd4a2353d"
+  },
+  "run": {
+    "binary_sha256": "057019e38c2efb58dab28302a690ce6e0acc3b0058bddb63e67ab9ae458bb69a",
+    "flags": [
+      "--provider",
+      "openrouter",
+      "--base-url",
+      "https://openrouter.ai/api/v1",
+      "-m",
+      "openai/gpt-4.1-mini",
+      "--budget",
+      "80000",
+      "--max-file-lines",
+      "400",
+      "--temperature",
+      "0",
+      "--timeout",
+      "230",
+      "--max-tokens",
+      "4096",
+      "--json"
+    ],
+    "cases_sha256": "5476ef3f9a3a5c5a609e8a184ce773d2204ec3921ba93b8729925a9931ff3bbf"
+  },
+  "report": {
+    "branch": null,
+    "fail_on": "high",
+    "failing": 2,
+    "findings": [
+      {
+        "body": "In pkg/services/anonymous/anonimpl/anonstore/database.go, the updateDevice method updates a device only if it exists and has been updated between device.UpdatedAt - anonymousDeviceExpiration and device.UpdatedAt + 1 minute. This time window is very narrow and may cause updates to fail if the device's updated_at timestamp is outside this range, leading to ErrDeviceLimitReached being returned incorrectly. This can cause legitimate updates to be rejected when the device limit is reached, even if the device exists but was updated outside the time window.",
+        "category": "bug",
+        "end_line": 81,
+        "file": "pkg/services/anonymous/anonimpl/anonstore/database.go",
+        "line": 73,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "Review and possibly widen or remove the updated_at time window condition in the updateDevice SQL WHERE clause to avoid false negatives when updating devices.",
+        "title": "updateDevice uses narrow updated_at time window causing update failures"
+      },
+      {
+        "body": "In pkg/services/anonymous/anonimpl/impl.go, the TagDevice method calls tagDeviceUI which calls anonStore.CreateOrUpdateDevice. If CreateOrUpdateDevice returns an error, TagDevice logs it and returns the error. The Anonymous.Authenticate method calls anonDeviceService.TagDevice and returns the error if it is ErrDeviceLimitReached, but for other errors it only logs a warning and returns nil error. This means that errors other than ErrDeviceLimitReached are swallowed and the caller will not know about them, which can hide failures in tagging devices.",
+        "category": "error_handling",
+        "end_line": 50,
+        "file": "pkg/services/anonymous/anonimpl/client.go",
+        "line": 44,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "high",
+        "suggestion": "In Anonymous.Authenticate, return all errors from TagDevice, not just ErrDeviceLimitReached, or handle them appropriately to avoid swallowing errors silently.",
+        "title": "Anonymous.Authenticate swallows errors from TagDevice except ErrDeviceLimitReached"
+      },
+      {
+        "body": "In pkg/services/anonymous/anonimpl/anonstore/database.go, the CountDevices method uses a SQL query with placeholders \"SELECT COUNT(*) FROM anon_device WHERE updated_at BETWEEN ? AND ?\". However, the placeholder syntax may differ depending on the database driver (Postgres uses $1, $2, etc.). This could cause SQL errors or incorrect counts on Postgres databases.",
+        "category": "bug",
+        "end_line": 161,
+        "file": "pkg/services/anonymous/anonimpl/anonstore/database.go",
+        "line": 159,
+        "models": [
+          "openai/gpt-4.1-mini"
+        ],
+        "severity": "medium",
+        "suggestion": "Use the appropriate placeholder syntax depending on the database driver in CountDevices SQL query, similar to how it is done in CreateOrUpdateDevice.",
+        "title": "CountDevices SQL query uses generic placeholders incompatible with some DB drivers"
+      }
+    ],
+    "head": "bbd8c50",
+    "mode": "range 7ddcd0c9611882858701f4f876fb8e449fe73980..bbd8c507cdf56f6b884373809e0b24abd4a2353d",
+    "models": [
+      {
+        "completion_tokens": 631,
+        "cost_usd": 0.0227204,
+        "elapsed_ms": 11182,
+        "error": null,
+        "model": "openai/gpt-4.1-mini",
+        "ok": true,
+        "prompt_tokens": 54277,
+        "summary": "The change adds support for anonymous device limits and updates related code accordingly. The main issues found are error handling in Anonymous.Authenticate where errors other than ErrDeviceLimitReached are swallowed, a narrow time window in updateDevice causing update failures, and potential SQL placeholder incompatibility in CountDevices. These issues could cause silent failures or incorrect behavior in device tagging and counting.",
+        "verdict": "request_changes"
+      }
+    ],
+    "stats": {
+      "build_ms": 443,
+      "diff_tokens": 4447,
+      "estimated_tokens": 47515,
+      "files_changed": 11,
+      "files_scanned": 11260,
+      "files_tokens": 22771,
+      "snippet_tokens": 20297,
+      "snippets_dropped": 0,
+      "snippets_kept": 41
+    },
+    "total_ms": 11636,
+    "verdict": "request_changes"
+  }
+}

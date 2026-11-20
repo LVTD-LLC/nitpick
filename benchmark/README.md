@@ -2,6 +2,8 @@
 
 The [measured results](RESULTS.md) cover 20 public PRs, 40 Nitpick reviews and a separate test of source coverage. Each review ran the release CLI against an actual Git checkout at the PR head. The reviewer received the same inputs it gets for a local revision-range review.
 
+The [fixed-binary 24k versus 80k comparison](budget-study/README.md) adds ten fresh PRs and investigates [ten missed references](budget-study/MISSES.md).
+
 ## Dataset and experiment
 
 [cases.json](cases.json) pins the review head, merge base and split for each PR. Starting with the five golden-comment files in [Martian's offline benchmark](https://github.com/withmartian/code-review-benchmark/tree/e616e849755441da38f18bf3adba2c9583b03803/offline), we sorted each project's ten PR URLs by the binary SHA-256 digest of `nitpick-v1:` followed by the URL. The first two went into development and the next two into holdout. Some source URLs point to Martian's evaluation forks. The manifest pins the actual reviewed commits on those forks. The reference data carries [Martian's MIT license](MARTIAN-LICENSE).

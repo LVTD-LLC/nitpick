@@ -1,0 +1,72 @@
+{
+  "case": "sentry-67876",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "f979d305d10791f97ecba8988240e90e242c6d16d4238336ebeee8d1912b1df2",
+  "review_sha256": "ecfab1a056e5daa4995455edce9045cd8d294928b0b531de20cdb39dea121f8a",
+  "references": [
+    {
+      "comment": "Null reference if github_authenticated_user state is missing",
+      "severity": "Medium",
+      "category": "bug"
+    },
+    {
+      "comment": "OAuth state uses pipeline.signature (static) instead of a per-request random value",
+      "severity": "Medium",
+      "category": "security"
+    },
+    {
+      "comment": "The code attempts to access integration.metadata[sender][login] without checking for the existence of the sender key. This causes a KeyError for integrations where the sender metadata was not set during creation",
+      "severity": "High",
+      "category": "bug"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "match",
+      "reference": 2,
+      "reason": "Both identify the same concrete bug: accessing integration.metadata['sender']['login'] without checking that the 'sender' key exists, causing a KeyError for integrations where sender metadata was not set."
+    },
+    {
+      "finding": 1,
+      "label": "uncertain",
+      "reference": null,
+      "reason": "The concern about an empty installation_id being accepted is plausible but minor; the code checks for None but not empty string. No reference covers this specific case, and it's unclear whether downstream code would actually fail on an empty string."
+    },
+    {
+      "finding": 2,
+      "label": "match",
+      "reference": 0,
+      "reason": "Both identify the same null/missing value issue: pipeline_advancer.py redirects using installation_id without validating it's present, which can produce an invalid URL or error when installation_id is None."
+    },
+    {
+      "finding": 3,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The silent exception swallowing is a pre-existing pattern in the codebase for token exchange flows and is not introduced by this diff. The diff adds this code following the same established pattern used elsewhere (OAuth2CallbackView), making this a subjective style concern rather than a new bug introduced by the PR."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 11590,
+    "completion_tokens": 278,
+    "total_tokens": 11868,
+    "cost": 0.03894,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.03894,
+      "upstream_inference_prompt_cost": 0.03477,
+      "upstream_inference_completions_cost": 0.00417
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

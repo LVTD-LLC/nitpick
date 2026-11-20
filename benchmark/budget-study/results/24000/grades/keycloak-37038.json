@@ -1,0 +1,85 @@
+{
+  "case": "keycloak-37038",
+  "judge": "anthropic/claude-sonnet-4.6",
+  "signature": "785563141c31c16848d661b334533c783ef103887e4c5ac02af47f8525dbf8f4",
+  "review_sha256": "79f3682e576191baf718177358c7fbe81ef74967d2b57ab60a0ba11565c4d702",
+  "references": [
+    {
+      "comment": "In GroupPermissionsV2.canManage(), the permission fallback checks for both VIEW and MANAGE scopes (hasPermission(null, AdminPermissionsSchema.VIEW, AdminPermissionsSchema.MANAGE)), but canManage() should only grant access for MANAGE scope, not VIEW. This means users with only VIEW permission on groups can pass the canManage() check, granting them write access they should not have. The canView() method correctly checks both VIEW and MANAGE, but canManage() should only check MANAGE.",
+      "severity": "High",
+      "category": "bug"
+    },
+    {
+      "comment": "In getGroupIdsWithViewPermission, hasPermission is called with groupResource.getId() and the same groupResource.getId() is added to granted, but hasPermission resolves resources by name (treating the argument as a group id) and the GroupPermissionEvaluator contract says this method returns group IDs that are later used as UserModel.GROUPS and in getUsersCount group filters. This mismatch means per-group VIEW_MEMBERS/MANAGE_MEMBERS permissions may not yield the expected group IDs for filtering and counts, and evaluation may effectively only look at the type-level 'all-groups' resource; consider revisiting whether this should operate on the underlying group ids (resource names) instead so it aligns with the JPA queries and the interface contract.",
+      "severity": "High",
+      "category": "api"
+    }
+  ],
+  "rows": [
+    {
+      "finding": 0,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The guard was moved inside getGroupIdsWithViewPermission() which returns empty set when canView() is true, so the session attribute is still not set for full-view users. The behavioral change is a correct refactor, not a bug."
+    },
+    {
+      "finding": 1,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "Same as finding 0: getGroupIdsWithViewPermission() returns empty set when canView() is true, preserving the original guard logic internally. No behavioral regression."
+    },
+    {
+      "finding": 2,
+      "label": "match",
+      "reference": 1,
+      "reason": "Both identify that hasPermission uses resourceStore.findByName with a group ID as the name parameter, while resources are stored with group.getId() as name via resolveGroup, creating a potential mismatch in per-group resource lookup affecting permission evaluation."
+    },
+    {
+      "finding": 3,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The new canList() is logically equivalent to the old one: canView() already covers MANAGE_USERS and VIEW_USERS, so no permission regression occurs."
+    },
+    {
+      "finding": 4,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "canViewDefault()||canManageDefault() = hasOneAdminRole(MANAGE_USERS,VIEW_USERS)||hasOneAdminRole(MANAGE_USERS) which simplifies to hasOneAdminRole(MANAGE_USERS,VIEW_USERS), identical to the new code. No regression."
+    },
+    {
+      "finding": 5,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "The simplification is logically equivalent: storing result then checking canViewByGroup vs. short-circuit OR produces the same outcome."
+    },
+    {
+      "finding": 6,
+      "label": "false_positive",
+      "reference": null,
+      "reason": "This is a positive improvement (try-with-resources), not a bug or issue introduced by the diff."
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 32437,
+    "completion_tokens": 1007,
+    "total_tokens": 33444,
+    "cost": 0.112416,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.112416,
+      "upstream_inference_prompt_cost": 0.097311,
+      "upstream_inference_completions_cost": 0.015105
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}
